@@ -72,7 +72,7 @@ export function KanbanView() {
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-6 overflow-x-auto pb-8 h-[calc(100vh-240px)] justify-center">
+        <div className="flex gap-6 overflow-x-auto pb-8">
           {visibleColumns.map((column) => {
             const columnTasks = tasks.filter((t) => t.state === column.id && !t.parentId);
 

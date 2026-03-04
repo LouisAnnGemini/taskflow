@@ -25,7 +25,11 @@ const NAV_ITEMS = [
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('kanban');
   const [showNotifications, setShowNotifications] = useState(false);
-  const { currentUser, selectedTaskId, setSelectedTaskId, notifications } = useTaskStore();
+  const { currentUser, selectedTaskId, setSelectedTaskId, notifications, checkExpiringTasks } = useTaskStore();
+
+  React.useEffect(() => {
+    checkExpiringTasks();
+  }, [checkExpiringTasks]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 

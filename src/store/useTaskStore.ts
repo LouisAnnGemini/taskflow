@@ -109,6 +109,7 @@ interface TaskStore {
 
   // Data Management
   setAllData: (data: Partial<TaskStore>) => void;
+  checkExpiringTasks: () => void;
 }
 
 const defaultUsers: User[] = [
@@ -195,16 +196,7 @@ export const useTaskStore = create<TaskStore>()(
       mediums: defaultMediums,
       currentUser: defaultUsers[0],
       activityLogs: [],
-      notifications: [
-        {
-          id: 'n1',
-          userId: 'u1',
-          title: '欢迎！',
-          message: '欢迎使用您的任务管理系统。您有 4 个任务待处理。',
-          timestamp: new Date().toISOString(),
-          isRead: false
-        }
-      ],
+      notifications: [],
       selectedTaskId: null,
       customFieldDefinitions: [],
       fieldOrder: defaultFieldOrder,
@@ -341,16 +333,6 @@ export const useTaskStore = create<TaskStore>()(
           ),
         }));
 
-        // Notify if assignees changed
-        if (updates.assigneeIds && JSON.stringify(updates.assigneeIds) !== JSON.stringify(task.assigneeIds)) {
-          get().addNotification({
-            userId: get().currentUser.id,
-            title: '负责人已更新',
-            message: `任务 "${task.title}" 的负责人已更新。`,
-            taskId: id
-          });
-        }
-
         // Log if dates changed
         if (updates.startDate || updates.dueDate) {
           get().addActivityLog({
@@ -387,14 +369,6 @@ export const useTaskStore = create<TaskStore>()(
           userId,
           action: 'status_changed',
           details: `状态从 ${oldState} 变更为 ${newState}`,
-        });
-
-        const column = get().columns.find(c => c.id === newState);
-        get().addNotification({
-          userId: get().currentUser.id,
-          title: '状态已更新',
-          message: `任务 "${task.title}" 现在处于 ${column?.title || newState}`,
-          taskId: id
         });
       },
 
@@ -489,6 +463,29 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       setAllData: (data) => set(data),
+
+      checkExpiringTasks: () => {
+        const now = new Date();
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        
+        get().tasks.forEach(task => {
+          if (task.dueDate && task.state !== 'done') {
+            const dueDate = new Date(task.dueDate);
+            if (dueDate > now && dueDate <= tomorrow) {
+              // Check if notification already exists to avoid duplicates
+              const exists = get().notifications.some(n => n.taskId === task.id && n.title === '任务即将到期');
+              if (!exists) {
+                get().addNotification({
+                  userId: get().currentUser.id,
+                  title: '任务即将到期',
+                  message: `任务 "${task.title}" 将在 24 小时内到期。`,
+                  taskId: task.id
+                });
+              }
+            }
+          }
+        });
+      },
     }),
     {
       name: 'taskflow-storage',

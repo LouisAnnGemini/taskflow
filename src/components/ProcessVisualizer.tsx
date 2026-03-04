@@ -55,7 +55,10 @@ export function ProcessVisualizer({ task, onUpdate }: ProcessVisualizerProps) {
       }
     } else {
       circleClasses = "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 border-slate-200 text-slate-400 bg-white";
-      if (isEnd) {
+      if (isEnd && activeState === 'done') {
+        circleClasses = "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-emerald-500 border-emerald-500 text-white";
+        innerContent = <Check size={20} />;
+      } else if (isEnd) {
         innerContent = <span className="text-[10px] font-bold">END</span>;
       } else {
         innerContent = <div className="w-3 h-3 rounded-full bg-slate-200" />;

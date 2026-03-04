@@ -21,13 +21,13 @@ export function TaskGraph({ taskId }: GraphProps) {
     const width = 600;
     const height = 400;
 
-    const nodes: { id: string; title: string }[] = [{ id: task.id, title: task.title }];
+    const nodes: { id: string; title: string; state: string }[] = [{ id: task.id, title: task.title, state: task.state }];
     const links: { source: string; target: string }[] = [];
 
     (task.relatedTaskIds || []).forEach(relatedId => {
       const relatedTask = getTask(relatedId);
       if (relatedTask) {
-        nodes.push({ id: relatedTask.id, title: relatedTask.title });
+        nodes.push({ id: relatedTask.id, title: relatedTask.title, state: relatedTask.state });
         links.push({ source: task.id, target: relatedTask.id });
       }
     });
@@ -58,8 +58,17 @@ export function TaskGraph({ taskId }: GraphProps) {
       .selectAll('circle')
       .data(nodes)
       .enter().append('circle')
-      .attr('r', 12)
-      .attr('fill', (d: any) => d.id === task.id ? '#4f46e5' : '#94a3b8')
+      .attr('r', (d: any) => d.id === task.id ? 18 : 12)
+      .attr('fill', (d: any) => {
+        if (d.id === task.id) return '#8b5cf6'; // Purple
+        switch (d.state) {
+          case 'todo': return '#fbcfe8'; // Light pink
+          case 'in_progress': return '#fef08a'; // Light yellow
+          case 'in_review': return '#d6b49c'; // Light brown
+          case 'done': return '#bbf7d0'; // Light green
+          default: return '#94a3b8'; // Default gray
+        }
+      })
       .attr('cursor', 'pointer')
       .on('click', (event, d: any) => {
         setSelectedTaskId(d.id);

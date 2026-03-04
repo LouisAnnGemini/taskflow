@@ -896,15 +896,24 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             </button>
                           </div>
                         ) : (
-                          <span 
-                            className={`flex-1 cursor-pointer ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
-                            onClick={() => {
-                              setEditingSubtaskId(subtask.id);
-                              setEditSubtaskTitle(subtask.title);
-                            }}
-                          >
-                            {subtask.title}
-                          </span>
+                          <>
+                            <span 
+                              className={`flex-1 cursor-pointer ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
+                              onClick={() => {
+                                setEditingSubtaskId(subtask.id);
+                                setEditSubtaskTitle(subtask.title);
+                              }}
+                            >
+                              {subtask.title}
+                            </span>
+                            <button 
+                              onClick={() => deleteTask(subtask.id)}
+                              className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="删除子任务"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
                         )}
                       </div>
                     ))}
