@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
 import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus } from 'lucide-react';
@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 import { TaskCard } from './TaskCard';
 import { Avatar } from './Avatar';
 import { ProcessVisualizer } from './ProcessVisualizer';
+import { TaskGraph } from './TaskGraph';
 
 interface TaskModalProps {
   taskId: string;
@@ -14,12 +15,22 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId } = useTaskStore();
   const task = getTask(taskId);
   
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [taskId]);
+
+  const [activeTab, setActiveTab] = useState<'details' | 'logs' | 'graph'>('details');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editSubtaskTitle, setEditSubtaskTitle] = useState('');
+  const [relatedTaskSearchQuery, setRelatedTaskSearchQuery] = useState('');
   const [isManagingLogs, setIsManagingLogs] = useState(false);
   const [tempLogs, setTempLogs] = useState<ActivityLog[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -743,6 +754,28 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </button>
             )}
           </div>
+          
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            <button 
+              onClick={() => setActiveTab('details')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              详情
+            </button>
+            <button 
+              onClick={() => setActiveTab('logs')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              活动日志
+            </button>
+            <button 
+              onClick={() => setActiveTab('graph')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'graph' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              关联图谱
+            </button>
+          </div>
+
           <div className="flex items-center gap-2">
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
@@ -779,117 +812,185 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col lg:flex-row gap-8">
-          {/* Main Column */}
-          <div className="flex-1 space-y-8">
-            {fieldOrder.find(f => f.id === 'title')?.isVisible !== false && (
-              <div>
-                <input
-                  type="text"
-                  value={task.title}
-                  onChange={(e) => handleUpdate({ title: e.target.value })}
-                  className="w-full text-2xl font-bold text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-300"
-                  placeholder="任务标题"
-                />
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-slate-700 font-medium">
-                <Activity size={18} /> 流程可视化
-              </div>
-              <ProcessVisualizer task={task} onUpdate={handleUpdate} />
-            </div>
-
-            {fieldOrder.find(f => f.id === 'description')?.isVisible !== false && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-slate-700 font-medium">
-                  <AlignLeft size={18} /> 描述
-                </div>
-                <textarea
-                  value={task.description || ''}
-                  onChange={(e) => handleUpdate({ description: e.target.value })}
-                  className="w-full bg-slate-50 border-slate-200 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="添加更详细的描述..."
-                />
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-slate-700 font-medium">
-                <ListTree size={18} /> 子任务
-              </div>
-              
-              <div className="space-y-3">
-                {subtasks.map(subtask => (
-                  <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 group">
-                    <input 
-                      type="checkbox" 
-                      checked={subtask.state === 'done'}
-                      onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
-                      className="w-5 h-5 rounded text-emerald-500 focus:ring-emerald-500 border-slate-300"
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 flex flex-col lg:flex-row gap-8">
+          {activeTab === 'details' ? (
+            <>
+              {/* Main Column */}
+              <div className="flex-1 space-y-8">
+                {fieldOrder.find(f => f.id === 'title')?.isVisible !== false && (
+                  <div>
+                    <input
+                      type="text"
+                      value={task.title}
+                      onChange={(e) => handleUpdate({ title: e.target.value })}
+                      className="w-full text-2xl font-bold text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-300"
+                      placeholder="任务标题"
                     />
-                    {editingSubtaskId === subtask.id ? (
-                      <div className="flex-1 flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={editSubtaskTitle}
-                          onChange={(e) => setEditSubtaskTitle(e.target.value)}
-                          className="flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              updateTask(subtask.id, { title: editSubtaskTitle });
-                              setEditingSubtaskId(null);
-                            }
-                          }}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-slate-700 font-medium">
+                    <Activity size={18} /> 流程可视化
+                  </div>
+                  <ProcessVisualizer task={task} onUpdate={handleUpdate} />
+                </div>
+
+                {fieldOrder.find(f => f.id === 'description')?.isVisible !== false && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-slate-700 font-medium">
+                      <AlignLeft size={18} /> 描述
+                    </div>
+                    <textarea
+                      value={task.description || ''}
+                      onChange={(e) => handleUpdate({ description: e.target.value })}
+                      className="w-full bg-slate-50 border-slate-200 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="添加更详细的描述..."
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-700 font-medium">
+                    <ListTree size={18} /> 子任务
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {subtasks.map(subtask => (
+                      <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 group">
+                        <input 
+                          type="checkbox" 
+                          checked={subtask.state === 'done'}
+                          onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
+                          className="w-5 h-5 rounded text-emerald-500 focus:ring-emerald-500 border-slate-300"
                         />
-                        <button 
-                          onClick={() => {
-                            updateTask(subtask.id, { title: editSubtaskTitle });
-                            setEditingSubtaskId(null);
-                          }}
-                          className="text-emerald-600 hover:text-emerald-700"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button 
-                          onClick={() => setEditingSubtaskId(null)}
-                          className="text-slate-400 hover:text-slate-600"
-                        >
-                          <X size={16} />
-                        </button>
+                        {editingSubtaskId === subtask.id ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editSubtaskTitle}
+                              onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                              className="flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  updateTask(subtask.id, { title: editSubtaskTitle });
+                                  setEditingSubtaskId(null);
+                                }
+                              }}
+                            />
+                            <button 
+                              onClick={() => {
+                                updateTask(subtask.id, { title: editSubtaskTitle });
+                                setEditingSubtaskId(null);
+                              }}
+                              className="text-emerald-600 hover:text-emerald-700"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button 
+                              onClick={() => setEditingSubtaskId(null)}
+                              className="text-slate-400 hover:text-slate-600"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span 
+                            className={`flex-1 cursor-pointer ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
+                            onClick={() => {
+                              setEditingSubtaskId(subtask.id);
+                              setEditSubtaskTitle(subtask.title);
+                            }}
+                          >
+                            {subtask.title}
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <span 
-                        className={`flex-1 cursor-pointer ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
-                        onClick={() => {
-                          setEditingSubtaskId(subtask.id);
-                          setEditSubtaskTitle(subtask.title);
-                        }}
-                      >
-                        {subtask.title}
-                      </span>
+                    ))}
+                    
+                    <form onSubmit={handleAddSubtask} className="flex items-center gap-2 mt-2">
+                      <input
+                        type="text"
+                        value={newSubtaskTitle}
+                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                        placeholder="添加子任务..."
+                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+                        添加
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-700 font-medium">
+                    <ListTree size={18} /> 关联任务
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(task.relatedTaskIds || []).map(relatedId => {
+                      const relatedTask = getTask(relatedId);
+                      if (!relatedTask) return null;
+                      return (
+                        <div key={relatedId} className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100 text-sm">
+                          <button onClick={() => setSelectedTaskId(relatedId)} className="hover:underline">
+                            {relatedTask.title}
+                          </button>
+                          <button onClick={() => {
+                            const { unrelateTask } = useTaskStore.getState();
+                            unrelateTask(task.id, relatedId);
+                          }} className="text-indigo-400 hover:text-indigo-600">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      placeholder="搜索任务以关联..."
+                      value={relatedTaskSearchQuery}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                      onChange={(e) => setRelatedTaskSearchQuery(e.target.value)}
+                    />
+                    {relatedTaskSearchQuery && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                        {useTaskStore.getState().tasks
+                          .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
+                          .map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => {
+                                const { relateTask } = useTaskStore.getState();
+                                relateTask(task.id, t.id);
+                                setRelatedTaskSearchQuery('');
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors"
+                            >
+                              {t.title}
+                            </button>
+                          ))}
+                      </div>
                     )}
                   </div>
-                ))}
-                
-                <form onSubmit={handleAddSubtask} className="flex items-center gap-2 mt-2">
-                  <input
-                    type="text"
-                    value={newSubtaskTitle}
-                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                    placeholder="添加子任务..."
-                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
-                    添加
-                  </button>
-                </form>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-4">
+
+              {/* Sidebar */}
+              <div className="w-full lg:w-72 space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-100 h-fit">
+                <div className="space-y-4">
+                  {fieldOrder.map(config => {
+                    if (config.id === 'title' || config.id === 'description') return null;
+                    return renderField(config);
+                  })}
+                </div>
+              </div>
+            </>
+          ) : activeTab === 'logs' ? (
+            <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-700 font-medium">
                   <Activity size={18} /> 活动日志
@@ -960,17 +1061,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 })}
               </div>
             </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="w-full lg:w-72 space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-100 h-fit">
-            <div className="space-y-4">
-              {fieldOrder.map(config => {
-                if (config.id === 'title' || config.id === 'description') return null;
-                return renderField(config);
-              })}
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <TaskGraph taskId={task.id} />
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

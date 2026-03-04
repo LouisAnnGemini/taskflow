@@ -100,6 +100,8 @@ interface TaskStore {
   
   // Quick Actions
   instantDone: (title: string, userId: string) => void;
+  relateTask: (taskId: string, relatedTaskId: string) => void;
+  unrelateTask: (taskId: string, relatedTaskId: string) => void;
   
   // Getters
   getSubtasks: (parentId: string) => Task[];
@@ -442,6 +444,40 @@ export const useTaskStore = create<TaskStore>()(
           action: 'created_and_completed',
           details: `立即完成了任务 "${title}"`,
         });
+      },
+
+      relateTask: (taskId, relatedTaskId) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.id === taskId) {
+              const related = t.relatedTaskIds || [];
+              if (!related.includes(relatedTaskId)) {
+                return { ...t, relatedTaskIds: [...related, relatedTaskId] };
+              }
+            }
+            if (t.id === relatedTaskId) {
+              const related = t.relatedTaskIds || [];
+              if (!related.includes(taskId)) {
+                return { ...t, relatedTaskIds: [...related, taskId] };
+              }
+            }
+            return t;
+          }),
+        }));
+      },
+
+      unrelateTask: (taskId, relatedTaskId) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.id === taskId) {
+              return { ...t, relatedTaskIds: (t.relatedTaskIds || []).filter(id => id !== relatedTaskId) };
+            }
+            if (t.id === relatedTaskId) {
+              return { ...t, relatedTaskIds: (t.relatedTaskIds || []).filter(id => id !== taskId) };
+            }
+            return t;
+          }),
+        }));
       },
 
       getSubtasks: (parentId) => {

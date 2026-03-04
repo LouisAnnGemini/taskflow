@@ -14,7 +14,8 @@ import {
   PlayCircle,
   Eye,
   PauseCircle,
-  UserPlus
+  UserPlus,
+  Link
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../utils/cn';
@@ -156,6 +157,11 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {(task.relatedTaskIds?.length || 0) > 0 && (
+            <div className="flex items-center gap-1 text-xs text-slate-500">
+              <Link size={12} /> {task.relatedTaskIds?.length}
+            </div>
+          )}
           {task.isDelegated && <UserPlus size={16} className="text-purple-500" title="已委派" />}
           <div className="flex -space-x-2">
             {assignees.map(assignee => (

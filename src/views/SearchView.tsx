@@ -14,6 +14,17 @@ export function SearchView() {
   const [selectedState, setSelectedState] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [selectedMedium, setSelectedMedium] = useState<string>('all');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [progressRange, setProgressRange] = useState({ min: '', max: '' });
+  const [negatedFilters, setNegatedFilters] = useState<Record<string, boolean>>({
+    creator: false,
+    assignee: false,
+    reporter: false,
+    delegation: false,
+    state: false,
+    priority: false,
+    medium: false,
+  });
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
@@ -25,51 +36,66 @@ export function SearchView() {
         if (!matchesTitle && !matchesDesc) return false;
       }
 
+      // Date range filter
+      if (dateRange.start && task.startDate && task.startDate < dateRange.start) return false;
+      if (dateRange.end && task.dueDate && task.dueDate > dateRange.end) return false;
+
+      // Progress range filter
+      const minProgress = progressRange.min === '' ? 0 : parseInt(progressRange.min);
+      const maxProgress = progressRange.max === '' ? 100 : parseInt(progressRange.max);
+      if (task.progress < minProgress || task.progress > maxProgress) return false;
+
       // Creator filter
-      if (selectedCreator !== 'all' && task.creatorId !== selectedCreator) return false;
+      if (selectedCreator !== 'all') {
+        const matches = task.creatorId === selectedCreator;
+        if (negatedFilters.creator ? matches : !matches) return false;
+      }
 
       // Assignee filter
       if (selectedAssignee !== 'all') {
-        if (selectedAssignee === 'unassigned') {
-          if (task.assigneeIds && task.assigneeIds.length > 0) return false;
-        } else {
-          if (!task.assigneeIds?.includes(selectedAssignee)) return false;
-        }
+        const matches = selectedAssignee === 'unassigned' 
+          ? (!task.assigneeIds || task.assigneeIds.length === 0)
+          : task.assigneeIds?.includes(selectedAssignee);
+        if (negatedFilters.assignee ? matches : !matches) return false;
       }
 
       // Reporter filter
       if (selectedReporter !== 'all') {
-        if (selectedReporter === 'unassigned') {
-          if (task.reporterIds && task.reporterIds.length > 0) return false;
-        } else {
-          if (!task.reporterIds?.includes(selectedReporter)) return false;
-        }
+        const matches = selectedReporter === 'unassigned'
+          ? (!task.reporterIds || task.reporterIds.length === 0)
+          : task.reporterIds?.includes(selectedReporter);
+        if (negatedFilters.reporter ? matches : !matches) return false;
       }
 
       // Delegation filter
       if (selectedDelegation !== 'all') {
-        if (selectedDelegation === 'delegated' && !task.isDelegated) return false;
-        if (selectedDelegation === 'not_delegated' && task.isDelegated) return false;
+        const matches = selectedDelegation === 'delegated' ? task.isDelegated : !task.isDelegated;
+        if (negatedFilters.delegation ? matches : !matches) return false;
       }
 
       // State filter
-      if (selectedState !== 'all' && task.state !== selectedState) return false;
+      if (selectedState !== 'all') {
+        const matches = task.state === selectedState;
+        if (negatedFilters.state ? matches : !matches) return false;
+      }
 
       // Priority filter
-      if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
+      if (selectedPriority !== 'all') {
+        const matches = task.priority === selectedPriority;
+        if (negatedFilters.priority ? matches : !matches) return false;
+      }
 
       // Medium filter
       if (selectedMedium !== 'all') {
-        if (selectedMedium === 'none') {
-          if (task.mediumTags && task.mediumTags.length > 0) return false;
-        } else {
-          if (!task.mediumTags?.includes(selectedMedium)) return false;
-        }
+        const matches = selectedMedium === 'none'
+          ? (!task.mediumTags || task.mediumTags.length === 0)
+          : task.mediumTags?.includes(selectedMedium);
+        if (negatedFilters.medium ? matches : !matches) return false;
       }
 
       return true;
     }).sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
-  }, [tasks, searchQuery, selectedCreator, selectedAssignee, selectedReporter, selectedDelegation, selectedState, selectedPriority, selectedMedium]);
+  }, [tasks, searchQuery, selectedCreator, selectedAssignee, selectedReporter, selectedDelegation, selectedState, selectedPriority, selectedMedium, dateRange, progressRange, negatedFilters]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -80,6 +106,17 @@ export function SearchView() {
     setSelectedState('all');
     setSelectedPriority('all');
     setSelectedMedium('all');
+    setDateRange({ start: '', end: '' });
+    setProgressRange({ min: '', max: '' });
+    setNegatedFilters({
+      creator: false,
+      assignee: false,
+      reporter: false,
+      delegation: false,
+      state: false,
+      priority: false,
+      medium: false,
+    });
   };
 
   const activeFilterCount = [
@@ -90,6 +127,15 @@ export function SearchView() {
     selectedState !== 'all',
     selectedPriority !== 'all',
     selectedMedium !== 'all',
+    dateRange.start !== '' || dateRange.end !== '',
+    progressRange.min !== '' || progressRange.max !== '',
+    (selectedCreator !== 'all' && negatedFilters.creator),
+    (selectedAssignee !== 'all' && negatedFilters.assignee),
+    (selectedReporter !== 'all' && negatedFilters.reporter),
+    (selectedDelegation !== 'all' && negatedFilters.delegation),
+    (selectedState !== 'all' && negatedFilters.state),
+    (selectedPriority !== 'all' && negatedFilters.priority),
+    (selectedMedium !== 'all' && negatedFilters.medium),
   ].filter(Boolean).length;
 
   return (
@@ -126,73 +172,122 @@ export function SearchView() {
             )}
           </div>
 
-          <select
-            value={selectedState}
-            onChange={(e) => setSelectedState(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-          >
-            <option value="all">所有状态</option>
-            {columns.map(c => (
-              <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={selectedState}
+              onChange={(e) => setSelectedState(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+            >
+              <option value="all">所有状态</option>
+              {columns.map(c => (
+                <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
+              ))}
+            </select>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input type="checkbox" checked={negatedFilters.state} onChange={e => setNegatedFilters({...negatedFilters, state: e.target.checked})} />
+              排除
+            </label>
+          </div>
 
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-          >
-            <option value="all">所有优先级</option>
-            {priorities.map(p => (
-              <option key={p.id} value={p.id}>{p.icon ? `${p.icon} ` : ''}{p.label}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+            >
+              <option value="all">所有优先级</option>
+              {priorities.map(p => (
+                <option key={p.id} value={p.id}>{p.icon ? `${p.icon} ` : ''}{p.label}</option>
+              ))}
+            </select>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input type="checkbox" checked={negatedFilters.priority} onChange={e => setNegatedFilters({...negatedFilters, priority: e.target.checked})} />
+              排除
+            </label>
+          </div>
 
-          <select
-            value={selectedAssignee}
-            onChange={(e) => setSelectedAssignee(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-          >
-            <option value="all">所有负责人</option>
-            <option value="unassigned">未指派</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={selectedAssignee}
+              onChange={(e) => setSelectedAssignee(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+            >
+              <option value="all">所有负责人</option>
+              <option value="unassigned">未指派</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input type="checkbox" checked={negatedFilters.assignee} onChange={e => setNegatedFilters({...negatedFilters, assignee: e.target.checked})} />
+              排除
+            </label>
+          </div>
 
-          <select
-            value={selectedReporter}
-            onChange={(e) => setSelectedReporter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-          >
-            <option value="all">所有提出人</option>
-            <option value="unassigned">无提出人</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={selectedReporter}
+              onChange={(e) => setSelectedReporter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+            >
+              <option value="all">所有提出人</option>
+              <option value="unassigned">无提出人</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input type="checkbox" checked={negatedFilters.reporter} onChange={e => setNegatedFilters({...negatedFilters, reporter: e.target.checked})} />
+              排除
+            </label>
+          </div>
 
-          <select
-            value={selectedDelegation}
-            onChange={(e) => setSelectedDelegation(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-          >
-            <option value="all">所有委派状态</option>
-            <option value="delegated">已委派</option>
-            <option value="not_delegated">未委派</option>
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={selectedDelegation}
+              onChange={(e) => setSelectedDelegation(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+            >
+              <option value="all">所有委派状态</option>
+              <option value="delegated">已委派</option>
+              <option value="not_delegated">未委派</option>
+            </select>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input type="checkbox" checked={negatedFilters.delegation} onChange={e => setNegatedFilters({...negatedFilters, delegation: e.target.checked})} />
+              排除
+            </label>
+          </div>
 
-          <select
-            value={selectedMedium}
-            onChange={(e) => setSelectedMedium(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-          >
-            <option value="all">所有媒介</option>
-            <option value="none">无媒介</option>
-            {mediums.map(m => (
-              <option key={m.id} value={m.id}>{m.icon ? `${m.icon} ` : ''}{m.label}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={selectedMedium}
+              onChange={(e) => setSelectedMedium(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+            >
+              <option value="all">所有媒介</option>
+              <option value="none">无媒介</option>
+              {mediums.map(m => (
+                <option key={m.id} value={m.id}>{m.icon ? `${m.icon} ` : ''}{m.label}</option>
+              ))}
+            </select>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input type="checkbox" checked={negatedFilters.medium} onChange={e => setNegatedFilters({...negatedFilters, medium: e.target.checked})} />
+              排除
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            时间段: 
+            <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs" />
+            -
+            <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs" />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            进度范围 (%): 
+            <input type="number" min="0" max="100" placeholder="最小" value={progressRange.min} onChange={e => setProgressRange({...progressRange, min: e.target.value})} className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs w-16" />
+            -
+            <input type="number" min="0" max="100" placeholder="最大" value={progressRange.max} onChange={e => setProgressRange({...progressRange, max: e.target.value})} className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs w-16" />
+          </div>
 
           {activeFilterCount > 0 && (
             <button

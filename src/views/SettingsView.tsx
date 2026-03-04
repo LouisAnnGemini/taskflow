@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { useTaskStore } from '../store/useTaskStore';
 import { User, Column, PriorityOption, MediumOption, CustomFieldDefinition, CustomFieldType, FieldConfig } from '../types/task';
 import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
@@ -219,6 +220,14 @@ export function SettingsView() {
     if (targetIndex < 0 || targetIndex >= newMediums.length) return;
     [newMediums[index], newMediums[targetIndex]] = [newMediums[targetIndex], newMediums[index]];
     setMediums(newMediums);
+  };
+
+  const handleExportExcel = () => {
+    const state = useTaskStore.getState();
+    const worksheet = XLSX.utils.json_to_sheet(state.tasks);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
+    XLSX.writeFile(workbook, `taskflow-tasks-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleExport = () => {
@@ -1121,6 +1130,12 @@ export function SettingsView() {
         
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            >
+              <Download size={18} /> 导出为 Excel
+            </button>
             <button
               onClick={handleExport}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"

@@ -77,6 +77,8 @@ export interface Task {
   dueDate?: string; // ISO date string
   progress: number; // 0 to 100
   
+  relatedTaskIds?: string[];
+  
   recurrence: Recurrence;
   
   createdAt: string; // ISO date string
