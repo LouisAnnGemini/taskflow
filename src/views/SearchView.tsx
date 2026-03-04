@@ -68,7 +68,7 @@ export function SearchView() {
       }
 
       return true;
-    });
+    }).sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
   }, [tasks, searchQuery, selectedCreator, selectedAssignee, selectedReporter, selectedDelegation, selectedState, selectedPriority, selectedMedium]);
 
   const clearFilters = () => {
