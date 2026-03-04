@@ -77,7 +77,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       onClick={handleClick}
       className={cn(
         "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer group relative",
-        task.isPinned ? "border-red-300 bg-red-50" : task.isDelegated ? "border-blue-50 bg-blue-50" : "border-slate-200"
+        task.isPinned ? "border-red-300 bg-red-50" : task.isDelegated ? "border-zinc-50 bg-zinc-50" : "border-slate-200"
       )}
     >
       <div className="flex justify-between items-start mb-2">
