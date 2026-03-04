@@ -5,9 +5,10 @@ import { cn } from '../utils/cn';
 
 interface ProcessVisualizerProps {
   task: Task;
+  onUpdate?: (updates: Partial<Task>) => void;
 }
 
-export function ProcessVisualizer({ task }: ProcessVisualizerProps) {
+export function ProcessVisualizer({ task, onUpdate }: ProcessVisualizerProps) {
   const isSnoozed = task.state === 'snoozed';
   // If snoozed, we use the previous state to determine where we are in the flow
   const activeState = isSnoozed ? (task.previousState || 'todo') : task.state;
@@ -27,7 +28,7 @@ export function ProcessVisualizer({ task }: ProcessVisualizerProps) {
     return 'pending';
   };
 
-  const renderNode = (label: string, status: 'completed' | 'current' | 'pending', isEnd: boolean = false, isDelegatedNode: boolean = false) => {
+  const renderNode = (label: string, status: 'completed' | 'current' | 'pending', stateValue: string, isEnd: boolean = false, isDelegatedNode: boolean = false) => {
     let circleClasses = "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-white";
     let innerContent = null;
     let textClasses = "mt-2 text-xs font-medium whitespace-nowrap absolute top-12";
@@ -63,7 +64,11 @@ export function ProcessVisualizer({ task }: ProcessVisualizerProps) {
     }
 
     return (
-      <div className="flex flex-col items-center relative z-10">
+      <div 
+        className={cn("flex flex-col items-center relative z-10 cursor-pointer transition-transform hover:scale-105", status !== 'current' && "hover:opacity-80")}
+        onClick={() => onUpdate?.({ state: stateValue })}
+        title={`点击切换至: ${label}`}
+      >
         <div className={circleClasses}>
           {innerContent}
         </div>
@@ -106,24 +111,24 @@ export function ProcessVisualizer({ task }: ProcessVisualizerProps) {
       )}
 
       <div className={cn("flex items-start justify-between relative w-full", isSnoozed && "opacity-60 grayscale-[0.3]")}>
-        {renderNode('待办', todoStatus)}
+        {renderNode('待办', todoStatus, 'todo')}
         {renderLine(todoStatus === 'completed' ? 'completed' : 'pending')}
         
         {isDelegated ? (
           <>
-            {renderNode('已委派', inProgressStatus, false, true)}
+            {renderNode('已委派', inProgressStatus, 'in_progress', false, true)}
             {renderLine(inProgressStatus === 'completed' ? 'completed' : 'pending', true)}
           </>
         ) : (
           <>
-            {renderNode('进行中', inProgressStatus)}
+            {renderNode('进行中', inProgressStatus, 'in_progress')}
             {renderLine(inProgressStatus === 'completed' ? 'completed' : 'pending')}
           </>
         )}
 
-        {renderNode('审核', reviewStatus)}
+        {renderNode('审核', reviewStatus, 'in_review')}
         {renderLine(reviewStatus === 'completed' ? 'completed' : 'pending')}
-        {renderNode('完成', doneStatus, true)}
+        {renderNode('完成', doneStatus, 'done', true)}
       </div>
     </div>
   );

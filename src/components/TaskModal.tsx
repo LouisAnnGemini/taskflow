@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
-import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search } from 'lucide-react';
+import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { nanoid } from 'nanoid';
 import { TaskCard } from './TaskCard';
 import { Avatar } from './Avatar';
 import { ProcessVisualizer } from './ProcessVisualizer';
@@ -13,7 +14,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser } = useTaskStore();
   const task = getTask(taskId);
   
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -425,7 +426,15 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       );
                     })}
                   {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                    <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                    <button
+                      onClick={() => {
+                        addUser({ id: nanoid(), name: searchQuery });
+                        setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"
+                    >
+                      <Plus size={14} /> 快速新建: {searchQuery}
+                    </button>
                   )}
                 </div>
               )}
@@ -603,7 +612,15 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                           );
                         })}
                       {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                        <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                        <button
+                          onClick={() => {
+                            addUser({ id: nanoid(), name: searchQuery });
+                            setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"
+                        >
+                          <Plus size={14} /> 快速新建: {searchQuery}
+                        </button>
                       )}
                     </div>
                   )}
@@ -702,6 +719,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               />
               置顶任务
             </label>
+            {task.state !== 'done' && (
+              <button 
+                onClick={() => handleUpdate({ state: 'done' })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors"
+              >
+                <Check size={16} /> 立即完成
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {showDeleteConfirm ? (
@@ -758,7 +783,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               <div className="flex items-center gap-2 text-slate-700 font-medium">
                 <Activity size={18} /> 流程可视化
               </div>
-              <ProcessVisualizer task={task} />
+              <ProcessVisualizer task={task} onUpdate={handleUpdate} />
             </div>
 
             {fieldOrder.find(f => f.id === 'description')?.isVisible !== false && (
