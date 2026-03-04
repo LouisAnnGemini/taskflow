@@ -100,20 +100,12 @@ export default function App() {
                 <NotificationDropdown onClose={() => setShowNotifications(false)} />
               )}
             </div>
-            <div className="h-8 w-px bg-slate-200 mx-2"></div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-700 hidden sm:block">{currentUser.name}</span>
-              <Avatar 
-                name={currentUser.name} 
-                className="w-8 h-8 border border-white shadow-sm text-xs"
-              />
-            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <main className={`flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8 ${currentView === 'kanban' ? 'max-w-none' : 'max-w-7xl'}`}>
         <QuickCapture />
         
         <div className="mt-4 md:mt-8">

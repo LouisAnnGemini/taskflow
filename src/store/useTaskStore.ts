@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
-import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification } from '../types/task';
+import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig } from '../types/task';
 
 const defaultColumns: Column[] = [
   { id: 'todo', title: '待办', color: 'bg-slate-100', icon: '📝' },
@@ -26,6 +26,21 @@ const defaultMediums: MediumOption[] = [
   { id: 'other', label: '其他', icon: '📌' },
 ];
 
+const defaultFieldOrder: FieldConfig[] = [
+  { id: 'title', name: '标题', isCustom: false, isVisible: true },
+  { id: 'description', name: '描述', isCustom: false, isVisible: true },
+  { id: 'state', name: '状态', isCustom: false, isVisible: true },
+  { id: 'priority', name: '优先级', isCustom: false, isVisible: true },
+  { id: 'assigneeIds', name: '负责人', isCustom: false, isVisible: true },
+  { id: 'isDelegated', name: '委派状态', isCustom: false, isVisible: true },
+  { id: 'reporterIds', name: '审核人', isCustom: false, isVisible: true },
+  { id: 'startDate', name: '开始日期', isCustom: false, isVisible: true },
+  { id: 'dueDate', name: '截止日期', isCustom: false, isVisible: true },
+  { id: 'progress', name: '进度', isCustom: false, isVisible: true },
+  { id: 'recurrence', name: '重复', isCustom: false, isVisible: true },
+  { id: 'mediumTags', name: '媒介标签', isCustom: false, isVisible: true },
+];
+
 interface TaskStore {
   tasks: Task[];
   users: User[];
@@ -36,12 +51,17 @@ interface TaskStore {
   activityLogs: ActivityLog[];
   notifications: Notification[];
   selectedTaskId: string | null;
+  customFieldDefinitions: CustomFieldDefinition[];
+  fieldOrder: FieldConfig[];
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   changeTaskState: (id: string, newState: TaskState, userId: string) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
+  updateActivityLog: (id: string, updates: Partial<ActivityLog>) => void;
+  deleteActivityLog: (id: string) => void;
+  setActivityLogs: (logs: ActivityLog[]) => void;
   setSelectedTaskId: (id: string | null) => void;
   
   // Notification Management
@@ -63,6 +83,12 @@ interface TaskStore {
   addMedium: (medium: MediumOption) => void;
   updateMedium: (id: string, updates: Partial<MediumOption>) => void;
   deleteMedium: (id: string) => void;
+
+  // Custom Fields
+  addCustomFieldDefinition: (field: CustomFieldDefinition) => void;
+  updateCustomFieldDefinition: (id: string, updates: Partial<CustomFieldDefinition>) => void;
+  deleteCustomFieldDefinition: (id: string) => void;
+  setFieldOrder: (order: FieldConfig[]) => void;
   
   // Quick Actions
   instantDone: (title: string, userId: string) => void;
@@ -170,6 +196,8 @@ export const useTaskStore = create<TaskStore>()(
         }
       ],
       selectedTaskId: null,
+      customFieldDefinitions: [],
+      fieldOrder: defaultFieldOrder,
 
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
 
@@ -225,6 +253,23 @@ export const useTaskStore = create<TaskStore>()(
         mediums: state.mediums.filter(m => m.id !== id)
       })),
 
+      addCustomFieldDefinition: (field) => {
+        set((state) => {
+          const newDefinitions = [...state.customFieldDefinitions, field];
+          const newFieldOrder = [...state.fieldOrder, { id: field.id, name: field.name, isCustom: true, isVisible: true }];
+          return { customFieldDefinitions: newDefinitions, fieldOrder: newFieldOrder };
+        });
+      },
+      updateCustomFieldDefinition: (id, updates) => set((state) => ({
+        customFieldDefinitions: state.customFieldDefinitions.map(f => f.id === id ? { ...f, ...updates } : f),
+        fieldOrder: state.fieldOrder.map(f => f.id === id ? { ...f, name: updates.name || f.name } : f)
+      })),
+      deleteCustomFieldDefinition: (id) => set((state) => ({
+        customFieldDefinitions: state.customFieldDefinitions.filter(f => f.id !== id),
+        fieldOrder: state.fieldOrder.filter(f => f.id !== id)
+      })),
+      setFieldOrder: (order) => set({ fieldOrder: order }),
+
       addTask: (taskData) => {
         const now = new Date().toISOString();
         const newTask: Task = {
@@ -242,6 +287,7 @@ export const useTaskStore = create<TaskStore>()(
           createdAt: now,
           updatedAt: now,
           startDate: taskData.startDate || now, // Default to current date
+          customFields: taskData.customFields || {},
           ...taskData,
         };
 
@@ -320,6 +366,16 @@ export const useTaskStore = create<TaskStore>()(
         };
         set((state) => ({ activityLogs: [...state.activityLogs, newLog] }));
       },
+
+      updateActivityLog: (id, updates) => set((state) => ({
+        activityLogs: state.activityLogs.map(log => log.id === id ? { ...log, ...updates } : log)
+      })),
+
+      deleteActivityLog: (id) => set((state) => ({
+        activityLogs: state.activityLogs.filter(log => log.id !== id)
+      })),
+
+      setActivityLogs: (logs) => set({ activityLogs: logs }),
 
       instantDone: (title, userId) => {
         const now = new Date().toISOString();

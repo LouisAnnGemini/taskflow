@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
-import { User, Column, PriorityOption, MediumOption } from '../types/task';
-import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff } from 'lucide-react';
+import { User, Column, PriorityOption, MediumOption, CustomFieldDefinition, CustomFieldType, FieldConfig } from '../types/task';
+import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 import { nanoid } from 'nanoid';
 
@@ -62,6 +62,8 @@ export function SettingsView() {
     addColumn, updateColumn, deleteColumn,
     addPriority, updatePriority, deletePriority,
     addMedium, updateMedium, deleteMedium,
+    customFieldDefinitions, addCustomFieldDefinition, updateCustomFieldDefinition, deleteCustomFieldDefinition,
+    fieldOrder, setFieldOrder,
     setAllData
   } = useTaskStore();
   
@@ -76,6 +78,9 @@ export function SettingsView() {
 
   const [editingMediumId, setEditingMediumId] = useState<string | null>(null);
   const [editMediumForm, setEditMediumForm] = useState<Partial<MediumOption>>({});
+
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [editFieldForm, setEditFieldForm] = useState<Partial<CustomFieldDefinition>>({});
 
   const handleSaveUser = (id: string) => {
     if (id === 'new') {
@@ -129,6 +134,59 @@ export function SettingsView() {
       updateMedium(id, editMediumForm);
     }
     setEditingMediumId(null);
+  };
+
+  const handleSaveField = (id: string) => {
+    if (id === 'new') {
+      const fieldId = nanoid();
+      addCustomFieldDefinition({
+        id: fieldId,
+        name: editFieldForm.name || '新字段',
+        type: editFieldForm.type || 'text',
+        options: editFieldForm.options || [],
+      });
+    } else {
+      updateCustomFieldDefinition(id, editFieldForm);
+    }
+    setEditingFieldId(null);
+  };
+
+  const moveField = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...fieldOrder];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newOrder.length) return;
+    
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setFieldOrder(newOrder);
+  };
+
+  const toggleFieldVisibility = (id: string) => {
+    const newOrder = fieldOrder.map(f => 
+      f.id === id ? { ...f, isVisible: !f.isVisible } : f
+    );
+    setFieldOrder(newOrder);
+  };
+
+  const moveOption = (fieldId: string, optionIndex: number, direction: 'up' | 'down') => {
+    const field = customFieldDefinitions.find(f => f.id === fieldId);
+    if (!field || !field.options) return;
+
+    const newOptions = [...field.options];
+    const targetIndex = direction === 'up' ? optionIndex - 1 : optionIndex + 1;
+    if (targetIndex < 0 || targetIndex >= newOptions.length) return;
+
+    [newOptions[optionIndex], newOptions[targetIndex]] = [newOptions[targetIndex], newOptions[optionIndex]];
+    updateCustomFieldDefinition(fieldId, { options: newOptions });
+  };
+
+  const moveTempOption = (optionIndex: number, direction: 'up' | 'down') => {
+    if (!editFieldForm.options) return;
+    const newOptions = [...editFieldForm.options];
+    const targetIndex = direction === 'up' ? optionIndex - 1 : optionIndex + 1;
+    if (targetIndex < 0 || targetIndex >= newOptions.length) return;
+
+    [newOptions[optionIndex], newOptions[targetIndex]] = [newOptions[targetIndex], newOptions[optionIndex]];
+    setEditFieldForm({ ...editFieldForm, options: newOptions });
   };
 
   const handleExport = () => {
@@ -625,6 +683,292 @@ export function SettingsView() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Custom Fields Section */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">自定义字段</h2>
+          <button 
+            onClick={() => {
+              setEditingFieldId('new');
+              setEditFieldForm({ name: '', type: 'text', options: [] });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+          >
+            <Plus size={16} /> 添加字段
+          </button>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {customFieldDefinitions.map(field => (
+              <div key={field.id} className="p-4 flex flex-col gap-4 hover:bg-slate-50 transition-colors">
+                {editingFieldId === field.id ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <input 
+                        type="text" 
+                        value={editFieldForm.name || ''} 
+                        onChange={e => setEditFieldForm({ ...editFieldForm, name: e.target.value })}
+                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                        placeholder="字段名称"
+                      />
+                      <select
+                        value={editFieldForm.type || 'text'}
+                        onChange={e => setEditFieldForm({ ...editFieldForm, type: e.target.value as CustomFieldType })}
+                        className="w-40 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="text">文本</option>
+                        <option value="number">数字</option>
+                        <option value="date">日期</option>
+                        <option value="select">单选</option>
+                        <option value="multi-select">多选</option>
+                      </select>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleSaveField(field.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                        <button onClick={() => setEditingFieldId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                      </div>
+                    </div>
+                    
+                    {(editFieldForm.type === 'select' || editFieldForm.type === 'multi-select') && (
+                      <div className="space-y-2 pl-4 border-l-2 border-slate-200">
+                        <label className="text-xs font-semibold text-slate-500 uppercase">选项 (可排序)</label>
+                        <div className="flex flex-wrap gap-2">
+                          {editFieldForm.options?.map((opt, idx) => (
+                            <div key={opt.id} className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-2 py-1">
+                              <div className="flex flex-col">
+                                <button 
+                                  onClick={() => moveTempOption(idx, 'up')}
+                                  disabled={idx === 0}
+                                  className="text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                                >
+                                  <ChevronUp size={10} />
+                                </button>
+                                <button 
+                                  onClick={() => moveTempOption(idx, 'down')}
+                                  disabled={idx === (editFieldForm.options?.length || 0) - 1}
+                                  className="text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                                >
+                                  <ChevronDown size={10} />
+                                </button>
+                              </div>
+                              <input 
+                                type="text" 
+                                value={opt.label}
+                                onChange={(e) => {
+                                  const newOpts = [...(editFieldForm.options || [])];
+                                  newOpts[idx] = { ...newOpts[idx], label: e.target.value };
+                                  setEditFieldForm({ ...editFieldForm, options: newOpts });
+                                }}
+                                className="border-none p-0 text-xs focus:ring-0 w-20"
+                              />
+                              <button 
+                                onClick={() => {
+                                  const newOpts = (editFieldForm.options || []).filter((_, i) => i !== idx);
+                                  setEditFieldForm({ ...editFieldForm, options: newOpts });
+                                }}
+                                className="text-slate-400 hover:text-red-500"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                          <button 
+                            onClick={() => {
+                              const newOpts = [...(editFieldForm.options || []), { id: nanoid(), label: '新选项' }];
+                              setEditFieldForm({ ...editFieldForm, options: newOpts });
+                            }}
+                            className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 px-2 py-1"
+                          >
+                            <Plus size={14} /> 添加选项
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium text-slate-700">{field.name}</span>
+                      <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded">
+                        {field.type === 'text' && '文本'}
+                        {field.type === 'number' && '数字'}
+                        {field.type === 'date' && '日期'}
+                        {field.type === 'select' && '单选'}
+                        {field.type === 'multi-select' && '多选'}
+                      </span>
+                      {(field.type === 'select' || field.type === 'multi-select') && (
+                        <div className="flex gap-1">
+                          {field.options.map((opt, idx) => (
+                            <div key={opt.id} className="flex items-center gap-0.5 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px]">{opt.label}</span>
+                              <div className="flex flex-col">
+                                <button 
+                                  onClick={() => moveOption(field.id, idx, 'up')}
+                                  disabled={idx === 0}
+                                  className="text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                                >
+                                  <ChevronUp size={8} />
+                                </button>
+                                <button 
+                                  onClick={() => moveOption(field.id, idx, 'down')}
+                                  disabled={idx === field.options.length - 1}
+                                  className="text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                                >
+                                  <ChevronDown size={8} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setEditingFieldId(field.id);
+                          setEditFieldForm(field);
+                        }} 
+                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (confirm('确定要删除这个自定义字段吗？')) deleteCustomFieldDefinition(field.id);
+                        }} 
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {editingFieldId === 'new' && (
+              <div className="p-4 bg-indigo-50/50 space-y-4">
+                <div className="flex items-center gap-4">
+                  <input 
+                    type="text" 
+                    value={editFieldForm.name || ''} 
+                    onChange={e => setEditFieldForm({ ...editFieldForm, name: e.target.value })}
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                    placeholder="新字段名称"
+                  />
+                  <select
+                    value={editFieldForm.type || 'text'}
+                    onChange={e => setEditFieldForm({ ...editFieldForm, type: e.target.value as CustomFieldType })}
+                    className="w-40 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="text">文本</option>
+                    <option value="number">数字</option>
+                    <option value="date">日期</option>
+                    <option value="select">单选</option>
+                    <option value="multi-select">多选</option>
+                  </select>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => handleSaveField('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                    <button onClick={() => setEditingFieldId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                  </div>
+                </div>
+                
+                {(editFieldForm.type === 'select' || editFieldForm.type === 'multi-select') && (
+                  <div className="space-y-2 pl-4 border-l-2 border-indigo-200">
+                    <label className="text-xs font-semibold text-indigo-600 uppercase">选项</label>
+                    <div className="flex flex-wrap gap-2">
+                      {editFieldForm.options?.map((opt, idx) => (
+                        <div key={opt.id} className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-2 py-1">
+                          <input 
+                            type="text" 
+                            value={opt.label}
+                            onChange={(e) => {
+                              const newOpts = [...(editFieldForm.options || [])];
+                              newOpts[idx] = { ...newOpts[idx], label: e.target.value };
+                              setEditFieldForm({ ...editFieldForm, options: newOpts });
+                            }}
+                            className="border-none p-0 text-xs focus:ring-0 w-20"
+                          />
+                          <button 
+                            onClick={() => {
+                              const newOpts = (editFieldForm.options || []).filter((_, i) => i !== idx);
+                              setEditFieldForm({ ...editFieldForm, options: newOpts });
+                            }}
+                            className="text-slate-400 hover:text-red-500"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        onClick={() => {
+                          const newOpts = [...(editFieldForm.options || []), { id: nanoid(), label: '新选项' }];
+                          setEditFieldForm({ ...editFieldForm, options: newOpts });
+                        }}
+                        className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 px-2 py-1"
+                      >
+                        <Plus size={14} /> 添加选项
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Field Order Section */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">字段排序与显示</h2>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {fieldOrder.map((field, index) => (
+              <div key={field.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-1">
+                    <button 
+                      onClick={() => moveField(index, 'up')}
+                      disabled={index === 0}
+                      className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button 
+                      onClick={() => moveField(index, 'down')}
+                      disabled={index === fieldOrder.length - 1}
+                      className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                  <GripVertical size={18} className="text-slate-300" />
+                  <div>
+                    <span className="font-medium text-slate-700">{field.name}</span>
+                    {field.isCustom && (
+                      <span className="ml-2 text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium uppercase">自定义</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleFieldVisibility(field.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    field.isVisible
+                      ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+                      : 'text-slate-400 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  {field.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+                  {field.isVisible ? '显示' : '隐藏'}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </section>
