@@ -99,7 +99,6 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             </span>
           )}
           {task.isPinned && <Pin size={14} className="text-amber-500 fill-amber-500" />}
-          {task.isDelegated && <UserPlus size={14} className="text-indigo-500" title="已委派" />}
         </div>
         
         <div className="flex items-center gap-2">
@@ -111,13 +110,6 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
               title="延期"
             >
               <PauseCircle size={14} />
-            </button>
-            <button 
-              onClick={handleDelegate}
-              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-              title="委派"
-            >
-              <UserPlus size={14} />
             </button>
           </div>
 
@@ -163,23 +155,26 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           })}
         </div>
 
-        <div className="flex -space-x-2">
-          {assignees.map(assignee => (
-            <Avatar 
-              key={assignee.id}
-              name={assignee.name} 
-              title={`负责人: ${assignee.name}`}
-              className="w-6 h-6 border-2 border-white text-[10px]"
-            />
-          ))}
-          {reporters.filter(r => !task.assigneeIds.includes(r.id)).map(reporter => (
-            <Avatar 
-              key={`reporter-${reporter.id}`}
-              name={reporter.name} 
-              title={`汇报人: ${reporter.name}`}
-              className="w-6 h-6 border-2 border-white opacity-80 text-[10px]"
-            />
-          ))}
+        <div className="flex items-center gap-2">
+          {task.isDelegated && <UserPlus size={16} className="text-purple-500" title="已委派" />}
+          <div className="flex -space-x-2">
+            {assignees.map(assignee => (
+              <Avatar 
+                key={assignee.id}
+                name={assignee.name} 
+                title={`负责人: ${assignee.name}`}
+                className="w-6 h-6 border-2 border-white text-[10px]"
+              />
+            ))}
+            {reporters.filter(r => !task.assigneeIds.includes(r.id)).map(reporter => (
+              <Avatar 
+                key={`reporter-${reporter.id}`}
+                name={reporter.name} 
+                title={`汇报人: ${reporter.name}`}
+                className="w-6 h-6 border-2 border-white opacity-80 text-[10px]"
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
