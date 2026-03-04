@@ -353,7 +353,15 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       );
                     })}
                   {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                    <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                    <button
+                      onClick={() => {
+                        addUser({ id: nanoid(), name: searchQuery });
+                        setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"
+                    >
+                      <Plus size={14} /> 快速新建: {searchQuery}
+                    </button>
                   )}
                 </div>
               )}
