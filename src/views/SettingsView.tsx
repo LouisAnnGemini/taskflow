@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { User, Column, PriorityOption, MediumOption, CustomFieldDefinition, CustomFieldType, FieldConfig } from '../types/task';
 import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
@@ -9,10 +9,20 @@ const COMMON_EMOJIS = ['📝', '🚀', '👀', '✅', '⏸️', '🔽', '⏺️'
 
 function IconPicker({ value, onChange }: { value?: string, onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 8, left: rect.left });
+    }
+  }, [isOpen]);
 
   return (
     <div className="relative">
       <button 
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-lg hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500"
@@ -23,7 +33,7 @@ function IconPicker({ value, onChange }: { value?: string, onChange: (val: strin
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-12 left-0 z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-3 w-64">
+          <div className="fixed z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-3 w-64" style={{ top: position.top, left: position.left }}>
             <div className="mb-2">
               <input 
                 type="text" 
@@ -61,7 +71,7 @@ export function SettingsView() {
     addUser, updateUser, deleteUser, 
     addColumn, updateColumn, deleteColumn,
     addPriority, updatePriority, deletePriority,
-    addMedium, updateMedium, deleteMedium,
+    addMedium, updateMedium, deleteMedium, setMediums,
     customFieldDefinitions, addCustomFieldDefinition, updateCustomFieldDefinition, deleteCustomFieldDefinition,
     fieldOrder, setFieldOrder,
     setAllData
@@ -203,6 +213,14 @@ export function SettingsView() {
     setEditFieldForm({ ...editFieldForm, options: newOptions });
   };
 
+  const moveMedium = (index: number, direction: 'up' | 'down') => {
+    const newMediums = [...mediums];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newMediums.length) return;
+    [newMediums[index], newMediums[targetIndex]] = [newMediums[targetIndex], newMediums[index]];
+    setMediums(newMediums);
+  };
+
   const handleExport = () => {
     const state = useTaskStore.getState();
     const data = {
@@ -260,19 +278,51 @@ export function SettingsView() {
   };
 
   return (
-    <div className="space-y-12 max-w-4xl mx-auto pb-12 relative">
-      {message && (
-        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-xl border animate-in fade-in slide-in-from-top-4 duration-300 ${
-          message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-700'
-        }`}>
-          <div className="flex items-center gap-2 font-medium">
-            {message.type === 'success' ? <Save size={18} /> : <X size={18} />}
-            {message.text}
-          </div>
+    <div className="flex gap-8 max-w-6xl mx-auto pb-12 relative">
+      {/* Sidebar Outline */}
+      <div className="hidden lg:block w-48 shrink-0">
+        <div className="sticky top-8 space-y-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">设置大纲</h3>
+          <nav className="space-y-2">
+            {[
+              { id: 'team-members', label: '团队成员' },
+              { id: 'kanban-columns', label: '看板列设置' },
+              { id: 'priorities', label: '优先级设置' },
+              { id: 'medium-tags', label: '媒介标签设置' },
+              { id: 'custom-fields', label: '自定义字段' },
+              { id: 'field-order', label: '字段排序与显示' },
+              { id: 'data-management', label: '数据管理' },
+            ].map(item => (
+              <a 
+                key={item.id} 
+                href={`#${item.id}`} 
+                className="block text-sm text-slate-600 hover:text-indigo-600 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
         </div>
-      )}
-      <section>
-        <div className="flex items-center justify-between mb-6">
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 space-y-12">
+        {message && (
+          <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-xl border animate-in fade-in slide-in-from-top-4 duration-300 ${
+            message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-700'
+          }`}>
+            <div className="flex items-center gap-2 font-medium">
+              {message.type === 'success' ? <Save size={18} /> : <X size={18} />}
+              {message.text}
+            </div>
+          </div>
+        )}
+        <section id="team-members">
+          <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">团队成员</h2>
           <button 
             onClick={() => {
@@ -359,7 +409,7 @@ export function SettingsView() {
         </div>
       </section>
 
-      <section>
+      <section id="kanban-columns">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">看板列设置</h2>
           <button 
@@ -514,7 +564,7 @@ export function SettingsView() {
       </section>
 
       {/* Priorities Section */}
-      <section>
+      <section id="priorities">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">优先级设置</h2>
           <button 
@@ -641,7 +691,7 @@ export function SettingsView() {
       </section>
 
       {/* Mediums Section */}
-      <section>
+      <section id="medium-tags">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">媒介标签设置</h2>
           <button 
@@ -657,7 +707,7 @@ export function SettingsView() {
         
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
           <div className="divide-y divide-slate-100">
-            {mediums.map(medium => (
+            {mediums.map((medium, index) => (
               <div key={medium.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                 {editingMediumId === medium.id ? (
                   <div className="flex-1 flex items-center gap-4">
@@ -687,12 +737,28 @@ export function SettingsView() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4">
                       {medium.icon && <span className="text-lg">{medium.icon}</span>}
                       <span className="font-medium text-slate-700">{medium.label}</span>
                       <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded">ID: {medium.id}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col gap-1">
+                        <button 
+                          onClick={() => moveMedium(index, 'up')}
+                          disabled={index === 0}
+                          className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                        >
+                          <ChevronUp size={12} />
+                        </button>
+                        <button 
+                          onClick={() => moveMedium(index, 'down')}
+                          disabled={index === mediums.length - 1}
+                          className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                        >
+                          <ChevronDown size={12} />
+                        </button>
+                      </div>
                       {deletingMediumId === medium.id ? (
                         <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
                           <span className="text-xs font-medium text-red-600">确定删除？</span>
@@ -754,7 +820,7 @@ export function SettingsView() {
       </section>
 
       {/* Custom Fields Section */}
-      <section>
+      <section id="custom-fields">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">自定义字段</h2>
           <button 
@@ -996,7 +1062,7 @@ export function SettingsView() {
       </section>
 
       {/* Field Order Section */}
-      <section>
+      <section id="field-order">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">字段排序与显示</h2>
         </div>
@@ -1048,7 +1114,7 @@ export function SettingsView() {
       </section>
 
       {/* Data Management Section */}
-      <section>
+      <section id="data-management">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">数据管理</h2>
         </div>
@@ -1082,6 +1148,7 @@ export function SettingsView() {
         </div>
       </section>
 
+      </div>
       {showImportConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full animate-in zoom-in-95 duration-200">

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
 import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo } from '../types/task';
+import { format } from 'date-fns';
 
 const defaultColumns: Column[] = [
   { id: 'todo', title: '待办', color: 'bg-slate-100', icon: '📝' },
@@ -84,6 +85,7 @@ interface TaskStore {
   addMedium: (medium: MediumOption) => void;
   updateMedium: (id: string, updates: Partial<MediumOption>) => void;
   deleteMedium: (id: string) => void;
+  setMediums: (mediums: MediumOption[]) => void;
 
   // Custom Fields
   addCustomFieldDefinition: (field: CustomFieldDefinition) => void;
@@ -259,6 +261,7 @@ export const useTaskStore = create<TaskStore>()(
       deleteMedium: (id) => set((state) => ({
         mediums: state.mediums.filter(m => m.id !== id)
       })),
+      setMediums: (mediums) => set({ mediums }),
 
       addCustomFieldDefinition: (field) => {
         set((state) => {
@@ -343,6 +346,16 @@ export const useTaskStore = create<TaskStore>()(
             title: '负责人已更新',
             message: `任务 "${task.title}" 的负责人已更新。`,
             taskId: id
+          });
+        }
+
+        // Log if dates changed
+        if (updates.startDate || updates.dueDate) {
+          get().addActivityLog({
+            taskId: id,
+            userId: get().currentUser.id,
+            action: 'date_changed',
+            details: `更新了任务时间: ${updates.startDate ? `开始日期: ${format(new Date(updates.startDate), 'yyyy-MM-dd')}` : ''} ${updates.dueDate ? `截止日期: ${format(new Date(updates.dueDate), 'yyyy-MM-dd')}` : ''}`,
           });
         }
       },

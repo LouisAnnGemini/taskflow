@@ -14,7 +14,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState } = useTaskStore();
   const task = getTask(taskId);
   
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -32,7 +32,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const logs = activityLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   const handleUpdate = (updates: Partial<Task>) => {
-    updateTask(task.id, updates);
+    if (updates.state && updates.state !== task.state) {
+      changeTaskState(task.id, updates.state, currentUser.id);
+      if (Object.keys(updates).length > 1) {
+        updateTask(task.id, { ...updates, state: undefined });
+      }
+    } else {
+      updateTask(task.id, updates);
+    }
   };
 
   const handleCustomFieldUpdate = (fieldId: string, value: any) => {
