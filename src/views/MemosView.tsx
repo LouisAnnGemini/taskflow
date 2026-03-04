@@ -8,6 +8,7 @@ export function MemosView() {
   const [newMemoContent, setNewMemoContent] = useState('');
   const [editingMemoId, setEditingMemoId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [deletingMemoId, setDeletingMemoId] = useState<string | null>(null);
 
   const handleAddMemo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,24 +116,43 @@ export function MemosView() {
                       {format(parseISO(memo.updatedAt), 'yyyy年MM月dd日 HH:mm')}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => startEditing(memo.id, memo.content)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="编辑"
-                      >
-                        <Edit3 size={16} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('确定要删除这条备忘录吗？')) {
-                            deleteMemo(memo.id);
-                          }
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="删除"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {deletingMemoId === memo.id ? (
+                        <div className="flex items-center gap-1.5 bg-red-50 px-2.5 py-1 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
+                          <span className="text-[10px] font-bold text-red-600 mr-1">确定？</span>
+                          <button
+                            onClick={() => {
+                              deleteMemo(memo.id);
+                              setDeletingMemoId(null);
+                            }}
+                            className="px-2.5 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                          >
+                            确认
+                          </button>
+                          <button
+                            onClick={() => setDeletingMemoId(null)}
+                            className="px-2.5 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditing(memo.id, memo.content)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="编辑"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
+                            onClick={() => setDeletingMemoId(memo.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="删除"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </>

@@ -82,6 +82,20 @@ export function SettingsView() {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editFieldForm, setEditFieldForm] = useState<Partial<CustomFieldDefinition>>({});
 
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deletingColumnId, setDeletingColumnId] = useState<string | null>(null);
+  const [deletingPriorityId, setDeletingPriorityId] = useState<string | null>(null);
+  const [deletingMediumId, setDeletingMediumId] = useState<string | null>(null);
+  const [deletingFieldId, setDeletingFieldId] = useState<string | null>(null);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<any>(null);
+  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  const showMessage = (text: string, type: 'success' | 'error' = 'success') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
   const handleSaveUser = (id: string) => {
     if (id === 'new') {
       addUser({
@@ -224,12 +238,10 @@ export function SettingsView() {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
-          setAllData(data);
-          alert('数据导入成功！');
-        }
+        setPendingImportData(data);
+        setShowImportConfirm(true);
       } catch (error) {
-        alert('导入失败：无效的 JSON 文件');
+        showMessage('导入失败：无效的 JSON 文件', 'error');
         console.error('Import error:', error);
       }
     };
@@ -238,8 +250,27 @@ export function SettingsView() {
     e.target.value = '';
   };
 
+  const confirmImport = () => {
+    if (pendingImportData) {
+      setAllData(pendingImportData);
+      setPendingImportData(null);
+      setShowImportConfirm(false);
+      showMessage('数据导入成功！');
+    }
+  };
+
   return (
-    <div className="space-y-12 max-w-4xl mx-auto pb-12">
+    <div className="space-y-12 max-w-4xl mx-auto pb-12 relative">
+      {message && (
+        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-xl border animate-in fade-in slide-in-from-top-4 duration-300 ${
+          message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-700'
+        }`}>
+          <div className="flex items-center gap-2 font-medium">
+            {message.type === 'success' ? <Save size={18} /> : <X size={18} />}
+            {message.text}
+          </div>
+        </div>
+      )}
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">团队成员</h2>
@@ -279,23 +310,31 @@ export function SettingsView() {
                       <span className="font-medium text-slate-700">{user.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditingUserId(user.id);
-                          setEditUserForm(user);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('确定要删除这个用户吗？')) deleteUser(user.id);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {deletingUserId === user.id ? (
+                        <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                          <span className="text-xs font-medium text-red-600">确定删除？</span>
+                          <button onClick={() => { deleteUser(user.id); setDeletingUserId(null); }} className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition-colors">确认</button>
+                          <button onClick={() => setDeletingUserId(null)} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded border border-slate-200 hover:bg-slate-50 transition-colors">取消</button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingUserId(user.id);
+                              setEditUserForm(user);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingUserId(user.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
@@ -397,23 +436,31 @@ export function SettingsView() {
                       <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded">ID: {column.id}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditingColumnId(column.id);
-                          setEditColumnForm(column);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('确定要删除这一列吗？该列中的任务可能无法正常显示。')) deleteColumn(column.id);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {deletingColumnId === column.id ? (
+                        <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                          <span className="text-xs font-medium text-red-600">确定删除？</span>
+                          <button onClick={() => { deleteColumn(column.id); setDeletingColumnId(null); }} className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition-colors">确认</button>
+                          <button onClick={() => setDeletingColumnId(null)} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded border border-slate-200 hover:bg-slate-50 transition-colors">取消</button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingColumnId(column.id);
+                              setEditColumnForm(column);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingColumnId(column.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
@@ -526,23 +573,31 @@ export function SettingsView() {
                       <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded">ID: {priority.id}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditingPriorityId(priority.id);
-                          setEditPriorityForm(priority);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('确定要删除这个优先级吗？')) deletePriority(priority.id);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {deletingPriorityId === priority.id ? (
+                        <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                          <span className="text-xs font-medium text-red-600">确定删除？</span>
+                          <button onClick={() => { deletePriority(priority.id); setDeletingPriorityId(null); }} className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition-colors">确认</button>
+                          <button onClick={() => setDeletingPriorityId(null)} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded border border-slate-200 hover:bg-slate-50 transition-colors">取消</button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingPriorityId(priority.id);
+                              setEditPriorityForm(priority);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingPriorityId(priority.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
@@ -638,23 +693,31 @@ export function SettingsView() {
                       <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded">ID: {medium.id}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditingMediumId(medium.id);
-                          setEditMediumForm(medium);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('确定要删除这个媒介标签吗？')) deleteMedium(medium.id);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {deletingMediumId === medium.id ? (
+                        <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                          <span className="text-xs font-medium text-red-600">确定删除？</span>
+                          <button onClick={() => { deleteMedium(medium.id); setDeletingMediumId(null); }} className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition-colors">确认</button>
+                          <button onClick={() => setDeletingMediumId(null)} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded border border-slate-200 hover:bg-slate-50 transition-colors">取消</button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingMediumId(medium.id);
+                              setEditMediumForm(medium);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingMediumId(medium.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
@@ -830,23 +893,31 @@ export function SettingsView() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditingFieldId(field.id);
-                          setEditFieldForm(field);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('确定要删除这个自定义字段吗？')) deleteCustomFieldDefinition(field.id);
-                        }} 
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {deletingFieldId === field.id ? (
+                        <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                          <span className="text-xs font-medium text-red-600">确定删除？</span>
+                          <button onClick={() => { deleteCustomFieldDefinition(field.id); setDeletingFieldId(null); }} className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition-colors">确认</button>
+                          <button onClick={() => setDeletingFieldId(null)} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded border border-slate-200 hover:bg-slate-50 transition-colors">取消</button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingFieldId(field.id);
+                              setEditFieldForm(field);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingFieldId(field.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1010,6 +1081,34 @@ export function SettingsView() {
           </p>
         </div>
       </section>
+
+      {showImportConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">确认导入数据？</h3>
+            <p className="text-slate-600 text-sm mb-6">
+              导入数据将<span className="text-red-600 font-bold">覆盖当前所有数据</span>（包括任务、成员、设置等）。此操作不可撤销。
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowImportConfirm(false);
+                  setPendingImportData(null);
+                }}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmImport}
+                className="px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+              >
+                确认导入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,8 +17,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const task = getTask(taskId);
   
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editSubtaskTitle, setEditSubtaskTitle] = useState('');
   const [isManagingLogs, setIsManagingLogs] = useState(false);
   const [tempLogs, setTempLogs] = useState<ActivityLog[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [fieldSearchQueries, setFieldSearchQueries] = useState<Record<string, string>>({});
 
@@ -263,59 +266,173 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </select>
           </div>
         );
-      case 'assigneeIds':
+      case 'assigneeIds': {
+        const me = users.find(u => u.id === currentUser.id);
+        const others = users.filter(u => u.id !== currentUser.id);
+        const searchQuery = fieldSearchQueries['assignees'] || '';
+        const selectedIds = task.assigneeIds || [];
+
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">负责人</label>
-            <div className="flex flex-wrap gap-2">
-              {users.map(u => (
+          <div key={config.id} className="space-y-2">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">负责人</label>
+            
+            <div className="flex flex-wrap gap-2 mb-2">
+              {/* Fixed "Me" option */}
+              {me && (
                 <button
-                  key={u.id}
                   onClick={() => {
-                    const newAssignees = task.assigneeIds.includes(u.id)
-                      ? task.assigneeIds.filter(id => id !== u.id)
-                      : [...task.assigneeIds, u.id];
+                    const newAssignees = selectedIds.includes(me.id)
+                      ? selectedIds.filter(id => id !== me.id)
+                      : [...selectedIds, me.id];
                     handleUpdate({ assigneeIds: newAssignees });
                   }}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    task.assigneeIds.includes(u.id)
+                    selectedIds.includes(me.id)
                       ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  {u.name}
+                  {me.name}
                 </button>
-              ))}
+              )}
+
+              {/* Selected Others */}
+              {selectedIds.filter(id => id !== currentUser.id).map(id => {
+                const u = users.find(user => user.id === id);
+                if (!u) return null;
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      handleUpdate({ assigneeIds: selectedIds.filter(sid => sid !== u.id) });
+                    }}
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1"
+                  >
+                    {u.name}
+                    <X size={10} />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search for others */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text"
+                placeholder="搜索其他成员..."
+                value={searchQuery}
+                onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, assignees: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+              />
+              
+              {searchQuery && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                  {others
+                    .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(u => {
+                      const isSelected = selectedIds.includes(u.id);
+                      return (
+                        <button
+                          key={u.id}
+                          onClick={() => {
+                            const newAssignees = isSelected
+                              ? selectedIds.filter(id => id !== u.id)
+                              : [...selectedIds, u.id];
+                            handleUpdate({ assigneeIds: newAssignees });
+                            setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                            isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          {u.name}
+                          {isSelected && <Check size={14} />}
+                        </button>
+                      );
+                    })}
+                  {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
-      case 'reporterIds':
+      }
+      case 'reporterIds': {
+        const searchQuery = fieldSearchQueries['reporters'] || '';
+        const selectedIds = task.reporterIds || [];
+
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">汇报人 / 审核人</label>
-            <div className="flex flex-wrap gap-2">
-              {users.map(u => (
-                <button
-                  key={u.id}
-                  onClick={() => {
-                    const currentReporters = task.reporterIds || [];
-                    const newReporters = currentReporters.includes(u.id)
-                      ? currentReporters.filter(id => id !== u.id)
-                      : [...currentReporters, u.id];
-                    handleUpdate({ reporterIds: newReporters });
-                  }}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    (task.reporterIds || []).includes(u.id)
-                      ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {u.name}
-                </button>
-              ))}
+          <div key={config.id} className="space-y-2">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">汇报人 / 审核人</label>
+            
+            <div className="flex flex-wrap gap-2 mb-2">
+              {/* Selected Users */}
+              {selectedIds.map(id => {
+                const u = users.find(user => user.id === id);
+                if (!u) return null;
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      handleUpdate({ reporterIds: selectedIds.filter(sid => sid !== u.id) });
+                    }}
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1"
+                  >
+                    {u.name}
+                    <X size={10} />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search for users */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text"
+                placeholder="搜索成员..."
+                value={searchQuery}
+                onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, reporters: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+              />
+              
+              {searchQuery && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                  {users
+                    .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(u => {
+                      const isSelected = selectedIds.includes(u.id);
+                      return (
+                        <button
+                          key={u.id}
+                          onClick={() => {
+                            const newReporters = isSelected
+                              ? selectedIds.filter(id => id !== u.id)
+                              : [...selectedIds, u.id];
+                            handleUpdate({ reporterIds: newReporters });
+                            setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                            isSelected ? 'bg-purple-50 text-purple-700' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          {u.name}
+                          {isSelected && <Check size={14} />}
+                        </button>
+                      );
+                    })}
+                  {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
+      }
       case 'priority':
         return (
           <div key={config.id}>
@@ -391,7 +508,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </div>
           </div>
         );
-      case 'isDelegated':
+      case 'isDelegated': {
+        const me = users.find(u => u.id === currentUser.id);
+        const others = users.filter(u => u.id !== currentUser.id);
+        const searchQuery = fieldSearchQueries['delegated'] || '';
+        const selectedIds = task.delegatedToIds || [];
+
         return (
           <div key={config.id}>
             <label className="flex items-center gap-2 text-sm text-slate-700 font-medium cursor-pointer mb-2">
@@ -404,30 +526,93 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               委派给他人
             </label>
             {task.isDelegated && (
-              <div className="flex flex-wrap gap-2 mt-2 p-3 bg-indigo-50/50 rounded-lg border border-indigo-100">
-                {users.map(u => (
-                  <button
-                    key={u.id}
-                    onClick={() => {
-                      const currentDelegated = task.delegatedToIds || [];
-                      const newDelegated = currentDelegated.includes(u.id)
-                        ? currentDelegated.filter(id => id !== u.id)
-                        : [...currentDelegated, u.id];
-                      handleUpdate({ delegatedToIds: newDelegated });
-                    }}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                      (task.delegatedToIds || []).includes(u.id)
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {u.name}
-                  </button>
-                ))}
+              <div className="space-y-3 mt-2 p-3 bg-indigo-50/50 rounded-lg border border-indigo-100">
+                <div className="flex flex-wrap gap-2">
+                  {/* Fixed "Me" option */}
+                  {me && (
+                    <button
+                      onClick={() => {
+                        const newDelegated = selectedIds.includes(me.id)
+                          ? selectedIds.filter(id => id !== me.id)
+                          : [...selectedIds, me.id];
+                        handleUpdate({ delegatedToIds: newDelegated });
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                        selectedIds.includes(me.id)
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {me.name}
+                    </button>
+                  )}
+
+                  {/* Selected Others */}
+                  {selectedIds.filter(id => id !== currentUser.id).map(id => {
+                    const u = users.find(user => user.id === id);
+                    if (!u) return null;
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => {
+                          handleUpdate({ delegatedToIds: selectedIds.filter(sid => sid !== u.id) });
+                        }}
+                        className="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-600 text-white shadow-sm flex items-center gap-1"
+                      >
+                        {u.name}
+                        <X size={10} />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Search for others */}
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text"
+                    placeholder="搜索其他成员..."
+                    value={searchQuery}
+                    onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, delegated: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                  />
+                  
+                  {searchQuery && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                      {others
+                        .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(u => {
+                          const isSelected = selectedIds.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              onClick={() => {
+                                const newDelegated = isSelected
+                                  ? selectedIds.filter(id => id !== u.id)
+                                  : [...selectedIds, u.id];
+                                handleUpdate({ delegatedToIds: newDelegated });
+                                setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                                isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              {u.name}
+                              {isSelected && <Check size={14} />}
+                            </button>
+                          );
+                        })}
+                      {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                        <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         );
+      }
       case 'recurrence':
         return (
           <div key={config.id}>
@@ -462,10 +647,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   };
 
   const handleDelete = () => {
-    if (confirm('确定要删除这个任务吗？')) {
-      deleteTask(task.id);
-      onClose();
-    }
+    deleteTask(task.id);
+    onClose();
   };
 
   const startManagingLogs = () => {
@@ -521,13 +704,31 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </label>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={handleDelete}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="删除任务"
-            >
-              <Trash2 size={20} />
-            </button>
+            {showDeleteConfirm ? (
+              <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
+                <span className="text-xs font-bold text-red-600 mr-1">确定删除？</span>
+                <button 
+                  onClick={handleDelete}
+                  className="px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
+                >
+                  确认
+                </button>
+                <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
+                >
+                  取消
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="删除任务"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
             <button 
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -581,16 +782,55 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               
               <div className="space-y-3">
                 {subtasks.map(subtask => (
-                  <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 group">
                     <input 
                       type="checkbox" 
                       checked={subtask.state === 'done'}
                       onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
                       className="w-5 h-5 rounded text-emerald-500 focus:ring-emerald-500 border-slate-300"
                     />
-                    <span className={`flex-1 ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                      {subtask.title}
-                    </span>
+                    {editingSubtaskId === subtask.id ? (
+                      <div className="flex-1 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editSubtaskTitle}
+                          onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                          className="flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateTask(subtask.id, { title: editSubtaskTitle });
+                              setEditingSubtaskId(null);
+                            }
+                          }}
+                        />
+                        <button 
+                          onClick={() => {
+                            updateTask(subtask.id, { title: editSubtaskTitle });
+                            setEditingSubtaskId(null);
+                          }}
+                          className="text-emerald-600 hover:text-emerald-700"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button 
+                          onClick={() => setEditingSubtaskId(null)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span 
+                        className={`flex-1 cursor-pointer ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
+                        onClick={() => {
+                          setEditingSubtaskId(subtask.id);
+                          setEditSubtaskTitle(subtask.title);
+                        }}
+                      >
+                        {subtask.title}
+                      </span>
+                    )}
                   </div>
                 ))}
                 
