@@ -6,17 +6,19 @@ import { TimelineView } from './views/TimelineView';
 import { SearchView } from './views/SearchView';
 import { TaskModal } from './components/TaskModal';
 import { SettingsView } from './views/SettingsView';
+import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote } from 'lucide-react';
 import { useTaskStore } from './store/useTaskStore';
 
-type ViewType = 'dashboard' | 'kanban' | 'timeline' | 'search' | 'settings';
+type ViewType = 'dashboard' | 'kanban' | 'timeline' | 'memos' | 'search' | 'settings';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
   { id: 'kanban', label: '看板', icon: KanbanSquare },
   { id: 'timeline', label: '时间线', icon: CalendarDays },
+  { id: 'memos', label: '备忘录', icon: StickyNote },
   { id: 'search', label: '搜索', icon: Search },
 ];
 
@@ -32,6 +34,7 @@ export default function App() {
       case 'dashboard': return <DashboardView />;
       case 'kanban': return <KanbanView />;
       case 'timeline': return <TimelineView />;
+      case 'memos': return <MemosView />;
       case 'search': return <SearchView />;
       case 'settings': return <SettingsView />;
       default: return <KanbanView />;
@@ -106,7 +109,9 @@ export default function App() {
 
       {/* Main Content */}
       <main className={`flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8 ${currentView === 'kanban' ? 'max-w-none' : 'max-w-7xl'}`}>
-        <QuickCapture />
+        <div className="max-w-7xl mx-auto w-full">
+          <QuickCapture />
+        </div>
         
         <div className="mt-4 md:mt-8">
           {renderView()}

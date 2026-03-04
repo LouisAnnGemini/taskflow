@@ -100,3 +100,10 @@ export interface Notification {
   isRead: boolean;
   taskId?: string;
 }
+
+export interface Memo {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}

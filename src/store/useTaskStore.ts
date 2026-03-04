@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
-import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig } from '../types/task';
+import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo } from '../types/task';
 
 const defaultColumns: Column[] = [
   { id: 'todo', title: '待办', color: 'bg-slate-100', icon: '📝' },
@@ -53,6 +53,7 @@ interface TaskStore {
   selectedTaskId: string | null;
   customFieldDefinitions: CustomFieldDefinition[];
   fieldOrder: FieldConfig[];
+  memos: Memo[];
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -89,6 +90,11 @@ interface TaskStore {
   updateCustomFieldDefinition: (id: string, updates: Partial<CustomFieldDefinition>) => void;
   deleteCustomFieldDefinition: (id: string) => void;
   setFieldOrder: (order: FieldConfig[]) => void;
+  
+  // Memo Management
+  addMemo: (content: string) => void;
+  updateMemo: (id: string, content: string) => void;
+  deleteMemo: (id: string) => void;
   
   // Quick Actions
   instantDone: (title: string, userId: string) => void;
@@ -198,6 +204,7 @@ export const useTaskStore = create<TaskStore>()(
       selectedTaskId: null,
       customFieldDefinitions: [],
       fieldOrder: defaultFieldOrder,
+      memos: [],
 
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
 
@@ -269,6 +276,24 @@ export const useTaskStore = create<TaskStore>()(
         fieldOrder: state.fieldOrder.filter(f => f.id !== id)
       })),
       setFieldOrder: (order) => set({ fieldOrder: order }),
+      
+      addMemo: (content) => {
+        const newMemo: Memo = {
+          id: nanoid(),
+          content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        set((state) => ({ memos: [newMemo, ...state.memos] }));
+      },
+
+      updateMemo: (id, content) => set((state) => ({
+        memos: state.memos.map(m => m.id === id ? { ...m, content, updatedAt: new Date().toISOString() } : m)
+      })),
+
+      deleteMemo: (id) => set((state) => ({
+        memos: state.memos.filter(m => m.id !== id)
+      })),
 
       addTask: (taskData) => {
         const now = new Date().toISOString();

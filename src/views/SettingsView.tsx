@@ -200,6 +200,9 @@ export function SettingsView() {
       currentUser: state.currentUser,
       activityLogs: state.activityLogs,
       notifications: state.notifications,
+      customFieldDefinitions: state.customFieldDefinitions,
+      fieldOrder: state.fieldOrder,
+      memos: state.memos,
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
