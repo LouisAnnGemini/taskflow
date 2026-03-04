@@ -82,50 +82,141 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
           )}
           {definition.type === 'select' && (
             <div className="space-y-2">
-              {hasManyOptions && (
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="text"
-                    placeholder="搜索选项..."
-                    value={searchQuery}
-                    onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, [definition.id]: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
-                  />
+              {hasManyOptions ? (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      placeholder="搜索并选择..."
+                      value={searchQuery}
+                      onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, [definition.id]: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  
+                  {/* Selected Value Display */}
+                  {value && !searchQuery && (
+                    <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                      <span className="text-sm text-indigo-700 font-medium">
+                        {definition.options?.find(opt => opt.id === value)?.label || value}
+                      </span>
+                      <button 
+                        onClick={() => handleCustomFieldUpdate(definition.id, '')}
+                        className="text-indigo-400 hover:text-indigo-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Search Results */}
+                  {searchQuery && (
+                    <div className="bg-white border border-slate-200 rounded-lg shadow-sm max-h-40 overflow-y-auto divide-y divide-slate-50">
+                      {definition.options
+                        ?.filter(opt => opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(opt => (
+                          <button
+                            key={opt.id}
+                            onClick={() => {
+                              handleCustomFieldUpdate(definition.id, opt.id);
+                              setFieldSearchQueries({ ...fieldSearchQueries, [definition.id]: '' });
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      {definition.options?.filter(opt => opt.label.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                        <div className="px-3 py-2 text-xs text-slate-400 italic">未找到匹配项</div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-              <select
-                value={value || ''}
-                onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">请选择...</option>
-                {definition.options
-                  ?.filter(opt => !hasManyOptions || opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map(opt => (
+              ) : (
+                <select
+                  value={value || ''}
+                  onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">请选择...</option>
+                  {definition.options?.map(opt => (
                     <option key={opt.id} value={opt.id}>{opt.label}</option>
                   ))}
-              </select>
+                </select>
+              )}
             </div>
           )}
           {definition.type === 'multi-select' && (
             <div className="space-y-2">
-              {hasManyOptions && (
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="text"
-                    placeholder="搜索选项..."
-                    value={searchQuery}
-                    onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, [definition.id]: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
-                  />
+              {hasManyOptions ? (
+                <div className="space-y-2">
+                  {/* Selected Tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Array.isArray(value) ? value : []).map(id => {
+                      const opt = definition.options?.find(o => o.id === id);
+                      if (!opt) return null;
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium border border-indigo-200">
+                          {opt.label}
+                          <button 
+                            onClick={() => {
+                              const selected = Array.isArray(value) ? value : [];
+                              handleCustomFieldUpdate(definition.id, selected.filter(sid => sid !== id));
+                            }}
+                            className="hover:text-indigo-900"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      placeholder="搜索并添加..."
+                      value={searchQuery}
+                      onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, [definition.id]: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {/* Search Results */}
+                  {searchQuery && (
+                    <div className="bg-white border border-slate-200 rounded-lg shadow-sm max-h-40 overflow-y-auto divide-y divide-slate-50">
+                      {definition.options
+                        ?.filter(opt => opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(opt => {
+                          const selected = Array.isArray(value) ? value : [];
+                          const isSelected = selected.includes(opt.id);
+                          return (
+                            <button
+                              key={opt.id}
+                              onClick={() => {
+                                const newSelected = isSelected 
+                                  ? selected.filter(id => id !== opt.id)
+                                  : [...selected, opt.id];
+                                handleCustomFieldUpdate(definition.id, newSelected);
+                                // Keep search query to allow adding multiple
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                                isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              {opt.label}
+                              {isSelected && <Check size={14} />}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {definition.options
-                  ?.filter(opt => !hasManyOptions || opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map(opt => {
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {definition.options?.map(opt => {
                     const selected = Array.isArray(value) ? value : [];
                     const isSelected = selected.includes(opt.id);
                     return (
@@ -147,7 +238,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       </button>
                     );
                   })}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
