@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
-import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus } from 'lucide-react';
+import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { TaskCard } from './TaskCard';
@@ -15,7 +15,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -907,6 +907,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                               {subtask.title}
                             </span>
                             <button 
+                              onClick={() => convertSubtaskToTask(subtask.id)}
+                              className="text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="转为独立任务"
+                            >
+                              <ArrowUpRight size={16} />
+                            </button>
+                            <button 
                               onClick={() => deleteTask(subtask.id)}
                               className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除子任务"
@@ -1071,7 +1078,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 w-full">
               <TaskGraph taskId={task.id} />
             </div>
           )}

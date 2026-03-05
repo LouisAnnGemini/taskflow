@@ -59,6 +59,7 @@ interface TaskStore {
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  convertSubtaskToTask: (subtaskId: string) => void;
   changeTaskState: (id: string, newState: TaskState, userId: string) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   updateActivityLog: (id: string, updates: Partial<ActivityLog>) => void;
@@ -348,6 +349,44 @@ export const useTaskStore = create<TaskStore>()(
         set((state) => ({
           tasks: state.tasks.filter((task) => task.id !== id && task.parentId !== id), // Also delete subtasks
         }));
+      },
+
+      convertSubtaskToTask: (subtaskId) => {
+        const subtask = get().tasks.find(t => t.id === subtaskId);
+        if (!subtask || !subtask.parentId) return;
+
+        const parentId = subtask.parentId;
+        const parentTask = get().tasks.find(t => t.id === parentId);
+        if (!parentTask) return;
+
+        const subtaskRelated = [...new Set([...(subtask.relatedTaskIds || []), parentId])];
+        const parentRelated = [...new Set([...(parentTask.relatedTaskIds || []), subtaskId])];
+
+        set((state) => ({
+          tasks: state.tasks.map((t) => {
+            if (t.id === subtaskId) {
+              return { ...t, parentId: undefined, relatedTaskIds: subtaskRelated, updatedAt: new Date().toISOString() };
+            }
+            if (t.id === parentId) {
+              return { ...t, relatedTaskIds: parentRelated, updatedAt: new Date().toISOString() };
+            }
+            return t;
+          }),
+        }));
+
+        get().addActivityLog({
+          taskId: subtaskId,
+          userId: get().currentUser.id,
+          action: 'updated',
+          details: `已转换为独立任务并关联到原父任务 "${parentTask.title}"`,
+        });
+
+        get().addActivityLog({
+          taskId: parentId,
+          userId: get().currentUser.id,
+          action: 'updated',
+          details: `子任务 "${subtask.title}" 已转换为独立任务并关联`,
+        });
       },
 
       changeTaskState: (id, newState, userId) => {

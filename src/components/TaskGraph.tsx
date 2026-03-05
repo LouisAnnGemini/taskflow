@@ -116,5 +116,33 @@ export function TaskGraph({ taskId }: GraphProps) {
     });
   }, [task, tasks, setSelectedTaskId]);
 
-  return <svg ref={svgRef} width="100%" height="400" viewBox="0 0 600 400" style={{ cursor: 'grab' }} />;
+  return (
+    <div className="relative w-full h-[400px] bg-slate-50 rounded-xl overflow-hidden border border-slate-200">
+      <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 600 400" style={{ cursor: 'grab' }} />
+      
+      <div className="absolute bottom-4 right-4 bg-white/90 p-3 rounded-lg shadow-sm border border-slate-200 text-xs space-y-2 backdrop-blur-sm">
+        <div className="font-medium text-slate-700 mb-1">图例</div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
+          <span className="text-slate-600">当前任务</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#fbcfe8]"></span>
+          <span className="text-slate-600">待办</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#fef08a]"></span>
+          <span className="text-slate-600">进行中</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#d6b49c]"></span>
+          <span className="text-slate-600">审核中</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#bbf7d0]"></span>
+          <span className="text-slate-600">已完成</span>
+        </div>
+      </div>
+    </div>
+  );
 }
