@@ -113,9 +113,11 @@ export default function App() {
 
       {/* Main Content */}
       <main className={`flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8 ${currentView === 'kanban' ? 'max-w-none' : 'max-w-7xl'}`}>
-        <div className="max-w-7xl mx-auto w-full">
-          <QuickCapture />
-        </div>
+        {currentView !== 'search' && (
+          <div className="max-w-7xl mx-auto w-full">
+            <QuickCapture />
+          </div>
+        )}
         
         <div className="mt-4 md:mt-8">
           {renderView()}

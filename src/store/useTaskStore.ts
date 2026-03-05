@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
-import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo } from '../types/task';
+import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption } from '../types/task';
 import { format } from 'date-fns';
 
 const defaultColumns: Column[] = [
@@ -27,6 +27,9 @@ const defaultMediums: MediumOption[] = [
   { id: 'other', label: '其他', icon: '📌' },
 ];
 
+const defaultEntities: EntityOption[] = [];
+const defaultPositions: PositionOption[] = [];
+
 const defaultFieldOrder: FieldConfig[] = [
   { id: 'title', name: '标题', isCustom: false, isVisible: true },
   { id: 'description', name: '描述', isCustom: false, isVisible: true },
@@ -48,6 +51,8 @@ interface TaskStore {
   columns: Column[];
   priorities: PriorityOption[];
   mediums: MediumOption[];
+  entities: EntityOption[];
+  positions: PositionOption[];
   currentUser: User;
   activityLogs: ActivityLog[];
   notifications: Notification[];
@@ -58,6 +63,7 @@ interface TaskStore {
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  updateTasks: (ids: string[], updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   convertSubtaskToTask: (subtaskId: string) => void;
   changeTaskState: (id: string, newState: TaskState, userId: string) => void;
@@ -87,6 +93,14 @@ interface TaskStore {
   updateMedium: (id: string, updates: Partial<MediumOption>) => void;
   deleteMedium: (id: string) => void;
   setMediums: (mediums: MediumOption[]) => void;
+
+  // Entity & Position Management
+  addEntity: (entity: EntityOption) => void;
+  updateEntity: (id: string, updates: Partial<EntityOption>) => void;
+  deleteEntity: (id: string) => void;
+  addPosition: (position: PositionOption) => void;
+  updatePosition: (id: string, updates: Partial<PositionOption>) => void;
+  deletePosition: (id: string) => void;
 
   // Custom Fields
   addCustomFieldDefinition: (field: CustomFieldDefinition) => void;
@@ -195,6 +209,8 @@ export const useTaskStore = create<TaskStore>()(
       columns: defaultColumns,
       priorities: defaultPriorities,
       mediums: defaultMediums,
+      entities: defaultEntities,
+      positions: defaultPositions,
       currentUser: defaultUsers[0],
       activityLogs: [],
       notifications: [],
@@ -257,6 +273,22 @@ export const useTaskStore = create<TaskStore>()(
         mediums: state.mediums.filter(m => m.id !== id)
       })),
       setMediums: (mediums) => set({ mediums }),
+
+      addEntity: (entity) => set((state) => ({ entities: [...state.entities, entity] })),
+      updateEntity: (id, updates) => set((state) => ({
+        entities: state.entities.map(e => e.id === id ? { ...e, ...updates } : e)
+      })),
+      deleteEntity: (id) => set((state) => ({
+        entities: state.entities.filter(e => e.id !== id)
+      })),
+
+      addPosition: (position) => set((state) => ({ positions: [...state.positions, position] })),
+      updatePosition: (id, updates) => set((state) => ({
+        positions: state.positions.map(p => p.id === id ? { ...p, ...updates } : p)
+      })),
+      deletePosition: (id) => set((state) => ({
+        positions: state.positions.filter(p => p.id !== id)
+      })),
 
       addCustomFieldDefinition: (field) => {
         set((state) => {
@@ -343,6 +375,14 @@ export const useTaskStore = create<TaskStore>()(
             details: `更新了任务时间: ${updates.startDate ? `开始日期: ${format(new Date(updates.startDate), 'yyyy-MM-dd')}` : ''} ${updates.dueDate ? `截止日期: ${format(new Date(updates.dueDate), 'yyyy-MM-dd')}` : ''}`,
           });
         }
+      },
+
+      updateTasks: (ids, updates) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            ids.includes(t.id) ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+          ),
+        }));
       },
 
       deleteTask: (id) => {

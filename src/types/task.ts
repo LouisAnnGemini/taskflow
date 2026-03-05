@@ -88,9 +88,22 @@ export interface Task {
   customFields?: Record<string, any>;
 }
 
+export interface EntityOption {
+  id: string;
+  name: string;
+}
+
+export interface PositionOption {
+  id: string;
+  name: string;
+}
+
 export interface User {
   id: string;
   name: string;
+  entityIds?: string[];
+  positionIds?: string[];
+  notes?: string;
 }
 
 export interface Notification {

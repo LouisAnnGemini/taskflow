@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useTaskStore } from '../store/useTaskStore';
 import { User, Column, PriorityOption, MediumOption, CustomFieldDefinition, CustomFieldType, FieldConfig } from '../types/task';
-import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown, Check, Search } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
+import { MultiSelect } from '../components/MultiSelect';
 import { nanoid } from 'nanoid';
 
 const COMMON_EMOJIS = ['📝', '🚀', '👀', '✅', '⏸️', '🔽', '⏺️', '🔼', '🔥', '💬', '📧', '💼', '📍', '📌', '💡', '🐛', '📅', '📎', '⭐', '⚡'];
@@ -68,11 +69,13 @@ function IconPicker({ value, onChange }: { value?: string, onChange: (val: strin
 
 export function SettingsView() {
   const { 
-    users, columns, priorities, mediums,
+    users, columns, priorities, mediums, entities, positions,
     addUser, updateUser, deleteUser, 
     addColumn, updateColumn, deleteColumn,
     addPriority, updatePriority, deletePriority,
     addMedium, updateMedium, deleteMedium, setMediums,
+    addEntity, updateEntity, deleteEntity,
+    addPosition, updatePosition, deletePosition,
     customFieldDefinitions, addCustomFieldDefinition, updateCustomFieldDefinition, deleteCustomFieldDefinition,
     fieldOrder, setFieldOrder,
     setAllData
@@ -90,6 +93,12 @@ export function SettingsView() {
   const [editingMediumId, setEditingMediumId] = useState<string | null>(null);
   const [editMediumForm, setEditMediumForm] = useState<Partial<MediumOption>>({});
 
+  const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
+  const [editEntityForm, setEditEntityForm] = useState<{ name?: string }>({});
+
+  const [editingPositionId, setEditingPositionId] = useState<string | null>(null);
+  const [editPositionForm, setEditPositionForm] = useState<{ name?: string }>({});
+
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editFieldForm, setEditFieldForm] = useState<Partial<CustomFieldDefinition>>({});
 
@@ -97,6 +106,8 @@ export function SettingsView() {
   const [deletingColumnId, setDeletingColumnId] = useState<string | null>(null);
   const [deletingPriorityId, setDeletingPriorityId] = useState<string | null>(null);
   const [deletingMediumId, setDeletingMediumId] = useState<string | null>(null);
+  const [deletingEntityId, setDeletingEntityId] = useState<string | null>(null);
+  const [deletingPositionId, setDeletingPositionId] = useState<string | null>(null);
   const [deletingFieldId, setDeletingFieldId] = useState<string | null>(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
@@ -112,6 +123,9 @@ export function SettingsView() {
       addUser({
         id: nanoid(),
         name: editUserForm.name || '新用户',
+        entityIds: editUserForm.entityIds,
+        positionIds: editUserForm.positionIds,
+        notes: editUserForm.notes,
       });
     } else {
       updateUser(id, editUserForm);
@@ -159,6 +173,30 @@ export function SettingsView() {
       updateMedium(id, editMediumForm);
     }
     setEditingMediumId(null);
+  };
+
+  const handleSaveEntity = (id: string) => {
+    if (id === 'new') {
+      addEntity({
+        id: nanoid(),
+        name: editEntityForm.name || '新实体',
+      });
+    } else {
+      updateEntity(id, editEntityForm);
+    }
+    setEditingEntityId(null);
+  };
+
+  const handleSavePosition = (id: string) => {
+    if (id === 'new') {
+      addPosition({
+        id: nanoid(),
+        name: editPositionForm.name || '新岗位',
+      });
+    } else {
+      updatePosition(id, editPositionForm);
+    }
+    setEditingPositionId(null);
   };
 
   const handleSaveField = (id: string) => {
@@ -238,6 +276,8 @@ export function SettingsView() {
       columns: state.columns,
       priorities: state.priorities,
       mediums: state.mediums,
+      entities: state.entities,
+      positions: state.positions,
       currentUser: state.currentUser,
       activityLogs: state.activityLogs,
       notifications: state.notifications,
@@ -332,88 +372,379 @@ export function SettingsView() {
         )}
         <section id="team-members">
           <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-slate-800">团队成员</h2>
-          <button 
-            onClick={() => {
-              setEditingUserId('new');
-              setEditUserForm({ name: '' });
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-          >
-            <Plus size={16} /> 添加成员
-          </button>
-        </div>
-        
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="divide-y divide-slate-100">
-            {users.map(user => (
-              <div key={user.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                {editingUserId === user.id ? (
-                  <div className="flex-1 flex items-center gap-4">
+            <h2 className="text-xl font-semibold text-slate-800">团队成员</h2>
+            <button 
+              onClick={() => {
+                setEditingUserId('new');
+                setEditUserForm({ name: '', entityIds: [], positionIds: [], notes: '' });
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+            >
+              <Plus size={16} /> 添加成员
+            </button>
+          </div>
+          
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 font-medium text-slate-500">姓名</th>
+                  <th className="px-4 py-3 font-medium text-slate-500">实体</th>
+                  <th className="px-4 py-3 font-medium text-slate-500">岗位</th>
+                  <th className="px-4 py-3 font-medium text-slate-500">备注</th>
+                  <th className="px-4 py-3 font-medium text-slate-500 w-24">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map(user => (
+                  <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                    {editingUserId === user.id ? (
+                      <>
+                        <td className="px-4 py-3 align-top">
+                          <input 
+                            type="text" 
+                            value={editUserForm.name || ''} 
+                            onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500"
+                            placeholder="姓名"
+                          />
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <MultiSelect
+                            options={entities}
+                            selectedIds={editUserForm.entityIds || []}
+                            onChange={ids => setEditUserForm({ ...editUserForm, entityIds: ids })}
+                            onCreate={name => {
+                              const newId = nanoid();
+                              addEntity({ id: newId, name });
+                              setEditUserForm({ ...editUserForm, entityIds: [...(editUserForm.entityIds || []), newId] });
+                            }}
+                            placeholder="选择实体..."
+                          />
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <MultiSelect
+                            options={positions}
+                            selectedIds={editUserForm.positionIds || []}
+                            onChange={ids => setEditUserForm({ ...editUserForm, positionIds: ids })}
+                            onCreate={name => {
+                              const newId = nanoid();
+                              addPosition({ id: newId, name });
+                              setEditUserForm({ ...editUserForm, positionIds: [...(editUserForm.positionIds || []), newId] });
+                            }}
+                            placeholder="选择岗位..."
+                          />
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <input 
+                            type="text" 
+                            value={editUserForm.notes || ''} 
+                            onChange={e => setEditUserForm({ ...editUserForm, notes: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500"
+                            placeholder="备注"
+                          />
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleSaveUser(user.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={16} /></button>
+                            <button onClick={() => setEditingUserId(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={16} /></button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={user.name} className="w-8 h-8 border border-slate-200 text-xs" />
+                            <span className="font-medium text-slate-700">{user.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {user.entityIds?.map(id => {
+                              const ent = entities.find(e => e.id === id);
+                              return ent ? <span key={id} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">{ent.name}</span> : null;
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {user.positionIds?.map(id => {
+                              const pos = positions.find(p => p.id === id);
+                              return pos ? <span key={id} className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-xs">{pos.name}</span> : null;
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 text-sm max-w-xs truncate" title={user.notes}>
+                          {user.notes}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            {deletingUserId === user.id ? (
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => { deleteUser(user.id); setDeletingUserId(null); }} className="p-1.5 bg-red-600 text-white rounded hover:bg-red-700"><Check size={14} /></button>
+                                <button onClick={() => setDeletingUserId(null)} className="p-1.5 bg-slate-100 text-slate-500 rounded hover:bg-slate-200"><X size={14} /></button>
+                              </div>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => {
+                                    setEditingUserId(user.id);
+                                    setEditUserForm(user);
+                                  }} 
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => setDeletingUserId(user.id)} 
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+                {editingUserId === 'new' && (
+                  <tr className="bg-indigo-50/30">
+                    <td className="px-4 py-3 align-top">
+                      <input 
+                        type="text" 
+                        value={editUserForm.name || ''} 
+                        onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500"
+                        placeholder="新用户姓名"
+                      />
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <MultiSelect
+                        options={entities}
+                        selectedIds={editUserForm.entityIds || []}
+                        onChange={ids => setEditUserForm({ ...editUserForm, entityIds: ids })}
+                        onCreate={name => {
+                          const newId = nanoid();
+                          addEntity({ id: newId, name });
+                          setEditUserForm({ ...editUserForm, entityIds: [...(editUserForm.entityIds || []), newId] });
+                        }}
+                        placeholder="选择实体..."
+                      />
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <MultiSelect
+                        options={positions}
+                        selectedIds={editUserForm.positionIds || []}
+                        onChange={ids => setEditUserForm({ ...editUserForm, positionIds: ids })}
+                        onCreate={name => {
+                          const newId = nanoid();
+                          addPosition({ id: newId, name });
+                          setEditUserForm({ ...editUserForm, positionIds: [...(editUserForm.positionIds || []), newId] });
+                        }}
+                        placeholder="选择岗位..."
+                      />
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <input 
+                        type="text" 
+                        value={editUserForm.notes || ''} 
+                        onChange={e => setEditUserForm({ ...editUserForm, notes: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500"
+                        placeholder="备注"
+                      />
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleSaveUser('new')} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={16} /></button>
+                        <button onClick={() => setEditingUserId(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      <section id="data-management">
+        <div className="space-y-12">
+          {/* Entity Management */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-800">实体管理</h2>
+              <button 
+                onClick={() => {
+                  setEditingEntityId('new');
+                  setEditEntityForm({ name: '' });
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+              >
+                <Plus size={16} /> 添加实体
+              </button>
+            </div>
+            
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="divide-y divide-slate-100">
+                {entities.map(entity => (
+                  <div key={entity.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    {editingEntityId === entity.id ? (
+                      <div className="flex-1 flex items-center gap-4">
+                        <input 
+                          type="text" 
+                          value={editEntityForm.name || ''} 
+                          onChange={e => setEditEntityForm({ ...editEntityForm, name: e.target.value })}
+                          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                          placeholder="实体名称"
+                        />
+                        <div className="flex items-center gap-2 px-2">
+                          <button onClick={() => handleSaveEntity(entity.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                          <button onClick={() => setEditingEntityId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4">
+                          <span className="font-medium text-slate-700">{entity.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {deletingEntityId === entity.id ? (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => { deleteEntity(entity.id); setDeletingEntityId(null); }} className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><Check size={16} /></button>
+                              <button onClick={() => setDeletingEntityId(null)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><X size={16} /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <button 
+                                onClick={() => {
+                                  setEditingEntityId(entity.id);
+                                  setEditEntityForm(entity);
+                                }} 
+                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button 
+                                onClick={() => setDeletingEntityId(entity.id)} 
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {editingEntityId === 'new' && (
+                  <div className="p-4 bg-indigo-50/30 flex items-center gap-4">
                     <input 
                       type="text" 
-                      value={editUserForm.name || ''} 
-                      onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })}
+                      value={editEntityForm.name || ''} 
+                      onChange={e => setEditEntityForm({ ...editEntityForm, name: e.target.value })}
                       className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                      placeholder="姓名"
+                      placeholder="新实体名称"
+                      autoFocus
                     />
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleSaveUser(user.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
-                      <button onClick={() => setEditingUserId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                    <div className="flex items-center gap-2 px-2">
+                      <button onClick={() => handleSaveEntity('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                      <button onClick={() => setEditingEntityId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-4">
-                      <Avatar name={user.name} className="w-10 h-10 border border-slate-200 text-lg" />
-                      <span className="font-medium text-slate-700">{user.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {deletingUserId === user.id ? (
-                        <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
-                          <span className="text-xs font-medium text-red-600">确定删除？</span>
-                          <button onClick={() => { deleteUser(user.id); setDeletingUserId(null); }} className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition-colors">确认</button>
-                          <button onClick={() => setDeletingUserId(null)} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded border border-slate-200 hover:bg-slate-50 transition-colors">取消</button>
-                        </div>
-                      ) : (
-                        <>
-                          <button 
-                            onClick={() => {
-                              setEditingUserId(user.id);
-                              setEditUserForm(user);
-                            }} 
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button 
-                            onClick={() => setDeletingUserId(user.id)} 
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </>
                 )}
               </div>
-            ))}
-            {editingUserId === 'new' && (
-              <div className="p-4 flex items-center gap-4 bg-indigo-50/50">
-                <input 
-                  type="text" 
-                  value={editUserForm.name || ''} 
-                  onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })}
-                  className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                  placeholder="新用户姓名"
-                />
-                <div className="flex items-center gap-2">
-                  <button onClick={() => handleSaveUser('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
-                  <button onClick={() => setEditingUserId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
-                </div>
+            </div>
+          </div>
+
+          {/* Position Management */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-800">岗位管理</h2>
+              <button 
+                onClick={() => {
+                  setEditingPositionId('new');
+                  setEditPositionForm({ name: '' });
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+              >
+                <Plus size={16} /> 添加岗位
+              </button>
+            </div>
+            
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="divide-y divide-slate-100">
+                {positions.map(position => (
+                  <div key={position.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    {editingPositionId === position.id ? (
+                      <div className="flex-1 flex items-center gap-4">
+                        <input 
+                          type="text" 
+                          value={editPositionForm.name || ''} 
+                          onChange={e => setEditPositionForm({ ...editPositionForm, name: e.target.value })}
+                          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                          placeholder="岗位名称"
+                        />
+                        <div className="flex items-center gap-2 px-2">
+                          <button onClick={() => handleSavePosition(position.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                          <button onClick={() => setEditingPositionId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4">
+                          <span className="font-medium text-slate-700">{position.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {deletingPositionId === position.id ? (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => { deletePosition(position.id); setDeletingPositionId(null); }} className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><Check size={16} /></button>
+                              <button onClick={() => setDeletingPositionId(null)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><X size={16} /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <button 
+                                onClick={() => {
+                                  setEditingPositionId(position.id);
+                                  setEditPositionForm(position);
+                                }} 
+                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button 
+                                onClick={() => setDeletingPositionId(position.id)} 
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {editingPositionId === 'new' && (
+                  <div className="p-4 bg-indigo-50/30 flex items-center gap-4">
+                    <input 
+                      type="text" 
+                      value={editPositionForm.name || ''} 
+                      onChange={e => setEditPositionForm({ ...editPositionForm, name: e.target.value })}
+                      className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                      placeholder="新岗位名称"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-2 px-2">
+                      <button onClick={() => handleSavePosition('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                      <button onClick={() => setEditingPositionId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>

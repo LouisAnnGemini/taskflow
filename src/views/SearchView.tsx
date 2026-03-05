@@ -1,19 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskCard } from '../components/TaskCard';
-import { Search, Filter, X } from 'lucide-react';
+import { getUserDisplayName } from '../utils/user';
+import { Search, Filter, X, CheckSquare, Square, Edit, Trash2, MoreHorizontal, Check, ChevronDown } from 'lucide-react';
+import { Task, TaskState } from '../types/task';
+import { format } from 'date-fns';
+import { MultiSelect } from '../components/MultiSelect';
 
 export function SearchView() {
-  const { tasks, users, columns, priorities, mediums } = useTaskStore();
+  const { tasks, users, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions } = useTaskStore();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCreator, setSelectedCreator] = useState<string>('all');
-  const [selectedAssignee, setSelectedAssignee] = useState<string>('all');
-  const [selectedReporter, setSelectedReporter] = useState<string>('all');
-  const [selectedDelegation, setSelectedDelegation] = useState<string>('all');
-  const [selectedState, setSelectedState] = useState<string>('all');
-  const [selectedPriority, setSelectedPriority] = useState<string>('all');
-  const [selectedMedium, setSelectedMedium] = useState<string>('all');
+  const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
+  const [selectedDelegationStatus, setSelectedDelegationStatus] = useState<string[]>([]);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedMediums, setSelectedMediums] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [progressRange, setProgressRange] = useState({ min: '', max: '' });
   const [negatedFilters, setNegatedFilters] = useState<Record<string, boolean>>({
@@ -25,6 +29,10 @@ export function SearchView() {
     priority: false,
     medium: false,
   });
+
+  // Batch selection state
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [showBatchEditModal, setShowBatchEditModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
@@ -46,66 +54,90 @@ export function SearchView() {
       if (task.progress < minProgress || task.progress > maxProgress) return false;
 
       // Creator filter
-      if (selectedCreator !== 'all') {
-        const matches = task.creatorId === selectedCreator;
+      if (selectedCreators.length > 0) {
+        const matches = selectedCreators.includes(task.creatorId);
         if (negatedFilters.creator ? matches : !matches) return false;
       }
 
       // Assignee filter
-      if (selectedAssignee !== 'all') {
-        const matches = selectedAssignee === 'unassigned' 
-          ? (!task.assigneeIds || task.assigneeIds.length === 0)
-          : task.assigneeIds?.includes(selectedAssignee);
+      if (selectedAssignees.length > 0) {
+        const includeUnassigned = selectedAssignees.includes('unassigned');
+        const specificAssignees = selectedAssignees.filter(id => id !== 'unassigned');
+        
+        let matches = false;
+        if (includeUnassigned && (!task.assigneeIds || task.assigneeIds.length === 0)) {
+          matches = true;
+        } else if (task.assigneeIds?.some(id => specificAssignees.includes(id))) {
+          matches = true;
+        }
+        
         if (negatedFilters.assignee ? matches : !matches) return false;
       }
 
       // Reporter filter
-      if (selectedReporter !== 'all') {
-        const matches = selectedReporter === 'unassigned'
-          ? (!task.reporterIds || task.reporterIds.length === 0)
-          : task.reporterIds?.includes(selectedReporter);
+      if (selectedReporters.length > 0) {
+        const includeUnassigned = selectedReporters.includes('unassigned');
+        const specificReporters = selectedReporters.filter(id => id !== 'unassigned');
+
+        let matches = false;
+        if (includeUnassigned && (!task.reporterIds || task.reporterIds.length === 0)) {
+          matches = true;
+        } else if (task.reporterIds?.some(id => specificReporters.includes(id))) {
+          matches = true;
+        }
+
         if (negatedFilters.reporter ? matches : !matches) return false;
       }
 
       // Delegation filter
-      if (selectedDelegation !== 'all') {
-        const matches = selectedDelegation === 'delegated' ? task.isDelegated : !task.isDelegated;
+      if (selectedDelegationStatus.length > 0) {
+        let matches = false;
+        if (selectedDelegationStatus.includes('delegated') && task.isDelegated) matches = true;
+        if (selectedDelegationStatus.includes('not_delegated') && !task.isDelegated) matches = true;
+        
         if (negatedFilters.delegation ? matches : !matches) return false;
       }
 
       // State filter
-      if (selectedState !== 'all') {
-        const matches = task.state === selectedState;
+      if (selectedStates.length > 0) {
+        const matches = selectedStates.includes(task.state);
         if (negatedFilters.state ? matches : !matches) return false;
       }
 
       // Priority filter
-      if (selectedPriority !== 'all') {
-        const matches = task.priority === selectedPriority;
+      if (selectedPriorities.length > 0) {
+        const matches = selectedPriorities.includes(task.priority);
         if (negatedFilters.priority ? matches : !matches) return false;
       }
 
       // Medium filter
-      if (selectedMedium !== 'all') {
-        const matches = selectedMedium === 'none'
-          ? (!task.mediumTags || task.mediumTags.length === 0)
-          : task.mediumTags?.includes(selectedMedium);
+      if (selectedMediums.length > 0) {
+        const includeNone = selectedMediums.includes('none');
+        const specificMediums = selectedMediums.filter(id => id !== 'none');
+
+        let matches = false;
+        if (includeNone && (!task.mediumTags || task.mediumTags.length === 0)) {
+          matches = true;
+        } else if (task.mediumTags?.some(id => specificMediums.includes(id))) {
+          matches = true;
+        }
+
         if (negatedFilters.medium ? matches : !matches) return false;
       }
 
       return true;
     }).sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
-  }, [tasks, searchQuery, selectedCreator, selectedAssignee, selectedReporter, selectedDelegation, selectedState, selectedPriority, selectedMedium, dateRange, progressRange, negatedFilters]);
+  }, [tasks, searchQuery, selectedCreators, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedStates, selectedPriorities, selectedMediums, dateRange, progressRange, negatedFilters]);
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedCreator('all');
-    setSelectedAssignee('all');
-    setSelectedReporter('all');
-    setSelectedDelegation('all');
-    setSelectedState('all');
-    setSelectedPriority('all');
-    setSelectedMedium('all');
+    setSelectedCreators([]);
+    setSelectedAssignees([]);
+    setSelectedReporters([]);
+    setSelectedDelegationStatus([]);
+    setSelectedStates([]);
+    setSelectedPriorities([]);
+    setSelectedMediums([]);
     setDateRange({ start: '', end: '' });
     setProgressRange({ min: '', max: '' });
     setNegatedFilters({
@@ -120,26 +152,98 @@ export function SearchView() {
   };
 
   const activeFilterCount = [
-    selectedCreator !== 'all',
-    selectedAssignee !== 'all',
-    selectedReporter !== 'all',
-    selectedDelegation !== 'all',
-    selectedState !== 'all',
-    selectedPriority !== 'all',
-    selectedMedium !== 'all',
+    selectedCreators.length > 0,
+    selectedAssignees.length > 0,
+    selectedReporters.length > 0,
+    selectedDelegationStatus.length > 0,
+    selectedStates.length > 0,
+    selectedPriorities.length > 0,
+    selectedMediums.length > 0,
     dateRange.start !== '' || dateRange.end !== '',
     progressRange.min !== '' || progressRange.max !== '',
-    (selectedCreator !== 'all' && negatedFilters.creator),
-    (selectedAssignee !== 'all' && negatedFilters.assignee),
-    (selectedReporter !== 'all' && negatedFilters.reporter),
-    (selectedDelegation !== 'all' && negatedFilters.delegation),
-    (selectedState !== 'all' && negatedFilters.state),
-    (selectedPriority !== 'all' && negatedFilters.priority),
-    (selectedMedium !== 'all' && negatedFilters.medium),
+    (selectedCreators.length > 0 && negatedFilters.creator),
+    (selectedAssignees.length > 0 && negatedFilters.assignee),
+    (selectedReporters.length > 0 && negatedFilters.reporter),
+    (selectedDelegationStatus.length > 0 && negatedFilters.delegation),
+    (selectedStates.length > 0 && negatedFilters.state),
+    (selectedPriorities.length > 0 && negatedFilters.priority),
+    (selectedMediums.length > 0 && negatedFilters.medium),
   ].filter(Boolean).length;
 
+  const handleSelectAll = () => {
+    if (selectedTaskIds.length === filteredTasks.length) {
+      setSelectedTaskIds([]);
+    } else {
+      setSelectedTaskIds(filteredTasks.map(t => t.id));
+    }
+  };
+
+  const handleSelectTask = (taskId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedTaskIds([...selectedTaskIds, taskId]);
+    } else {
+      setSelectedTaskIds(selectedTaskIds.filter(id => id !== taskId));
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (confirm(`确定要删除选中的 ${selectedTaskIds.length} 个任务吗？此操作不可恢复。`)) {
+      selectedTaskIds.forEach(id => deleteTask(id));
+      setSelectedTaskIds([]);
+    }
+  };
+
+  const handleBatchUpdateState = (newState: string) => {
+    updateTasks(selectedTaskIds, { state: newState });
+    setSelectedTaskIds([]);
+  };
+
+  const handleBatchUpdatePriority = (newPriority: string) => {
+    updateTasks(selectedTaskIds, { priority: newPriority });
+    setSelectedTaskIds([]);
+  };
+
+  // Prepare options for MultiSelect
+  const creatorOptions = users.map(u => ({ id: u.id, name: getUserDisplayName(u, entities) }));
+  
+  const assigneeOptions = [
+    { id: 'unassigned', name: '未指派' },
+    ...users.map(u => ({ id: u.id, name: getUserDisplayName(u, entities) }))
+  ];
+
+  const reporterOptions = [
+    { id: 'unassigned', name: '无提出人' },
+    ...users.map(u => ({ id: u.id, name: getUserDisplayName(u, entities) }))
+  ];
+
+  const delegationOptions = [
+    { id: 'delegated', name: '已委派' },
+    { id: 'not_delegated', name: '未委派' }
+  ];
+
+  const stateOptions = columns.map(c => ({ 
+    id: c.id, 
+    name: c.title,
+    icon: c.icon ? <span>{c.icon}</span> : undefined
+  }));
+
+  const priorityOptions = priorities.map(p => ({
+    id: p.id,
+    name: p.label,
+    icon: p.icon ? <span>{p.icon}</span> : undefined
+  }));
+
+  const mediumOptions = [
+    { id: 'none', name: '无媒介' },
+    ...mediums.map(m => ({
+      id: m.id,
+      name: m.label,
+      icon: m.icon ? <span>{m.icon}</span> : undefined
+    }))
+  ];
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto relative pb-20">
       {/* Search and Filter Header */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="relative">
@@ -173,104 +277,84 @@ export function SearchView() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <select
-              value={selectedState}
-              onChange={(e) => setSelectedState(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-            >
-              <option value="all">所有状态</option>
-              {columns.map(c => (
-                <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
-              ))}
-            </select>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
+            <MultiSelect
+              options={stateOptions}
+              selectedIds={selectedStates}
+              onChange={setSelectedStates}
+              placeholder="所有状态"
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
               <input type="checkbox" checked={negatedFilters.state} onChange={e => setNegatedFilters({...negatedFilters, state: e.target.checked})} />
               排除
             </label>
           </div>
 
           <div className="flex flex-col gap-1">
-            <select
-              value={selectedPriority}
-              onChange={(e) => setSelectedPriority(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-            >
-              <option value="all">所有优先级</option>
-              {priorities.map(p => (
-                <option key={p.id} value={p.id}>{p.icon ? `${p.icon} ` : ''}{p.label}</option>
-              ))}
-            </select>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
+            <MultiSelect
+              options={priorityOptions}
+              selectedIds={selectedPriorities}
+              onChange={setSelectedPriorities}
+              placeholder="所有优先级"
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
               <input type="checkbox" checked={negatedFilters.priority} onChange={e => setNegatedFilters({...negatedFilters, priority: e.target.checked})} />
               排除
             </label>
           </div>
 
           <div className="flex flex-col gap-1">
-            <select
-              value={selectedAssignee}
-              onChange={(e) => setSelectedAssignee(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-            >
-              <option value="all">所有负责人</option>
-              <option value="unassigned">未指派</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
+            <MultiSelect
+              options={assigneeOptions}
+              selectedIds={selectedAssignees}
+              onChange={setSelectedAssignees}
+              placeholder="所有负责人"
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
               <input type="checkbox" checked={negatedFilters.assignee} onChange={e => setNegatedFilters({...negatedFilters, assignee: e.target.checked})} />
               排除
             </label>
           </div>
 
           <div className="flex flex-col gap-1">
-            <select
-              value={selectedReporter}
-              onChange={(e) => setSelectedReporter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-            >
-              <option value="all">所有提出人</option>
-              <option value="unassigned">无提出人</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
+            <MultiSelect
+              options={reporterOptions}
+              selectedIds={selectedReporters}
+              onChange={setSelectedReporters}
+              placeholder="所有提出人"
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
               <input type="checkbox" checked={negatedFilters.reporter} onChange={e => setNegatedFilters({...negatedFilters, reporter: e.target.checked})} />
               排除
             </label>
           </div>
 
           <div className="flex flex-col gap-1">
-            <select
-              value={selectedDelegation}
-              onChange={(e) => setSelectedDelegation(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-            >
-              <option value="all">所有委派状态</option>
-              <option value="delegated">已委派</option>
-              <option value="not_delegated">未委派</option>
-            </select>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
+            <MultiSelect
+              options={delegationOptions}
+              selectedIds={selectedDelegationStatus}
+              onChange={setSelectedDelegationStatus}
+              placeholder="所有委派状态"
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
               <input type="checkbox" checked={negatedFilters.delegation} onChange={e => setNegatedFilters({...negatedFilters, delegation: e.target.checked})} />
               排除
             </label>
           </div>
 
           <div className="flex flex-col gap-1">
-            <select
-              value={selectedMedium}
-              onChange={(e) => setSelectedMedium(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2"
-            >
-              <option value="all">所有媒介</option>
-              <option value="none">无媒介</option>
-              {mediums.map(m => (
-                <option key={m.id} value={m.id}>{m.icon ? `${m.icon} ` : ''}{m.label}</option>
-              ))}
-            </select>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
+            <MultiSelect
+              options={mediumOptions}
+              selectedIds={selectedMediums}
+              onChange={setSelectedMediums}
+              placeholder="所有媒介"
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
               <input type="checkbox" checked={negatedFilters.medium} onChange={e => setNegatedFilters({...negatedFilters, medium: e.target.checked})} />
               排除
             </label>
@@ -303,15 +387,32 @@ export function SearchView() {
       {/* Results */}
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">
-            搜索结果 <span className="text-slate-500 font-normal text-sm ml-2">({filteredTasks.length} 个任务)</span>
-          </h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-slate-800">
+              搜索结果 <span className="text-slate-500 font-normal text-sm ml-2">({filteredTasks.length} 个任务)</span>
+            </h2>
+            {filteredTasks.length > 0 && (
+              <button 
+                onClick={handleSelectAll}
+                className="flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 transition-colors"
+              >
+                {selectedTaskIds.length === filteredTasks.length ? <CheckSquare size={16} /> : <Square size={16} />}
+                {selectedTaskIds.length === filteredTasks.length ? '取消全选' : '全选'}
+              </button>
+            )}
+          </div>
         </div>
 
         {filteredTasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredTasks.map(task => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                selectable={true}
+                isSelected={selectedTaskIds.includes(task.id)}
+                onSelect={(selected) => handleSelectTask(task.id, selected)}
+              />
             ))}
           </div>
         ) : (
@@ -331,6 +432,309 @@ export function SearchView() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Batch Action Bar */}
+      {selectedTaskIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-slate-200 p-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="flex items-center gap-2 px-2 border-r border-slate-200">
+            <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {selectedTaskIds.length}
+            </span>
+            <span className="text-sm font-medium text-slate-700">已选择</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative group">
+              <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center gap-1 text-sm font-medium">
+                <CheckSquare size={16} />
+                状态
+              </button>
+              <div className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-lg shadow-xl border border-slate-200 py-1 hidden group-hover:block">
+                {columns.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleBatchUpdateState(c.id)}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <span className={`w-2 h-2 rounded-full ${c.color}`}></span>
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative group">
+              <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center gap-1 text-sm font-medium">
+                <Filter size={16} />
+                优先级
+              </button>
+              <div className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-lg shadow-xl border border-slate-200 py-1 hidden group-hover:block">
+                {priorities.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleBatchUpdatePriority(p.id)}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    {p.icon && <span>{p.icon}</span>}
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setShowBatchEditModal(true)}
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center gap-1 text-sm font-medium"
+            >
+              <Edit size={16} />
+              批量编辑
+            </button>
+
+            <div className="w-px h-6 bg-slate-200 mx-2"></div>
+
+            <button 
+              onClick={handleBatchDelete}
+              className="p-2 hover:bg-red-50 rounded-lg text-red-600 flex items-center gap-1 text-sm font-medium"
+            >
+              <Trash2 size={16} />
+              删除
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Edit Modal */}
+      {showBatchEditModal && (
+        <BatchEditModal 
+          onClose={() => setShowBatchEditModal(false)} 
+          onSave={(updates) => {
+            updateTasks(selectedTaskIds, updates);
+            setSelectedTaskIds([]);
+            setShowBatchEditModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BatchEditModal({ onClose, onSave }: { onClose: () => void, onSave: (updates: Partial<Task>) => void }) {
+  const { users, columns, priorities, mediums, entities, customFieldDefinitions } = useTaskStore();
+  
+  const [updates, setUpdates] = useState<Partial<Task>>({});
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+
+  const toggleField = (field: string) => {
+    const newSelected = new Set(selectedFields);
+    if (newSelected.has(field)) {
+      newSelected.delete(field);
+      const newUpdates = { ...updates };
+      delete newUpdates[field as keyof Task];
+      if (field.startsWith('custom_')) {
+        const customFieldId = field.replace('custom_', '');
+        if (newUpdates.customFields) {
+          delete newUpdates.customFields[customFieldId];
+        }
+      }
+      setUpdates(newUpdates);
+    } else {
+      newSelected.add(field);
+    }
+    setSelectedFields(newSelected);
+  };
+
+  const handleUpdate = (field: string, value: any) => {
+    if (field.startsWith('custom_')) {
+      const customFieldId = field.replace('custom_', '');
+      setUpdates(prev => ({
+        ...prev,
+        customFields: {
+          ...prev.customFields,
+          [customFieldId]: value
+        }
+      }));
+    } else {
+      setUpdates(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 className="text-lg font-semibold text-slate-800">批量编辑任务</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="space-y-4">
+            {/* State */}
+            <div className="flex items-start gap-4">
+              <input 
+                type="checkbox" 
+                checked={selectedFields.has('state')} 
+                onChange={() => toggleField('state')}
+                className="mt-1.5 rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">状态</label>
+                <select
+                  disabled={!selectedFields.has('state')}
+                  value={updates.state || ''}
+                  onChange={(e) => handleUpdate('state', e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  <option value="">选择状态</option>
+                  {columns.map(c => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Priority */}
+            <div className="flex items-start gap-4">
+              <input 
+                type="checkbox" 
+                checked={selectedFields.has('priority')} 
+                onChange={() => toggleField('priority')}
+                className="mt-1.5 rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">优先级</label>
+                <select
+                  disabled={!selectedFields.has('priority')}
+                  value={updates.priority || ''}
+                  onChange={(e) => handleUpdate('priority', e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  <option value="">选择优先级</option>
+                  {priorities.map(p => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Assignee */}
+            <div className="flex items-start gap-4">
+              <input 
+                type="checkbox" 
+                checked={selectedFields.has('assigneeIds')} 
+                onChange={() => toggleField('assigneeIds')}
+                className="mt-1.5 rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">负责人 (覆盖)</label>
+                <select
+                  disabled={!selectedFields.has('assigneeIds')}
+                  value={updates.assigneeIds?.[0] || ''}
+                  onChange={(e) => handleUpdate('assigneeIds', [e.target.value])}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  <option value="">选择负责人</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{getUserDisplayName(u, entities)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div className="flex items-start gap-4">
+              <input 
+                type="checkbox" 
+                checked={selectedFields.has('dueDate')} 
+                onChange={() => toggleField('dueDate')}
+                className="mt-1.5 rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">截止日期</label>
+                <input
+                  type="date"
+                  disabled={!selectedFields.has('dueDate')}
+                  value={updates.dueDate ? (updates.dueDate as string).split('T')[0] : ''}
+                  onChange={(e) => handleUpdate('dueDate', e.target.value ? new Date(e.target.value).toISOString() : undefined)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            {/* Custom Fields */}
+            {customFieldDefinitions.map(field => (
+              <div key={field.id} className="flex items-start gap-4">
+                <input 
+                  type="checkbox" 
+                  checked={selectedFields.has(`custom_${field.id}`)} 
+                  onChange={() => toggleField(`custom_${field.id}`)}
+                  className="mt-1.5 rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{field.name}</label>
+                  {field.type === 'text' && (
+                    <input
+                      type="text"
+                      disabled={!selectedFields.has(`custom_${field.id}`)}
+                      value={updates.customFields?.[field.id] || ''}
+                      onChange={(e) => handleUpdate(`custom_${field.id}`, e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                    />
+                  )}
+                  {field.type === 'number' && (
+                    <input
+                      type="number"
+                      disabled={!selectedFields.has(`custom_${field.id}`)}
+                      value={updates.customFields?.[field.id] || ''}
+                      onChange={(e) => handleUpdate(`custom_${field.id}`, parseFloat(e.target.value))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                    />
+                  )}
+                  {field.type === 'select' && (
+                    <select
+                      disabled={!selectedFields.has(`custom_${field.id}`)}
+                      value={updates.customFields?.[field.id] || ''}
+                      onChange={(e) => handleUpdate(`custom_${field.id}`, e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                    >
+                      <option value="">请选择</option>
+                      {field.options?.map(opt => (
+                        <option key={opt.id} value={opt.id}>{opt.label}</option>
+                      ))}
+                    </select>
+                  )}
+                  {field.type === 'date' && (
+                    <input
+                      type="date"
+                      disabled={!selectedFields.has(`custom_${field.id}`)}
+                      value={updates.customFields?.[field.id] || ''}
+                      onChange={(e) => handleUpdate(`custom_${field.id}`, e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-colors"
+          >
+            取消
+          </button>
+          <button 
+            onClick={() => onSave(updates)}
+            disabled={selectedFields.size === 0}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            应用修改
+          </button>
+        </div>
       </div>
     </div>
   );

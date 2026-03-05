@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
+import { getUserDisplayName } from '../utils/user';
 import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
@@ -15,7 +16,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -311,7 +312,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  {me.name}
+                  {getUserDisplayName(me, entities)}
                 </button>
               )}
 
@@ -327,7 +328,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     }}
                     className="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1"
                   >
-                    {u.name}
+                    {getUserDisplayName(u, entities)}
                     <X size={10} />
                   </button>
                 );
@@ -342,6 +343,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder="搜索其他成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, assignees: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery) {
+                    const matchedUser = others.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    if (matchedUser) {
+                      const isSelected = selectedIds.includes(matchedUser.id);
+                      const newAssignees = isSelected
+                        ? selectedIds.filter(id => id !== matchedUser.id)
+                        : [...selectedIds, matchedUser.id];
+                      handleUpdate({ assigneeIds: newAssignees });
+                      setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
+                    }
+                  }
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
               />
               
@@ -365,7 +379,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50'
                           }`}
                         >
-                          {u.name}
+                          {getUserDisplayName(u, entities)}
                           {isSelected && <Check size={14} />}
                         </button>
                       );
@@ -408,7 +422,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     }}
                     className="px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1"
                   >
-                    {u.name}
+                    {getUserDisplayName(u, entities)}
                     <X size={10} />
                   </button>
                 );
@@ -423,6 +437,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder="搜索成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, reporters: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery) {
+                    const matchedUser = users.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    if (matchedUser) {
+                      const isSelected = selectedIds.includes(matchedUser.id);
+                      const newReporters = isSelected
+                        ? selectedIds.filter(id => id !== matchedUser.id)
+                        : [...selectedIds, matchedUser.id];
+                      handleUpdate({ reporterIds: newReporters });
+                      setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
+                    }
+                  }
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
               />
               
@@ -446,7 +473,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             isSelected ? 'bg-purple-50 text-purple-700' : 'hover:bg-slate-50'
                           }`}
                         >
-                          {u.name}
+                          {getUserDisplayName(u, entities)}
                           {isSelected && <Check size={14} />}
                         </button>
                       );
@@ -578,7 +605,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                           : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                       }`}
                     >
-                      {me.name}
+                      {getUserDisplayName(me, entities)}
                     </button>
                   )}
 
@@ -594,7 +621,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         }}
                         className="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-600 text-white shadow-sm flex items-center gap-1"
                       >
-                        {u.name}
+                        {getUserDisplayName(u, entities)}
                         <X size={10} />
                       </button>
                     );
@@ -609,6 +636,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     placeholder="搜索其他成员..."
                     value={searchQuery}
                     onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, delegated: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchQuery) {
+                        const matchedUser = others.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                        if (matchedUser) {
+                          const isSelected = selectedIds.includes(matchedUser.id);
+                          const newDelegated = isSelected
+                            ? selectedIds.filter(id => id !== matchedUser.id)
+                            : [...selectedIds, matchedUser.id];
+                          handleUpdate({ delegatedToIds: newDelegated });
+                          setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
+                        }
+                      }
+                    }}
                     className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
                   />
                   
@@ -632,7 +672,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                                 isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50'
                               }`}
                             >
-                              {u.name}
+                              {getUserDisplayName(u, entities)}
                               {isSelected && <Check size={14} />}
                             </button>
                           );
@@ -721,8 +761,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const displayLogs = isManagingLogs ? tempLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp)) : logs;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-6">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-6"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">

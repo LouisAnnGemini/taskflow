@@ -1,6 +1,7 @@
 import React from 'react';
 import { Task, TaskState } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
+import { getUserDisplayName } from '../utils/user';
 import { 
   Pin, 
   Clock, 
@@ -41,10 +42,13 @@ interface TaskCardProps {
   key?: React.Key;
   task: Task;
   onClick?: () => void;
+  selectable?: boolean;
+  isSelected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
-  const { users, columns, priorities, mediums, setSelectedTaskId, changeTaskState, currentUser, updateTask } = useTaskStore();
+export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: TaskCardProps) {
+  const { users, columns, priorities, mediums, entities, setSelectedTaskId, changeTaskState, currentUser, updateTask } = useTaskStore();
   const assignees = users.filter(u => task.assigneeIds.includes(u.id));
   const reporters = users.filter(u => task.reporterIds?.includes(u.id));
   const column = columns.find(c => c.id === task.state);
@@ -78,9 +82,27 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       onClick={handleClick}
       className={cn(
         "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer group relative",
-        task.isPinned ? "border-red-300 bg-red-50" : task.isDelegated ? "border-zinc-50 bg-zinc-50" : "border-slate-200"
+        task.isPinned ? "border-red-300 bg-red-50" : task.isDelegated ? "border-zinc-50 bg-zinc-50" : "border-slate-200",
+        isSelected && "ring-2 ring-indigo-500 border-indigo-500"
       )}
     >
+      {selectable && (
+        <div 
+          className="absolute top-4 right-4 z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.(!isSelected);
+          }}
+        >
+          <div className={cn(
+            "w-5 h-5 rounded border flex items-center justify-center transition-colors",
+            isSelected ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300 hover:border-indigo-400"
+          )}>
+            {isSelected && <CheckCircle2 size={14} className="text-white" />}
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
           {column?.icon ? (
@@ -168,7 +190,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
               <Avatar 
                 key={assignee.id}
                 name={assignee.name} 
-                title={`负责人: ${assignee.name}`}
+                title={`负责人: ${getUserDisplayName(assignee, entities)}`}
                 className="w-6 h-6 border-2 border-white text-[10px]"
               />
             ))}
@@ -176,7 +198,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
               <Avatar 
                 key={`reporter-${reporter.id}`}
                 name={reporter.name} 
-                title={`汇报人: ${reporter.name}`}
+                title={`汇报人: ${getUserDisplayName(reporter, entities)}`}
                 className="w-6 h-6 border-2 border-white opacity-80 text-[10px]"
               />
             ))}
