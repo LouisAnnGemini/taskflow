@@ -7,7 +7,7 @@ import { MultiSelect } from '../components/MultiSelect';
 import { getUserDisplayName } from '../utils/user';
 
 export function TimelineView() {
-  const { tasks, setSelectedTaskId, users, columns, priorities, mediums, entities } = useTaskStore();
+  const { tasks, setSelectedTaskId, users, columns, priorities, mediums, entities, customFieldDefinitions } = useTaskStore();
   
   const [isSearched, setIsSearched] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +18,7 @@ export function TimelineView() {
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
   const [selectedDelegationStatus, setSelectedDelegationStatus] = useState<string[]>([]);
   const [selectedMediums, setSelectedMediums] = useState<string[]>([]);
+  const [selectedCustomFields, setSelectedCustomFields] = useState<Record<string, string[]>>({});
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [progressRange, setProgressRange] = useState({ min: '', max: '' });
   const [negatedFilters, setNegatedFilters] = useState<Record<string, boolean>>({
@@ -29,6 +30,7 @@ export function TimelineView() {
     delegation: false,
     medium: false,
   });
+  const [negatedCustomFields, setNegatedCustomFields] = useState<Record<string, boolean>>({});
 
   const filteredTasks = useMemo(() => {
     if (!isSearched) return [];
@@ -123,13 +125,35 @@ export function TimelineView() {
         if (negatedFilters.medium ? matches : !matches) return false;
       }
 
+      // Custom fields filter
+      for (const [fieldId, value] of Object.entries(selectedCustomFields)) {
+        const selectedValues = value as string[];
+        if (selectedValues.length > 0) {
+          const fieldDef = customFieldDefinitions.find(d => d.id === fieldId);
+          if (!fieldDef) continue;
+
+          const taskValue = task.customFields?.[fieldId];
+          let matches = false;
+
+          if (fieldDef.type === 'select') {
+            matches = selectedValues.includes(taskValue as string);
+          } else if (fieldDef.type === 'multi-select') {
+            if (Array.isArray(taskValue)) {
+              matches = (taskValue as string[]).some(v => selectedValues.includes(v));
+            }
+          }
+
+          if (negatedCustomFields[fieldId] ? matches : !matches) return false;
+        }
+      }
+
       return true;
     }).sort((a, b) => {
       const dateA = a.startDate || a.dueDate || '';
       const dateB = b.startDate || b.dueDate || '';
       return dateA.localeCompare(dateB);
     });
-  }, [tasks, isSearched, selectedCreators, selectedStates, selectedPriorities, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedMediums, dateRange, progressRange, negatedFilters]);
+  }, [tasks, isSearched, selectedCreators, selectedStates, selectedPriorities, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedMediums, selectedCustomFields, dateRange, progressRange, negatedFilters, negatedCustomFields, customFieldDefinitions]);
 
   // Prepare options for MultiSelect
   const creatorOptions = users.map(u => ({ id: u.id, name: getUserDisplayName(u, entities) }));
@@ -179,6 +203,7 @@ export function TimelineView() {
     setSelectedReporters([]);
     setSelectedDelegationStatus([]);
     setSelectedMediums([]);
+    setSelectedCustomFields({});
     setDateRange({ start: '', end: '' });
     setProgressRange({ min: '', max: '' });
     setNegatedFilters({
@@ -190,6 +215,7 @@ export function TimelineView() {
       delegation: false,
       medium: false,
     });
+    setNegatedCustomFields({});
   };
 
   const activeFilterCount = [
@@ -200,6 +226,7 @@ export function TimelineView() {
     selectedReporters.length > 0,
     selectedDelegationStatus.length > 0,
     selectedMediums.length > 0,
+    Object.values(selectedCustomFields).some((v: any) => v.length > 0),
     dateRange.start !== '' || dateRange.end !== '',
     progressRange.min !== '' || progressRange.max !== '',
     (selectedCreators.length > 0 && negatedFilters.creator),
@@ -209,6 +236,7 @@ export function TimelineView() {
     (selectedReporters.length > 0 && negatedFilters.reporter),
     (selectedDelegationStatus.length > 0 && negatedFilters.delegation),
     (selectedMediums.length > 0 && negatedFilters.medium),
+    ...Object.entries(selectedCustomFields).map(([k, v]: [string, any]) => v.length > 0 && negatedCustomFields[k]),
   ].filter(Boolean).length;
 
   const renderFilterUI = () => (
@@ -339,6 +367,27 @@ export function TimelineView() {
             排除
           </label>
         </div>
+
+        {/* Custom Fields Filters */}
+        {customFieldDefinitions.filter(field => field.type === 'select' || field.type === 'multi-select').map(field => (
+          <div key={field.id} className="flex flex-col gap-1">
+            <MultiSelect
+              options={field.options?.map(o => ({ id: o.id, name: o.label })) || []}
+              selectedIds={selectedCustomFields[field.id] || []}
+              onChange={(ids) => setSelectedCustomFields(prev => ({ ...prev, [field.id]: ids }))}
+              placeholder={`所有${field.name}`}
+              className="w-40"
+            />
+            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
+              <input 
+                type="checkbox" 
+                checked={!!negatedCustomFields[field.id]} 
+                onChange={e => setNegatedCustomFields(prev => ({ ...prev, [field.id]: e.target.checked }))} 
+              />
+              排除
+            </label>
+          </div>
+        ))}
 
         <div className="flex items-center gap-2 text-sm text-slate-600">
           时间段: 

@@ -18,6 +18,7 @@ export function SearchView() {
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [selectedMediums, setSelectedMediums] = useState<string[]>([]);
+  const [selectedCustomFields, setSelectedCustomFields] = useState<Record<string, string[]>>({});
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [progressRange, setProgressRange] = useState({ min: '', max: '' });
   const [negatedFilters, setNegatedFilters] = useState<Record<string, boolean>>({
@@ -29,6 +30,8 @@ export function SearchView() {
     priority: false,
     medium: false,
   });
+  // Initialize negated filters for custom fields
+  const [negatedCustomFields, setNegatedCustomFields] = useState<Record<string, boolean>>({});
 
   // Batch selection state
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -125,9 +128,31 @@ export function SearchView() {
         if (negatedFilters.medium ? matches : !matches) return false;
       }
 
+      // Custom fields filter
+      for (const [fieldId, value] of Object.entries(selectedCustomFields)) {
+        const selectedValues = value as string[];
+        if (selectedValues.length > 0) {
+          const fieldDef = customFieldDefinitions.find(d => d.id === fieldId);
+          if (!fieldDef) continue;
+
+          const taskValue = task.customFields?.[fieldId];
+          let matches = false;
+
+          if (fieldDef.type === 'select') {
+            matches = selectedValues.includes(taskValue as string);
+          } else if (fieldDef.type === 'multi-select') {
+            if (Array.isArray(taskValue)) {
+              matches = (taskValue as string[]).some(v => selectedValues.includes(v));
+            }
+          }
+
+          if (negatedCustomFields[fieldId] ? matches : !matches) return false;
+        }
+      }
+
       return true;
     }).sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
-  }, [tasks, searchQuery, selectedCreators, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedStates, selectedPriorities, selectedMediums, dateRange, progressRange, negatedFilters]);
+  }, [tasks, searchQuery, selectedCreators, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedStates, selectedPriorities, selectedMediums, selectedCustomFields, dateRange, progressRange, negatedFilters, negatedCustomFields, customFieldDefinitions]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -138,6 +163,7 @@ export function SearchView() {
     setSelectedStates([]);
     setSelectedPriorities([]);
     setSelectedMediums([]);
+    setSelectedCustomFields({});
     setDateRange({ start: '', end: '' });
     setProgressRange({ min: '', max: '' });
     setNegatedFilters({
@@ -149,6 +175,7 @@ export function SearchView() {
       priority: false,
       medium: false,
     });
+    setNegatedCustomFields({});
   };
 
   const activeFilterCount = [
@@ -159,6 +186,7 @@ export function SearchView() {
     selectedStates.length > 0,
     selectedPriorities.length > 0,
     selectedMediums.length > 0,
+    Object.values(selectedCustomFields).some((v: any) => v.length > 0),
     dateRange.start !== '' || dateRange.end !== '',
     progressRange.min !== '' || progressRange.max !== '',
     (selectedCreators.length > 0 && negatedFilters.creator),
@@ -168,6 +196,7 @@ export function SearchView() {
     (selectedStates.length > 0 && negatedFilters.state),
     (selectedPriorities.length > 0 && negatedFilters.priority),
     (selectedMediums.length > 0 && negatedFilters.medium),
+    ...Object.entries(selectedCustomFields).map(([k, v]: [string, any]) => v.length > 0 && negatedCustomFields[k]),
   ].filter(Boolean).length;
 
   const handleSelectAll = () => {
@@ -359,6 +388,27 @@ export function SearchView() {
               排除
             </label>
           </div>
+
+          {/* Custom Fields Filters */}
+          {customFieldDefinitions.filter(field => field.type === 'select' || field.type === 'multi-select').map(field => (
+            <div key={field.id} className="flex flex-col gap-1">
+              <MultiSelect
+                options={field.options?.map(o => ({ id: o.id, name: o.label })) || []}
+                selectedIds={selectedCustomFields[field.id] || []}
+                onChange={(ids) => setSelectedCustomFields(prev => ({ ...prev, [field.id]: ids }))}
+                placeholder={`所有${field.name}`}
+                className="w-40"
+              />
+              <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
+                <input 
+                  type="checkbox" 
+                  checked={!!negatedCustomFields[field.id]} 
+                  onChange={e => setNegatedCustomFields(prev => ({ ...prev, [field.id]: e.target.checked }))} 
+                />
+                排除
+              </label>
+            </div>
+          ))}
 
           <div className="flex items-center gap-2 text-sm text-slate-600">
             时间段: 
@@ -704,6 +754,17 @@ function BatchEditModal({ onClose, onSave }: { onClose: () => void, onSave: (upd
                         <option key={opt.id} value={opt.id}>{opt.label}</option>
                       ))}
                     </select>
+                  )}
+                  {field.type === 'multi-select' && (
+                    <div className={!selectedFields.has(`custom_${field.id}`) ? 'opacity-50 pointer-events-none' : ''}>
+                      <MultiSelect
+                        options={field.options?.map(opt => ({ id: opt.id, name: opt.label })) || []}
+                        selectedIds={updates.customFields?.[field.id] || []}
+                        onChange={(ids) => handleUpdate(`custom_${field.id}`, ids)}
+                        placeholder="请选择"
+                        className="w-full"
+                      />
+                    </div>
                   )}
                   {field.type === 'date' && (
                     <input
