@@ -574,51 +574,100 @@ export const useTaskStore = create<TaskStore>()(
 
       generateTestTasks: (count: number) => {
         const newTasks: Task[] = [];
+        const newLogs: ActivityLog[] = [];
         const now = new Date();
         const states: TaskState[] = ['todo', 'in_progress', 'in_review', 'done', 'snoozed'];
         const priorities: PriorityOption['id'][] = ['low', 'medium', 'high', 'urgent'];
         const users = get().users;
+        const mediums = get().mediums;
 
-        for (let i = 0; i < count; i++) {
+        const createTask = (parentId?: string, index?: number) => {
           const randomState = states[Math.floor(Math.random() * states.length)];
           const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
           const randomUser = users[Math.floor(Math.random() * users.length)];
+          const randomMediums = mediums.length > 0 ? [mediums[Math.floor(Math.random() * mediums.length)].id] : [];
           
-          // Random date within +/- 30 days
           const randomDayOffset = Math.floor(Math.random() * 60) - 30;
           const date = new Date(now);
           date.setDate(date.getDate() + randomDayOffset);
           const dateStr = date.toISOString();
 
-          // Random completion date for done tasks
           let updatedAt = dateStr;
           if (randomState === 'done') {
-             const completeOffset = Math.floor(Math.random() * 5); // 0-5 days after start
+             const completeOffset = Math.floor(Math.random() * 5);
              const completeDate = new Date(date);
              completeDate.setDate(completeDate.getDate() + completeOffset);
              updatedAt = completeDate.toISOString();
           }
 
-          newTasks.push({
-            id: nanoid(),
-            title: `测试任务 #${i + 1} - ${nanoid(6)}`,
+          const taskId = nanoid();
+          const task: Task = {
+            id: taskId,
+            title: parentId ? `子任务 - ${nanoid(6)}` : `测试任务 #${(index || 0) + 1} - ${nanoid(6)}`,
+            parentId,
             state: randomState,
             priority: randomPriority,
             isPinned: Math.random() > 0.9,
             creatorId: randomUser.id,
             assigneeIds: [randomUser.id],
             reporterIds: [randomUser.id],
-            mediumTags: [],
+            mediumTags: randomMediums,
             progress: randomState === 'done' ? 100 : Math.floor(Math.random() * 100),
             recurrence: 'none',
             createdAt: dateStr,
             updatedAt: updatedAt,
             startDate: dateStr,
             dueDate: new Date(new Date(dateStr).getTime() + 86400000 * 2).toISOString(),
-          });
+            relatedTaskIds: []
+          };
+
+          // Generate 1-3 activity logs for this task
+          const logCount = Math.floor(Math.random() * 3) + 1;
+          const actions = ['created', 'status_changed', 'commented', 'assigned'];
+          for (let j = 0; j < logCount; j++) {
+            newLogs.push({
+              id: nanoid(),
+              taskId: taskId,
+              userId: randomUser.id,
+              action: actions[Math.floor(Math.random() * actions.length)],
+              details: `自动生成的测试日志内容 ${nanoid(4)}`,
+              timestamp: new Date(new Date(dateStr).getTime() + j * 3600000).toISOString()
+            });
+          }
+
+          return task;
+        };
+
+        for (let i = 0; i < count; i++) {
+          const mainTask = createTask(undefined, i);
+          newTasks.push(mainTask);
+
+          // 30% chance to have 1-2 subtasks
+          if (Math.random() < 0.3) {
+            const subtaskCount = Math.floor(Math.random() * 2) + 1;
+            for (let k = 0; k < subtaskCount; k++) {
+              newTasks.push(createTask(mainTask.id));
+            }
+          }
         }
 
-        set((state) => ({ tasks: [...state.tasks, ...newTasks] }));
+        // Randomly relate some tasks
+        for (let i = 0; i < newTasks.length; i++) {
+          if (Math.random() < 0.2 && newTasks.length > 1) {
+            const otherIndex = Math.floor(Math.random() * newTasks.length);
+            if (otherIndex !== i) {
+              const taskA = newTasks[i];
+              const taskB = newTasks[otherIndex];
+              taskA.relatedTaskIds = [...(taskA.relatedTaskIds || []), taskB.id];
+              taskB.relatedTaskIds = [...(taskB.relatedTaskIds || []), taskA.id];
+            }
+          }
+        }
+
+        set((state) => ({ 
+          tasks: [...state.tasks, ...newTasks],
+          activityLogs: [...state.activityLogs, ...newLogs]
+        }));
       },
 
       clearTasks: () => {

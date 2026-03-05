@@ -109,6 +109,7 @@ export function SettingsView() {
   const [deletingEntityId, setDeletingEntityId] = useState<string | null>(null);
   const [deletingPositionId, setDeletingPositionId] = useState<string | null>(null);
   const [deletingFieldId, setDeletingFieldId] = useState<string | null>(null);
+  const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -1519,46 +1520,66 @@ export function SettingsView() {
               <button
                 onClick={() => {
                   const start = performance.now();
-                  useTaskStore.getState().generateTestTasks(1000);
+                  useTaskStore.getState().generateTestTasks(50);
                   const end = performance.now();
-                  showMessage(`成功生成 1000 个任务，耗时 ${(end - start).toFixed(2)}ms`);
+                  showMessage(`成功生成 50 个任务，耗时 ${(end - start).toFixed(2)}ms`);
                 }}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors font-medium text-sm"
               >
-                + 生成 1,000 个任务
+                + 生成 50 个任务
               </button>
               <button
                 onClick={() => {
                   const start = performance.now();
-                  useTaskStore.getState().generateTestTasks(5000);
+                  useTaskStore.getState().generateTestTasks(300);
                   const end = performance.now();
-                  showMessage(`成功生成 5000 个任务，耗时 ${(end - start).toFixed(2)}ms`);
+                  showMessage(`成功生成 300 个任务，耗时 ${(end - start).toFixed(2)}ms`);
                 }}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors font-medium text-sm"
               >
-                + 生成 5,000 个任务
+                + 生成 300 个任务
               </button>
-              <button
-                onClick={() => {
-                  if (confirm('确定要清空所有任务吗？此操作不可恢复。')) {
-                    useTaskStore.getState().clearTasks();
-                    showMessage('所有任务已清空');
-                  }
-                }}
-                className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm ml-auto"
-              >
-                清空所有任务
-              </button>
+              
+              <div className="ml-auto">
+                {isConfirmingClear ? (
+                  <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
+                    <span className="text-xs font-bold text-red-600 mr-2">确定清空？</span>
+                    <button
+                      onClick={() => {
+                        useTaskStore.getState().clearTasks();
+                        setIsConfirmingClear(false);
+                        showMessage('所有任务已清空');
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold text-sm shadow-sm"
+                    >
+                      确认
+                    </button>
+                    <button
+                      onClick={() => setIsConfirmingClear(false)}
+                      className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm"
+                    >
+                      取消
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsConfirmingClear(true)}
+                    className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
+                  >
+                    清空所有任务
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="border-t border-slate-100 pt-4">
             <h3 className="font-medium text-slate-800 mb-2">性能参考</h3>
             <ul className="text-sm text-slate-500 space-y-1 list-disc list-inside">
-              <li><span className="font-medium text-slate-700">1,000 任务以下：</span> 非常流畅，无明显延迟。</li>
-              <li><span className="font-medium text-slate-700">1,000 - 5,000 任务：</span> 操作可能开始有轻微延迟（~100-300ms）。</li>
-              <li><span className="font-medium text-slate-700">5,000 - 10,000 任务：</span> 切换视图和渲染可能会有明显卡顿（~500ms+）。</li>
-              <li><span className="font-medium text-slate-700">10,000 任务以上：</span> 可能会出现超过 1 秒的延迟，建议清理旧任务。</li>
+              <li><span className="font-medium text-slate-700">100 任务以下：</span> 非常流畅，无明显延迟。</li>
+              <li><span className="font-medium text-slate-700">100 - 500 任务：</span> 操作可能开始有轻微延迟（~100-300ms）。</li>
+              <li><span className="font-medium text-slate-700">500 - 1000 任务：</span> 切换视图和渲染可能会有明显卡顿（~500ms+）。</li>
+              <li><span className="font-medium text-slate-700">1000 任务以上：</span> 可能会出现超过 1 秒的延迟，建议清理旧任务。</li>
             </ul>
           </div>
         </div>
