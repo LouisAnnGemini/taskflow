@@ -125,6 +125,8 @@ interface TaskStore {
   // Data Management
   setAllData: (data: Partial<TaskStore>) => void;
   checkExpiringTasks: () => void;
+  generateTestTasks: (count: number) => void;
+  clearTasks: () => void;
 }
 
 const defaultUsers: User[] = [
@@ -564,6 +566,59 @@ export const useTaskStore = create<TaskStore>()(
             }
           }
         });
+      },
+
+      generateTestTasks: (count: number) => {
+        const newTasks: Task[] = [];
+        const now = new Date();
+        const states: TaskState[] = ['todo', 'in_progress', 'in_review', 'done', 'snoozed'];
+        const priorities: PriorityOption['id'][] = ['low', 'medium', 'high', 'urgent'];
+        const users = get().users;
+
+        for (let i = 0; i < count; i++) {
+          const randomState = states[Math.floor(Math.random() * states.length)];
+          const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
+          const randomUser = users[Math.floor(Math.random() * users.length)];
+          
+          // Random date within +/- 30 days
+          const randomDayOffset = Math.floor(Math.random() * 60) - 30;
+          const date = new Date(now);
+          date.setDate(date.getDate() + randomDayOffset);
+          const dateStr = date.toISOString();
+
+          // Random completion date for done tasks
+          let updatedAt = dateStr;
+          if (randomState === 'done') {
+             const completeOffset = Math.floor(Math.random() * 5); // 0-5 days after start
+             const completeDate = new Date(date);
+             completeDate.setDate(completeDate.getDate() + completeOffset);
+             updatedAt = completeDate.toISOString();
+          }
+
+          newTasks.push({
+            id: nanoid(),
+            title: `测试任务 #${i + 1} - ${nanoid(6)}`,
+            state: randomState,
+            priority: randomPriority,
+            isPinned: Math.random() > 0.9,
+            creatorId: randomUser.id,
+            assigneeIds: [randomUser.id],
+            reporterIds: [randomUser.id],
+            mediumTags: [],
+            progress: randomState === 'done' ? 100 : Math.floor(Math.random() * 100),
+            recurrence: 'none',
+            createdAt: dateStr,
+            updatedAt: updatedAt,
+            startDate: dateStr,
+            dueDate: new Date(new Date(dateStr).getTime() + 86400000 * 2).toISOString(),
+          });
+        }
+
+        set((state) => ({ tasks: [...state.tasks, ...newTasks] }));
+      },
+
+      clearTasks: () => {
+        set({ tasks: [], activityLogs: [], notifications: [] });
       },
     }),
     {

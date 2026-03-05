@@ -335,12 +335,15 @@ export function SettingsView() {
           <nav className="space-y-2">
             {[
               { id: 'team-members', label: '团队成员' },
+              { id: 'entities', label: '实体管理' },
+              { id: 'positions', label: '岗位管理' },
               { id: 'kanban-columns', label: '看板列设置' },
               { id: 'priorities', label: '优先级设置' },
               { id: 'medium-tags', label: '媒介标签设置' },
               { id: 'custom-fields', label: '自定义字段' },
               { id: 'field-order', label: '字段排序与显示' },
               { id: 'data-management', label: '数据管理' },
+              { id: 'performance-test', label: '性能测试' },
             ].map(item => (
               <a 
                 key={item.id} 
@@ -370,7 +373,7 @@ export function SettingsView() {
             </div>
           </div>
         )}
-        <section id="team-members">
+        <section id="team-members" className="scroll-mt-24">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-slate-800">团队成员</h2>
             <button 
@@ -569,187 +572,183 @@ export function SettingsView() {
           </div>
         </section>
 
-      <section id="data-management">
-        <div className="space-y-12">
-          {/* Entity Management */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-800">实体管理</h2>
-              <button 
-                onClick={() => {
-                  setEditingEntityId('new');
-                  setEditEntityForm({ name: '' });
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-              >
-                <Plus size={16} /> 添加实体
-              </button>
-            </div>
-            
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="divide-y divide-slate-100">
-                {entities.map(entity => (
-                  <div key={entity.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                    {editingEntityId === entity.id ? (
-                      <div className="flex-1 flex items-center gap-4">
-                        <input 
-                          type="text" 
-                          value={editEntityForm.name || ''} 
-                          onChange={e => setEditEntityForm({ ...editEntityForm, name: e.target.value })}
-                          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                          placeholder="实体名称"
-                        />
-                        <div className="flex items-center gap-2 px-2">
-                          <button onClick={() => handleSaveEntity(entity.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
-                          <button onClick={() => setEditingEntityId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-4">
-                          <span className="font-medium text-slate-700">{entity.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {deletingEntityId === entity.id ? (
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => { deleteEntity(entity.id); setDeletingEntityId(null); }} className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><Check size={16} /></button>
-                              <button onClick={() => setDeletingEntityId(null)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><X size={16} /></button>
-                            </div>
-                          ) : (
-                            <>
-                              <button 
-                                onClick={() => {
-                                  setEditingEntityId(entity.id);
-                                  setEditEntityForm(entity);
-                                }} 
-                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button 
-                                onClick={() => setDeletingEntityId(entity.id)} 
-                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-                {editingEntityId === 'new' && (
-                  <div className="p-4 bg-indigo-50/30 flex items-center gap-4">
+      {/* Entity Management */}
+      <section id="entities" className="scroll-mt-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">实体管理</h2>
+          <button 
+            onClick={() => {
+              setEditingEntityId('new');
+              setEditEntityForm({ name: '' });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+          >
+            <Plus size={16} /> 添加实体
+          </button>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {entities.map(entity => (
+              <div key={entity.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                {editingEntityId === entity.id ? (
+                  <div className="flex-1 flex items-center gap-4">
                     <input 
                       type="text" 
                       value={editEntityForm.name || ''} 
                       onChange={e => setEditEntityForm({ ...editEntityForm, name: e.target.value })}
                       className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                      placeholder="新实体名称"
-                      autoFocus
+                      placeholder="实体名称"
                     />
                     <div className="flex items-center gap-2 px-2">
-                      <button onClick={() => handleSaveEntity('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                      <button onClick={() => handleSaveEntity(entity.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
                       <button onClick={() => setEditingEntityId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
                     </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium text-slate-700">{entity.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {deletingEntityId === entity.id ? (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => { deleteEntity(entity.id); setDeletingEntityId(null); }} className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><Check size={16} /></button>
+                          <button onClick={() => setDeletingEntityId(null)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><X size={16} /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingEntityId(entity.id);
+                              setEditEntityForm(entity);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingEntityId(entity.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-            </div>
+            ))}
+            {editingEntityId === 'new' && (
+              <div className="p-4 bg-indigo-50/30 flex items-center gap-4">
+                <input 
+                  type="text" 
+                  value={editEntityForm.name || ''} 
+                  onChange={e => setEditEntityForm({ ...editEntityForm, name: e.target.value })}
+                  className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  placeholder="新实体名称"
+                  autoFocus
+                />
+                <div className="flex items-center gap-2 px-2">
+                  <button onClick={() => handleSaveEntity('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                  <button onClick={() => setEditingEntityId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      </section>
 
-          {/* Position Management */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-800">岗位管理</h2>
-              <button 
-                onClick={() => {
-                  setEditingPositionId('new');
-                  setEditPositionForm({ name: '' });
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-              >
-                <Plus size={16} /> 添加岗位
-              </button>
-            </div>
-            
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="divide-y divide-slate-100">
-                {positions.map(position => (
-                  <div key={position.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                    {editingPositionId === position.id ? (
-                      <div className="flex-1 flex items-center gap-4">
-                        <input 
-                          type="text" 
-                          value={editPositionForm.name || ''} 
-                          onChange={e => setEditPositionForm({ ...editPositionForm, name: e.target.value })}
-                          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                          placeholder="岗位名称"
-                        />
-                        <div className="flex items-center gap-2 px-2">
-                          <button onClick={() => handleSavePosition(position.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
-                          <button onClick={() => setEditingPositionId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-4">
-                          <span className="font-medium text-slate-700">{position.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {deletingPositionId === position.id ? (
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => { deletePosition(position.id); setDeletingPositionId(null); }} className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><Check size={16} /></button>
-                              <button onClick={() => setDeletingPositionId(null)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><X size={16} /></button>
-                            </div>
-                          ) : (
-                            <>
-                              <button 
-                                onClick={() => {
-                                  setEditingPositionId(position.id);
-                                  setEditPositionForm(position);
-                                }} 
-                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button 
-                                onClick={() => setDeletingPositionId(position.id)} 
-                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-                {editingPositionId === 'new' && (
-                  <div className="p-4 bg-indigo-50/30 flex items-center gap-4">
+      {/* Position Management */}
+      <section id="positions" className="scroll-mt-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">岗位管理</h2>
+          <button 
+            onClick={() => {
+              setEditingPositionId('new');
+              setEditPositionForm({ name: '' });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+          >
+            <Plus size={16} /> 添加岗位
+          </button>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {positions.map(position => (
+              <div key={position.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                {editingPositionId === position.id ? (
+                  <div className="flex-1 flex items-center gap-4">
                     <input 
                       type="text" 
                       value={editPositionForm.name || ''} 
                       onChange={e => setEditPositionForm({ ...editPositionForm, name: e.target.value })}
                       className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                      placeholder="新岗位名称"
-                      autoFocus
+                      placeholder="岗位名称"
                     />
                     <div className="flex items-center gap-2 px-2">
-                      <button onClick={() => handleSavePosition('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                      <button onClick={() => handleSavePosition(position.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
                       <button onClick={() => setEditingPositionId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
                     </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium text-slate-700">{position.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {deletingPositionId === position.id ? (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => { deletePosition(position.id); setDeletingPositionId(null); }} className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><Check size={16} /></button>
+                          <button onClick={() => setDeletingPositionId(null)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><X size={16} /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingPositionId(position.id);
+                              setEditPositionForm(position);
+                            }} 
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => setDeletingPositionId(position.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-            </div>
+            ))}
+            {editingPositionId === 'new' && (
+              <div className="p-4 bg-indigo-50/30 flex items-center gap-4">
+                <input 
+                  type="text" 
+                  value={editPositionForm.name || ''} 
+                  onChange={e => setEditPositionForm({ ...editPositionForm, name: e.target.value })}
+                  className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  placeholder="新岗位名称"
+                  autoFocus
+                />
+                <div className="flex items-center gap-2 px-2">
+                  <button onClick={() => handleSavePosition('new')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={18} /></button>
+                  <button onClick={() => setEditingPositionId(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section id="kanban-columns">
+      <section id="kanban-columns" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">看板列设置</h2>
           <button 
@@ -904,7 +903,7 @@ export function SettingsView() {
       </section>
 
       {/* Priorities Section */}
-      <section id="priorities">
+      <section id="priorities" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">优先级设置</h2>
           <button 
@@ -1031,7 +1030,7 @@ export function SettingsView() {
       </section>
 
       {/* Mediums Section */}
-      <section id="medium-tags">
+      <section id="medium-tags" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">媒介标签设置</h2>
           <button 
@@ -1160,7 +1159,7 @@ export function SettingsView() {
       </section>
 
       {/* Custom Fields Section */}
-      <section id="custom-fields">
+      <section id="custom-fields" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">自定义字段</h2>
           <button 
@@ -1402,7 +1401,7 @@ export function SettingsView() {
       </section>
 
       {/* Field Order Section */}
-      <section id="field-order">
+      <section id="field-order" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">字段排序与显示</h2>
         </div>
@@ -1454,7 +1453,7 @@ export function SettingsView() {
       </section>
 
       {/* Data Management Section */}
-      <section id="data-management">
+      <section id="data-management" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">数据管理</h2>
         </div>
@@ -1491,6 +1490,77 @@ export function SettingsView() {
           <p className="mt-4 text-sm text-slate-500">
             您可以导出所有数据进行备份，或者导入之前备份的数据。导入数据将覆盖当前的所有数据，请谨慎操作。
           </p>
+        </div>
+      </section>
+
+      {/* Performance Test Section */}
+      <section id="performance-test" className="scroll-mt-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">性能测试</h2>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <h3 className="font-medium text-slate-800 mb-2">当前状态</h3>
+            <div className="text-sm text-slate-600">
+              当前任务总数：<span className="font-bold text-indigo-600 text-lg">{useTaskStore.getState().tasks.length}</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium text-slate-800">生成测试数据</h3>
+            <p className="text-sm text-slate-500">
+              您可以生成大量随机任务来测试应用的性能表现。
+              <br />
+              <span className="text-amber-600">注意：生成大量数据可能会导致页面短暂卡顿。</span>
+            </p>
+            
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => {
+                  const start = performance.now();
+                  useTaskStore.getState().generateTestTasks(1000);
+                  const end = performance.now();
+                  showMessage(`成功生成 1000 个任务，耗时 ${(end - start).toFixed(2)}ms`);
+                }}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors font-medium text-sm"
+              >
+                + 生成 1,000 个任务
+              </button>
+              <button
+                onClick={() => {
+                  const start = performance.now();
+                  useTaskStore.getState().generateTestTasks(5000);
+                  const end = performance.now();
+                  showMessage(`成功生成 5000 个任务，耗时 ${(end - start).toFixed(2)}ms`);
+                }}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors font-medium text-sm"
+              >
+                + 生成 5,000 个任务
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('确定要清空所有任务吗？此操作不可恢复。')) {
+                    useTaskStore.getState().clearTasks();
+                    showMessage('所有任务已清空');
+                  }
+                }}
+                className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm ml-auto"
+              >
+                清空所有任务
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-4">
+            <h3 className="font-medium text-slate-800 mb-2">性能参考</h3>
+            <ul className="text-sm text-slate-500 space-y-1 list-disc list-inside">
+              <li><span className="font-medium text-slate-700">1,000 任务以下：</span> 非常流畅，无明显延迟。</li>
+              <li><span className="font-medium text-slate-700">1,000 - 5,000 任务：</span> 操作可能开始有轻微延迟（~100-300ms）。</li>
+              <li><span className="font-medium text-slate-700">5,000 - 10,000 任务：</span> 切换视图和渲染可能会有明显卡顿（~500ms+）。</li>
+              <li><span className="font-medium text-slate-700">10,000 任务以上：</span> 可能会出现超过 1 秒的延迟，建议清理旧任务。</li>
+            </ul>
+          </div>
         </div>
       </section>
 
