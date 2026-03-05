@@ -66,6 +66,7 @@ export function TaskGraph({ taskId }: GraphProps) {
           case 'in_progress': return '#fef08a'; // Light yellow
           case 'in_review': return '#d6b49c'; // Light brown
           case 'done': return '#bbf7d0'; // Light green
+          case 'snoozed': return '#94a3b8'; // Default gray for snoozed
           default: return '#94a3b8'; // Default gray
         }
       })
@@ -141,6 +142,10 @@ export function TaskGraph({ taskId }: GraphProps) {
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-[#bbf7d0]"></span>
           <span className="text-slate-600">已完成</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#94a3b8]"></span>
+          <span className="text-slate-600">延期</span>
         </div>
       </div>
     </div>
