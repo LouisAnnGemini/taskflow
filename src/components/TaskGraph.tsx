@@ -62,12 +62,12 @@ export function TaskGraph({ taskId }: GraphProps) {
       .attr('fill', (d: any) => {
         if (d.id === task.id) return '#8b5cf6'; // Purple
         switch (d.state) {
-          case 'todo': return '#fbcfe8'; // Light pink
+          case 'todo': return '#fecaca'; // Light red
           case 'in_progress': return '#fef08a'; // Light yellow
-          case 'in_review': return '#d6b49c'; // Light brown
+          case 'in_review': return '#bfdbfe'; // Light blue
           case 'done': return '#bbf7d0'; // Light green
-          case 'snoozed': return '#94a3b8'; // Default gray for snoozed
-          default: return '#94a3b8'; // Default gray
+          case 'snoozed': return '#e2e8f0'; // Light gray
+          default: return '#e2e8f0'; // Default light gray
         }
       })
       .attr('cursor', 'pointer')
@@ -128,7 +128,7 @@ export function TaskGraph({ taskId }: GraphProps) {
           <span className="text-slate-600">当前任务</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#fbcfe8]"></span>
+          <span className="w-3 h-3 rounded-full bg-[#fecaca]"></span>
           <span className="text-slate-600">待办</span>
         </div>
         <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export function TaskGraph({ taskId }: GraphProps) {
           <span className="text-slate-600">进行中</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#d6b49c]"></span>
+          <span className="w-3 h-3 rounded-full bg-[#bfdbfe]"></span>
           <span className="text-slate-600">审核中</span>
         </div>
         <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ export function TaskGraph({ taskId }: GraphProps) {
           <span className="text-slate-600">已完成</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#94a3b8]"></span>
+          <span className="w-3 h-3 rounded-full bg-[#e2e8f0]"></span>
           <span className="text-slate-600">延期</span>
         </div>
       </div>
