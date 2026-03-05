@@ -7,7 +7,7 @@ import { nanoid } from 'nanoid';
 import { ActivityLog } from '../types/task';
 
 export function CalendarView() {
-  const { tasks, activityLogs, setSelectedTaskId, addTask, currentUser } = useTaskStore();
+  const { tasks, activityLogs, setSelectedTaskId, addTask, currentUser, setHighlightedLogId } = useTaskStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -77,7 +77,7 @@ export function CalendarView() {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'created': return 'bg-emerald-500';
+      case 'created': return 'bg-amber-500';
       case 'status_changed': return 'bg-blue-500';
       case 'completed': return 'bg-green-600';
       case 'deleted': return 'bg-red-500';
@@ -104,17 +104,44 @@ export function CalendarView() {
     const hasLogs = taskIds.length > 0;
 
     return (
-      <div className="h-80 bg-white border-t border-slate-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 relative">
+      <div className="h-96 bg-white border-t border-slate-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 relative">
         <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-2">
-            <Clock size={18} className="text-indigo-600" />
-            <h3 className="font-bold text-slate-800">
-              {format(selectedDate, 'yyyy年M月d日', { locale: zhCN })} - 每日活动时间轴
-            </h3>
-            <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-              {Object.values(logsByTask).flat().length} 条记录
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Clock size={18} className="text-indigo-600" />
+              <h3 className="font-bold text-slate-800">
+                {format(selectedDate, 'yyyy年M月d日', { locale: zhCN })} - 每日活动时间轴
+              </h3>
+              <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
+                {Object.values(logsByTask).flat().length} 条记录
+              </span>
+            </div>
+            
+            {/* Legend */}
+            <div className="hidden md:flex items-center gap-3 text-xs border-l border-slate-200 pl-4 ml-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                <span className="text-slate-600">创建</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                <span className="text-slate-600">状态变更</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-600"></div>
+                <span className="text-slate-600">完成</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                <span className="text-slate-600">删除</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
+                <span className="text-slate-600">其他</span>
+              </div>
+            </div>
           </div>
+
           <button 
             onClick={() => setSelectedDate(null)}
             className="p-1.5 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
@@ -155,9 +182,21 @@ export function CalendarView() {
                 return (
                   <div key={taskId} className="relative group">
                     <div className="flex items-center mb-2">
-                      <div className="w-40 pr-4 truncate text-sm font-medium text-slate-700" title={taskTitle}>
+                      <button 
+                        onClick={() => {
+                          if (task) {
+                            setSelectedTaskId(task.id);
+                            // If there are logs, highlight the first one
+                            if (taskLogs.length > 0) {
+                              setHighlightedLogId(taskLogs[0].id);
+                            }
+                          }
+                        }}
+                        className="w-40 pr-4 truncate text-sm font-medium text-slate-700 hover:text-indigo-600 hover:underline text-left transition-colors" 
+                        title={taskTitle}
+                      >
                         {taskTitle}
-                      </div>
+                      </button>
                       <div className="flex-1 h-8 bg-slate-50 rounded-lg relative border border-slate-100 overflow-hidden">
                         {/* Hour grid lines for the row */}
                         {[0, 6, 12, 18, 24].map(h => (
@@ -178,7 +217,14 @@ export function CalendarView() {
                           return (
                             <div
                               key={log.id}
-                              className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm cursor-help z-10 hover:z-20 hover:scale-125 transition-all ${getActionColor(log.action)}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (task) {
+                                  setSelectedTaskId(task.id);
+                                  setHighlightedLogId(log.id);
+                                }
+                              }}
+                              className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm cursor-pointer z-10 hover:z-20 hover:scale-125 transition-all ${getActionColor(log.action)}`}
                               style={{ left: `${percent}%` }}
                             >
                                {/* Tooltip */}

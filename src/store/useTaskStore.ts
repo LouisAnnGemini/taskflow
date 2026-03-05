@@ -57,6 +57,7 @@ interface TaskStore {
   activityLogs: ActivityLog[];
   notifications: Notification[];
   selectedTaskId: string | null;
+  highlightedLogId: string | null;
   customFieldDefinitions: CustomFieldDefinition[];
   fieldOrder: FieldConfig[];
   memos: Memo[];
@@ -72,6 +73,7 @@ interface TaskStore {
   deleteActivityLog: (id: string) => void;
   setActivityLogs: (logs: ActivityLog[]) => void;
   setSelectedTaskId: (id: string | null) => void;
+  setHighlightedLogId: (id: string | null) => void;
   
   // Notification Management
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => void;
@@ -217,11 +219,13 @@ export const useTaskStore = create<TaskStore>()(
       activityLogs: [],
       notifications: [],
       selectedTaskId: null,
+      highlightedLogId: null,
       customFieldDefinitions: [],
       fieldOrder: defaultFieldOrder,
       memos: [],
 
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
+      setHighlightedLogId: (id) => set({ highlightedLogId: id }),
 
       addNotification: (notification) => {
         const newNotification: Notification = {

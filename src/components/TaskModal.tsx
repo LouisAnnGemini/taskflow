@@ -16,7 +16,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask, relateTask } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -28,6 +28,26 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   }, [taskId]);
 
   const [activeTab, setActiveTab] = useState<'details' | 'logs' | 'graph'>('details');
+
+  // Switch to logs tab if highlightedLogId is set
+  useEffect(() => {
+    if (highlightedLogId) {
+      setActiveTab('logs');
+      // Wait for tab switch and render
+      setTimeout(() => {
+        const logElement = document.getElementById(`log-${highlightedLogId}`);
+        if (logElement) {
+          logElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          logElement.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50');
+          setTimeout(() => {
+            logElement.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50');
+            setHighlightedLogId(null); // Clear highlight after animation
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, [highlightedLogId, setHighlightedLogId]);
+
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editSubtaskTitle, setEditSubtaskTitle] = useState('');
@@ -1136,7 +1156,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 {(isManagingLogs ? tempLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp)) : logs).map(log => {
                   const user = users.find(u => u.id === log.userId);
                   return (
-                    <div key={log.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div key={log.id} id={`log-${log.id}`} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active transition-all duration-500 rounded-xl">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
                         {user ? <Avatar name={user.name} className="w-full h-full text-sm" /> : <User size={16} />}
                       </div>
