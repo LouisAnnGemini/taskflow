@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
 import { getUserDisplayName } from '../utils/user';
-import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight } from 'lucide-react';
+import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight, Copy } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { TaskCard } from './TaskCard';
@@ -16,7 +16,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask, relateTask } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -758,6 +758,50 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     setTempLogs(prev => prev.filter(log => log.id !== id));
   };
 
+  const handleQuickCopy = () => {
+    const newTaskId = nanoid();
+    const newTask: Task = {
+      ...task,
+      id: newTaskId,
+      startDate: new Date().toISOString(),
+      dueDate: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      relatedTaskIds: [],
+    };
+
+    addTask(newTask);
+
+    // Re-establish relationships
+    if (task.relatedTaskIds) {
+      task.relatedTaskIds.forEach(relatedId => {
+        relateTask(newTaskId, relatedId);
+      });
+    }
+
+    // Copy subtasks
+    subtasks.forEach(subtask => {
+      const newSubtaskId = nanoid();
+      const newSubtask: Task = {
+        ...subtask,
+        id: newSubtaskId,
+        parentId: newTaskId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        relatedTaskIds: [],
+      };
+      addTask(newSubtask);
+
+      if (subtask.relatedTaskIds) {
+        subtask.relatedTaskIds.forEach(relatedId => {
+          relateTask(newSubtaskId, relatedId);
+        });
+      }
+    });
+
+    onClose();
+  };
+
   const displayLogs = isManagingLogs ? tempLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp)) : logs;
 
   return (
@@ -823,6 +867,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            <button 
+              onClick={handleQuickCopy}
+              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="快速复制任务"
+            >
+              <Copy size={20} />
+            </button>
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
                 <span className="text-xs font-bold text-red-600 mr-1">确定删除？</span>
