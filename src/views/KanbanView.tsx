@@ -72,12 +72,12 @@ export function KanbanView() {
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-6 overflow-x-auto pb-8">
+        <div className="flex gap-4 md:gap-6 overflow-x-auto pb-8 snap-x snap-mandatory md:snap-none px-4 md:px-0 -mx-4 md:mx-0">
           {visibleColumns.map((column) => {
             const columnTasks = tasks.filter((t) => t.state === column.id && !t.parentId);
 
             return (
-              <div key={column.id} className="flex flex-col w-80 shrink-0">
+              <div key={column.id} className="flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none">
                 <div className="flex items-center justify-between mb-4 px-2">
                   <h2 className="font-semibold text-slate-700 flex items-center gap-2">
                     {column.icon && <span>{column.icon}</span>}

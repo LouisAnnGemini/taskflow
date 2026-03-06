@@ -105,14 +105,15 @@ export function CalendarView() {
 
     return (
       <div className="h-96 bg-white border-t border-slate-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 relative">
-        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Clock size={18} className="text-indigo-600" />
-              <h3 className="font-bold text-slate-800">
-                {format(selectedDate, 'yyyy年M月d日', { locale: zhCN })} - 每日活动时间轴
+        <div className="flex items-center justify-between px-4 sm:px-6 py-2 sm:py-3 border-b border-slate-100 bg-slate-50">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Clock size={16} className="text-indigo-600 sm:w-[18px] sm:h-[18px]" />
+              <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                <span className="hidden sm:inline">{format(selectedDate, 'yyyy年M月d日', { locale: zhCN })} - </span>
+                每日活动
               </h3>
-              <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
+              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
                 {Object.values(logsByTask).flat().length} 条记录
               </span>
             </div>
@@ -160,11 +161,11 @@ export function CalendarView() {
             <div className="space-y-6">
               {/* Time Axis Header */}
               <div className="relative h-6 text-xs text-slate-400 border-b border-slate-100 mb-2">
-                {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24].map(h => (
+                {[8, 10, 12, 14, 16, 18, 20, 22, 24].map(h => (
                   <div 
                     key={h} 
                     className="absolute bottom-0 transform -translate-x-1/2 flex flex-col items-center" 
-                    style={{ left: `${(h/24)*100}%` }}
+                    style={{ left: `${((h - 8) / 16) * 100}%` }}
                   >
                     <div className="h-1.5 w-px bg-slate-300 mb-1"></div>
                     <span>{h}:00</span>
@@ -192,18 +193,18 @@ export function CalendarView() {
                             }
                           }
                         }}
-                        className="w-40 pr-4 truncate text-sm font-medium text-slate-700 hover:text-indigo-600 hover:underline text-left transition-colors" 
+                        className="w-24 sm:w-40 pr-2 sm:pr-4 shrink-0 truncate text-xs sm:text-sm font-medium text-slate-700 hover:text-indigo-600 hover:underline text-left transition-colors" 
                         title={taskTitle}
                       >
                         {taskTitle}
                       </button>
                       <div className="flex-1 h-8 bg-slate-50 rounded-lg relative border border-slate-100 overflow-hidden">
                         {/* Hour grid lines for the row */}
-                        {[0, 6, 12, 18, 24].map(h => (
+                        {[8, 12, 16, 20, 24].map(h => (
                           <div 
                             key={h} 
                             className="absolute top-0 bottom-0 w-px bg-slate-100 border-r border-dashed border-slate-200" 
-                            style={{ left: `${(h/24)*100}%` }}
+                            style={{ left: `${((h - 8) / 16) * 100}%` }}
                           />
                         ))}
 
@@ -211,7 +212,9 @@ export function CalendarView() {
                         {taskLogs.map((log, index) => {
                           const date = parseISO(log.timestamp);
                           const minutes = getHours(date) * 60 + getMinutes(date);
-                          const percent = (minutes / 1440) * 100;
+                          // Only show logs between 8:00 (480 mins) and 24:00 (1440 mins)
+                          if (minutes < 480) return null;
+                          const percent = ((minutes - 480) / 960) * 100;
                           const isStacked = index > 0 && (getMinutes(parseISO(taskLogs[index-1].timestamp)) - minutes < 10); // Simple collision detection
 
                           return (
@@ -252,40 +255,40 @@ export function CalendarView() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold text-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/50 gap-3 sm:gap-0">
+        <div className="flex items-center justify-between sm:justify-start gap-4">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800">
             {format(currentDate, 'yyyy年 M月', { locale: zhCN })}
           </h2>
           <div className="flex items-center bg-white rounded-lg border border-slate-200 shadow-sm p-1">
             <button 
               onClick={prevMonth}
-              className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+              className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
             >
               <ChevronLeft size={18} />
             </button>
             <button 
               onClick={goToToday}
-              className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
             >
               今天
             </button>
             <button 
               onClick={nextMonth}
-              className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+              className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
             >
               <ChevronRight size={18} />
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-white border border-slate-200"></div> 0</div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-100"></div> 1-2</div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-300"></div> 3-5</div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500"></div> 6-9</div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-700"></div> 10+</div>
+        <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-slate-500">
+          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white border border-slate-200"></div> 0</div>
+          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-100"></div> 1-2</div>
+          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-300"></div> 3-5</div>
+          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500"></div> 6-9</div>
+          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-700"></div> 10+</div>
         </div>
       </div>
 

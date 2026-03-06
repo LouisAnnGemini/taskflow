@@ -826,110 +826,112 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:p-4 md:p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white sm:rounded-2xl shadow-xl w-full h-full sm:h-auto sm:max-w-4xl sm:max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 gap-3 sm:gap-0 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             <select
               value={task.state}
               onChange={(e) => handleUpdate({ state: e.target.value as TaskState })}
-              className="bg-slate-100 border-none text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500"
+              className="bg-slate-100 border-none text-xs sm:text-sm font-medium rounded-lg px-2 sm:px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 shrink-0"
             >
               {columns.map(c => (
                 <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
               ))}
             </select>
             
-            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer hover:text-amber-600 transition-colors">
+            <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 cursor-pointer hover:text-amber-600 transition-colors shrink-0">
               <input 
                 type="checkbox" 
                 checked={task.isPinned}
                 onChange={(e) => handleUpdate({ isPinned: e.target.checked })}
                 className="rounded text-amber-500 focus:ring-amber-500"
               />
-              置顶任务
+              置顶
             </label>
             {task.state !== 'done' && (
               <button 
                 onClick={() => handleUpdate({ state: 'done' })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
               >
-                <Check size={16} /> 立即完成
+                <Check size={14} className="sm:w-4 sm:h-4" /> 立即完成
               </button>
             )}
           </div>
           
-          <div className="flex items-center bg-slate-100 rounded-lg p-1">
-            <button 
-              onClick={() => setActiveTab('details')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              详情
-            </button>
-            <button 
-              onClick={() => setActiveTab('logs')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              活动日志
-            </button>
-            <button 
-              onClick={() => setActiveTab('graph')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'graph' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              关联图谱
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handleQuickCopy}
-              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="快速复制任务"
-            >
-              <Copy size={20} />
-            </button>
-            {showDeleteConfirm ? (
-              <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
-                <span className="text-xs font-bold text-red-600 mr-1">确定删除？</span>
-                <button 
-                  onClick={handleDelete}
-                  className="px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
-                >
-                  确认
-                </button>
-                <button 
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
-                >
-                  取消
-                </button>
-              </div>
-            ) : (
+          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
+            <div className="flex items-center bg-slate-100 rounded-lg p-1">
               <button 
-                onClick={() => setShowDeleteConfirm(true)}
-                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="删除任务"
+                onClick={() => setActiveTab('details')}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                <Trash2 size={20} />
+                详情
               </button>
-            )}
-            <button 
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <X size={20} />
-            </button>
+              <button 
+                onClick={() => setActiveTab('logs')}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                日志
+              </button>
+              <button 
+                onClick={() => setActiveTab('graph')}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'graph' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                图谱
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button 
+                onClick={handleQuickCopy}
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="快速复制任务"
+              >
+                <Copy size={18} className="sm:w-5 sm:h-5" />
+              </button>
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-1 sm:gap-2 bg-red-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
+                  <span className="hidden sm:inline text-xs font-bold text-red-600 mr-1">确定删除？</span>
+                  <button 
+                    onClick={handleDelete}
+                    className="px-2 sm:px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
+                  >
+                    确认
+                  </button>
+                  <button 
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-2 sm:px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="删除任务"
+                >
+                  <Trash2 size={18} className="sm:w-5 sm:h-5" />
+                </button>
+              )}
+              <button 
+                onClick={onClose}
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X size={18} className="sm:w-5 sm:h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 flex flex-col lg:flex-row gap-8">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6 sm:gap-8">
           {activeTab === 'details' ? (
             <>
               {/* Main Column */}

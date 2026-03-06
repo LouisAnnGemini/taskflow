@@ -20,7 +20,7 @@ export function QuickCapture() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6 sticky top-4 z-10">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6 relative z-10">
       <form onSubmit={handleCreate} className="flex items-center gap-3">
         <input
           type="text"
