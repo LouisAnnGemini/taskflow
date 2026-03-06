@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { QuickCapture } from './components/QuickCapture';
 import { DashboardView } from './views/DashboardView';
 import { KanbanView } from './views/KanbanView';
-import { TimelineView } from './views/TimelineView';
 import { CalendarView } from './views/CalendarView';
 import { SearchView } from './views/SearchView';
 import { TaskModal } from './components/TaskModal';
@@ -10,16 +9,15 @@ import { SettingsView } from './views/SettingsView';
 import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { LayoutDashboard, KanbanSquare, CalendarDays, GanttChartSquare, Search, Settings, Bell, StickyNote } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote } from 'lucide-react';
 import { useTaskStore } from './store/useTaskStore';
 
-type ViewType = 'dashboard' | 'kanban' | 'calendar' | 'timeline' | 'memos' | 'search' | 'settings';
+type ViewType = 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
   { id: 'kanban', label: '看板', icon: KanbanSquare },
   { id: 'calendar', label: '日历', icon: CalendarDays },
-  { id: 'timeline', label: '甘特图', icon: GanttChartSquare },
   { id: 'memos', label: '备忘录', icon: StickyNote },
   { id: 'search', label: '搜索', icon: Search },
 ];
@@ -40,7 +38,6 @@ export default function App() {
       case 'dashboard': return <DashboardView />;
       case 'kanban': return <KanbanView />;
       case 'calendar': return <CalendarView />;
-      case 'timeline': return <TimelineView />;
       case 'memos': return <MemosView />;
       case 'search': return <SearchView />;
       case 'settings': return <SettingsView />;

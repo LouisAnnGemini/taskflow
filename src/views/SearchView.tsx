@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskCard } from '../components/TaskCard';
+import { GanttChart } from '../components/GanttChart';
 import { getUserDisplayName } from '../utils/user';
-import { Search, Filter, X, CheckSquare, Square, Edit, Trash2, MoreHorizontal, Check, ChevronDown } from 'lucide-react';
+import { Search, Filter, X, CheckSquare, Square, Edit, Trash2, MoreHorizontal, Check, ChevronDown, GanttChartSquare } from 'lucide-react';
 import { Task, TaskState } from '../types/task';
 import { format } from 'date-fns';
 import { MultiSelect } from '../components/MultiSelect';
@@ -36,6 +37,9 @@ export function SearchView() {
   // Batch selection state
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [showBatchEditModal, setShowBatchEditModal] = useState(false);
+  
+  // Gantt chart state
+  const [showGantt, setShowGantt] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
@@ -423,16 +427,39 @@ export function SearchView() {
             <input type="number" min="0" max="100" placeholder="最大" value={progressRange.max} onChange={e => setProgressRange({...progressRange, max: e.target.value})} className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs w-16" />
           </div>
 
-          {activeFilterCount > 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
+              >
+                清除所有筛选
+              </button>
+            )}
             <button
-              onClick={clearFilters}
-              className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2 ml-2"
+              onClick={() => setShowGantt(!showGantt)}
+              disabled={activeFilterCount === 0 && !searchQuery}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                (activeFilterCount > 0 || searchQuery)
+                  ? showGantt 
+                    ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' 
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              }`}
             >
-              清除所有筛选
+              <GanttChartSquare size={16} />
+              {showGantt ? '隐藏甘特图' : '生成甘特图'}
             </button>
-          )}
+          </div>
         </div>
       </div>
+
+      {/* Gantt Chart */}
+      {showGantt && (activeFilterCount > 0 || searchQuery) && (
+        <div className="mb-8">
+          <GanttChart tasks={filteredTasks} />
+        </div>
+      )}
 
       {/* Results */}
       <div>
