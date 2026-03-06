@@ -75,21 +75,28 @@ export function CalendarView() {
     return logsByTask;
   };
 
-  const getActionColor = (action: string) => {
-    switch (action) {
+  const getActionColor = (log: ActivityLog) => {
+    if (log.action === 'completed' || log.action === 'created_and_completed' || (log.action === 'status_changed' && log.details.includes('变更为 done'))) {
+      return 'bg-green-600';
+    }
+    switch (log.action) {
       case 'created': return 'bg-amber-500';
       case 'status_changed': return 'bg-blue-500';
-      case 'completed': return 'bg-green-600';
       case 'deleted': return 'bg-red-500';
       default: return 'bg-slate-400';
     }
   };
 
-  const getActionLabel = (action: string) => {
-    switch (action) {
+  const getActionLabel = (log: ActivityLog) => {
+    if (log.action === 'completed' || (log.action === 'status_changed' && log.details.includes('变更为 done'))) {
+      return '完成任务';
+    }
+    if (log.action === 'created_and_completed') {
+      return '立即完成';
+    }
+    switch (log.action) {
       case 'created': return '创建任务';
       case 'status_changed': return '状态变更';
-      case 'completed': return '完成任务';
       case 'deleted': return '删除任务';
       case 'updated': return '更新信息';
       default: return '操作';
@@ -227,14 +234,14 @@ export function CalendarView() {
                                   setHighlightedLogId(log.id);
                                 }
                               }}
-                              className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm cursor-pointer z-10 hover:z-20 hover:scale-125 transition-all ${getActionColor(log.action)}`}
+                              className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm cursor-pointer z-10 hover:z-20 hover:scale-125 transition-all ${getActionColor(log)}`}
                               style={{ left: `${percent}%` }}
                             >
                                {/* Tooltip */}
                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-slate-800 text-white text-xs rounded-lg p-2 opacity-0 hover:opacity-100 pointer-events-none shadow-lg transition-opacity">
                                   <div className="font-bold flex items-center gap-2 mb-1">
                                     <span className="opacity-75">{format(date, 'HH:mm')}</span>
-                                    <span>{getActionLabel(log.action)}</span>
+                                    <span>{getActionLabel(log)}</span>
                                   </div>
                                   <div className="text-slate-300 whitespace-normal">{log.details}</div>
                                   <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>

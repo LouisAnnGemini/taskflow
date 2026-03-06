@@ -384,11 +384,27 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       updateTasks: (ids, updates) => {
+        const currentTasks = get().tasks.filter(t => ids.includes(t.id));
+        
         set((state) => ({
           tasks: state.tasks.map((t) =>
             ids.includes(t.id) ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
           ),
         }));
+
+        if (updates.state) {
+          const userId = get().currentUser.id;
+          currentTasks.forEach(task => {
+            if (task.state !== updates.state) {
+              get().addActivityLog({
+                taskId: task.id,
+                userId,
+                action: updates.state === 'done' ? 'completed' : 'status_changed',
+                details: `状态从 ${task.state} 变更为 ${updates.state}`,
+              });
+            }
+          });
+        }
       },
 
       deleteTask: (id) => {
@@ -452,7 +468,7 @@ export const useTaskStore = create<TaskStore>()(
         get().addActivityLog({
           taskId: id,
           userId,
-          action: 'status_changed',
+          action: newState === 'done' ? 'completed' : 'status_changed',
           details: `状态从 ${oldState} 变更为 ${newState}`,
         });
       },
