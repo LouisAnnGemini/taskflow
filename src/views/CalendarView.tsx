@@ -160,17 +160,20 @@ export function CalendarView() {
           ) : (
             <div className="space-y-6">
               {/* Time Axis Header */}
-              <div className="relative h-6 text-xs text-slate-400 border-b border-slate-100 mb-2">
-                {[8, 10, 12, 14, 16, 18, 20, 22, 24].map(h => (
-                  <div 
-                    key={h} 
-                    className="absolute bottom-0 transform -translate-x-1/2 flex flex-col items-center" 
-                    style={{ left: `${((h - 8) / 16) * 100}%` }}
-                  >
-                    <div className="h-1.5 w-px bg-slate-300 mb-1"></div>
-                    <span>{h}:00</span>
-                  </div>
-                ))}
+              <div className="flex items-center mb-2">
+                <div className="w-24 sm:w-40 pr-2 sm:pr-4 shrink-0"></div>
+                <div className="flex-1 relative h-6 text-xs text-slate-400 border-b border-slate-100">
+                  {[0, 4, 8, 12, 16, 20, 24].map(h => (
+                    <div 
+                      key={h} 
+                      className="absolute bottom-0 transform -translate-x-1/2 flex flex-col items-center" 
+                      style={{ left: `${(h / 24) * 100}%` }}
+                    >
+                      <div className="h-1.5 w-px bg-slate-300 mb-1"></div>
+                      <span>{h}:00</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Task Rows */}
@@ -200,11 +203,11 @@ export function CalendarView() {
                       </button>
                       <div className="flex-1 h-8 bg-slate-50 rounded-lg relative border border-slate-100 overflow-hidden">
                         {/* Hour grid lines for the row */}
-                        {[8, 12, 16, 20, 24].map(h => (
+                        {[0, 4, 8, 12, 16, 20, 24].map(h => (
                           <div 
                             key={h} 
                             className="absolute top-0 bottom-0 w-px bg-slate-100 border-r border-dashed border-slate-200" 
-                            style={{ left: `${((h - 8) / 16) * 100}%` }}
+                            style={{ left: `${(h / 24) * 100}%` }}
                           />
                         ))}
 
@@ -212,10 +215,7 @@ export function CalendarView() {
                         {taskLogs.map((log, index) => {
                           const date = parseISO(log.timestamp);
                           const minutes = getHours(date) * 60 + getMinutes(date);
-                          // Only show logs between 8:00 (480 mins) and 24:00 (1440 mins)
-                          if (minutes < 480) return null;
-                          const percent = ((minutes - 480) / 960) * 100;
-                          const isStacked = index > 0 && (getMinutes(parseISO(taskLogs[index-1].timestamp)) - minutes < 10); // Simple collision detection
+                          const percent = (minutes / 1440) * 100;
 
                           return (
                             <div
