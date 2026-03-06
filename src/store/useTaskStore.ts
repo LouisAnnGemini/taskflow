@@ -333,6 +333,18 @@ export const useTaskStore = create<TaskStore>()(
 
       addTask: (taskData) => {
         const now = new Date().toISOString();
+        
+        let initialProgress = taskData.progress || 0;
+        if (taskData.progress === undefined) {
+          if (taskData.state === 'done') {
+            initialProgress = 100;
+          } else if (taskData.state === 'in_progress') {
+            initialProgress = 50;
+          } else if (taskData.state === 'in_review') {
+            initialProgress = 90;
+          }
+        }
+
         const newTask: Task = {
           id: nanoid(),
           title: taskData.title || '未命名任务',
@@ -343,13 +355,14 @@ export const useTaskStore = create<TaskStore>()(
           assigneeIds: taskData.assigneeIds || [get().currentUser.id],
           reporterIds: taskData.reporterIds || [get().currentUser.id],
           mediumTags: taskData.mediumTags || [],
-          progress: taskData.progress || 0,
+          progress: initialProgress,
           recurrence: taskData.recurrence || 'none',
           createdAt: now,
           updatedAt: now,
           startDate: taskData.startDate || now, // Default to current date
           customFields: taskData.customFields || {},
           ...taskData,
+          progress: taskData.progress !== undefined ? taskData.progress : initialProgress,
         };
 
         set((state) => ({ tasks: [...state.tasks, newTask] }));
@@ -366,9 +379,23 @@ export const useTaskStore = create<TaskStore>()(
         const task = get().tasks.find(t => t.id === id);
         if (!task) return;
 
+        const finalUpdates = { ...updates };
+        
+        if (updates.state && updates.state !== task.state) {
+          if (updates.state === 'done') {
+            finalUpdates.progress = 100;
+          } else if (updates.progress === undefined) {
+            if (updates.state === 'in_progress' && (task.progress === 0 || task.progress === 50)) {
+              finalUpdates.progress = 50;
+            } else if (updates.state === 'in_review' && (task.progress === 0 || task.progress === 50)) {
+              finalUpdates.progress = 90;
+            }
+          }
+        }
+
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+            t.id === id ? { ...t, ...finalUpdates, updatedAt: new Date().toISOString() } : t
           ),
         }));
 
@@ -387,9 +414,24 @@ export const useTaskStore = create<TaskStore>()(
         const currentTasks = get().tasks.filter(t => ids.includes(t.id));
         
         set((state) => ({
-          tasks: state.tasks.map((t) =>
-            ids.includes(t.id) ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-          ),
+          tasks: state.tasks.map((t) => {
+            if (ids.includes(t.id)) {
+              const finalUpdates = { ...updates };
+              if (updates.state && updates.state !== t.state) {
+                if (updates.state === 'done') {
+                  finalUpdates.progress = 100;
+                } else if (updates.progress === undefined) {
+                  if (updates.state === 'in_progress' && (t.progress === 0 || t.progress === 50)) {
+                    finalUpdates.progress = 50;
+                  } else if (updates.state === 'in_review' && (t.progress === 0 || t.progress === 50)) {
+                    finalUpdates.progress = 90;
+                  }
+                }
+              }
+              return { ...t, ...finalUpdates, updatedAt: new Date().toISOString() };
+            }
+            return t;
+          }),
         }));
 
         if (updates.state) {
