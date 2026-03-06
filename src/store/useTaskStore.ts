@@ -408,6 +408,18 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       deleteTask: (id) => {
+        const tasksToDelete = get().tasks.filter(t => t.id === id || t.parentId === id);
+        const userId = get().currentUser.id;
+        
+        tasksToDelete.forEach(task => {
+          get().addActivityLog({
+            taskId: task.id,
+            userId,
+            action: 'deleted',
+            details: `删除了任务 "${task.title}"`,
+          });
+        });
+        
         set((state) => ({
           tasks: state.tasks.filter((task) => task.id !== id && task.parentId !== id), // Also delete subtasks
         }));

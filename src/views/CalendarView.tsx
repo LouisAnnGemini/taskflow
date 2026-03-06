@@ -187,8 +187,20 @@ export function CalendarView() {
               {taskIds.map(taskId => {
                 const task = tasks.find(t => t.id === taskId);
                 const taskLogs = logsByTask[taskId];
-                // If task is deleted, we might not find it, so use a fallback or skip
-                const taskTitle = task ? task.title : '已删除的任务';
+                let taskTitle = task ? task.title : '已删除的任务';
+                if (!task && taskLogs.length > 0) {
+                  const deletedLog = taskLogs.find(l => l.action === 'deleted');
+                  if (deletedLog) {
+                    const match = deletedLog.details.match(/删除了任务 "(.*)"/);
+                    if (match) taskTitle = `${match[1]} (已删除)`;
+                  } else {
+                    const createdLog = taskLogs.find(l => l.action === 'created');
+                    if (createdLog) {
+                      const match = createdLog.details.match(/创建了任务 "(.*)"/);
+                      if (match) taskTitle = `${match[1]} (已删除)`;
+                    }
+                  }
+                }
 
                 return (
                   <div key={taskId} className="relative group">
@@ -203,8 +215,9 @@ export function CalendarView() {
                             }
                           }
                         }}
-                        className="w-24 sm:w-40 pr-2 sm:pr-4 shrink-0 truncate text-xs sm:text-sm font-medium text-slate-700 hover:text-indigo-600 hover:underline text-left transition-colors" 
+                        className={`w-24 sm:w-40 pr-2 sm:pr-4 shrink-0 truncate text-xs sm:text-sm font-medium text-left transition-colors ${!task ? 'text-red-500 line-through hover:text-red-600' : 'text-slate-700 hover:text-indigo-600 hover:underline'}`} 
                         title={taskTitle}
+                        disabled={!task}
                       >
                         {taskTitle}
                       </button>
