@@ -1465,13 +1465,13 @@ export function SettingsView() {
               onClick={handleExportExcel}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
             >
-              <Download size={18} /> 导出为 Excel
+              <Upload size={18} /> 导出为 Excel
             </button>
             <button
               onClick={handleExport}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
             >
-              <Download size={18} /> 导出数据 (JSON)
+              <Upload size={18} /> 导出数据 (JSON)
             </button>
             
             <div className="relative">
@@ -1484,7 +1484,7 @@ export function SettingsView() {
               <button
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium w-full"
               >
-                <Upload size={18} /> 导入数据 (JSON)
+                <Download size={18} /> 导入数据 (JSON)
               </button>
             </div>
           </div>
