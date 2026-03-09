@@ -9,14 +9,15 @@ import { format } from 'date-fns';
 import { MultiSelect } from '../components/MultiSelect';
 
 export function SearchView() {
-  const { tasks, users, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions } = useTaskStore();
+  const { tasks, users, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions, searchStateFilter, setSearchStateFilter } = useTaskStore();
   
+  const searchContainerRef = React.useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
   const [selectedDelegationStatus, setSelectedDelegationStatus] = useState<string[]>([]);
-  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedStates, setSelectedStates] = useState<string[]>(searchStateFilter ? [searchStateFilter] : []);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [selectedMediums, setSelectedMediums] = useState<string[]>([]);
   const [selectedCustomFields, setSelectedCustomFields] = useState<Record<string, string[]>>({});
@@ -33,6 +34,19 @@ export function SearchView() {
   });
   // Initialize negated filters for custom fields
   const [negatedCustomFields, setNegatedCustomFields] = useState<Record<string, boolean>>({});
+
+  // Clear the global filter after it's been consumed and scroll to top
+  React.useEffect(() => {
+    if (searchStateFilter) {
+      setSearchStateFilter(null);
+      // Scroll to the search container
+      if (searchContainerRef.current) {
+        searchContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [searchStateFilter, setSearchStateFilter]);
 
   // Batch selection state
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -276,7 +290,7 @@ export function SearchView() {
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto relative pb-20">
+    <div className="space-y-6 max-w-7xl mx-auto relative pb-20" ref={searchContainerRef}>
       {/* Search and Filter Header */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="relative">

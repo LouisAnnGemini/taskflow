@@ -6,7 +6,7 @@ import { TaskCard } from '../components/TaskCard';
 import { Eye, EyeOff, Settings2, Check } from 'lucide-react';
 
 export function KanbanView() {
-  const { tasks, columns, changeTaskState, currentUser, updateColumn } = useTaskStore();
+  const { tasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter } = useTaskStore();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
@@ -74,7 +74,12 @@ export function KanbanView() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 md:gap-6 overflow-x-auto pb-8 snap-x snap-mandatory md:snap-none px-4 md:px-0 -mx-4 md:mx-0">
           {visibleColumns.map((column) => {
-            const columnTasks = tasks.filter((t) => t.state === column.id && !t.parentId);
+            const columnTasks = tasks
+              .filter((t) => t.state === column.id && !t.parentId)
+              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+            
+            const displayedTasks = columnTasks.slice(0, 10);
+            const hasMore = columnTasks.length > 10;
 
             return (
               <div key={column.id} className="flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none">
@@ -98,7 +103,7 @@ export function KanbanView() {
                       }`}
                     >
                       <div className="flex flex-col gap-3">
-                        {columnTasks.map((task, index) => (
+                        {displayedTasks.map((task, index) => (
                           // @ts-expect-error key prop is required by React but missing in types
                           <Draggable key={task.id} draggableId={task.id} index={index}>
                             {(provided, snapshot) => (
@@ -117,6 +122,18 @@ export function KanbanView() {
                           </Draggable>
                         ))}
                         {provided.placeholder}
+                        
+                        {hasMore && (
+                          <button
+                            onClick={() => {
+                              setSearchStateFilter(column.id);
+                              setCurrentView('search');
+                            }}
+                            className="w-full py-2 mt-2 text-sm font-medium text-slate-600 bg-white/50 hover:bg-white rounded-lg border border-slate-200/50 transition-colors"
+                          >
+                            查看全部 ({columnTasks.length})
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}

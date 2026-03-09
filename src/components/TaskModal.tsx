@@ -307,8 +307,6 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
           </div>
         );
       case 'assigneeIds': {
-        const me = users.find(u => u.id === currentUser.id);
-        const others = users.filter(u => u.id !== currentUser.id);
         const searchQuery = fieldSearchQueries['assignees'] || '';
         const selectedIds = task.assigneeIds || [];
 
@@ -317,27 +315,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">负责人</label>
             
             <div className="flex flex-wrap gap-2 mb-2">
-              {/* Fixed "Me" option */}
-              {me && (
-                <button
-                  onClick={() => {
-                    const newAssignees = selectedIds.includes(me.id)
-                      ? selectedIds.filter(id => id !== me.id)
-                      : [...selectedIds, me.id];
-                    handleUpdate({ assigneeIds: newAssignees });
-                  }}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    selectedIds.includes(me.id)
-                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {getUserDisplayName(me, entities)}
-                </button>
-              )}
-
-              {/* Selected Others */}
-              {selectedIds.filter(id => id !== currentUser.id).map(id => {
+              {/* Selected Users */}
+              {selectedIds.map(id => {
                 const u = users.find(user => user.id === id);
                 if (!u) return null;
                 return (
@@ -355,17 +334,17 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               })}
             </div>
 
-            {/* Search for others */}
+            {/* Search for users */}
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text"
-                placeholder="搜索其他成员..."
+                placeholder="搜索成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, assignees: e.target.value })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && searchQuery) {
-                    const matchedUser = others.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    const matchedUser = users.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
                     if (matchedUser) {
                       const isSelected = selectedIds.includes(matchedUser.id);
                       const newAssignees = isSelected
@@ -381,7 +360,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               
               {searchQuery && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
-                  {others
+                  {users
                     .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map(u => {
                       const isSelected = selectedIds.includes(u.id);
@@ -404,7 +383,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         </button>
                       );
                     })}
-                  {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                  {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                     <button
                       onClick={() => {
                         addUser({ id: nanoid(), name: searchQuery });

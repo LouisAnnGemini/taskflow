@@ -61,6 +61,11 @@ interface TaskStore {
   customFieldDefinitions: CustomFieldDefinition[];
   fieldOrder: FieldConfig[];
   memos: Memo[];
+  currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
+  searchStateFilter: string | null;
+  
+  setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings') => void;
+  setSearchStateFilter: (filter: string | null) => void;
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -223,6 +228,11 @@ export const useTaskStore = create<TaskStore>()(
       customFieldDefinitions: [],
       fieldOrder: defaultFieldOrder,
       memos: [],
+      currentView: 'kanban',
+      searchStateFilter: null,
+
+      setCurrentView: (view) => set({ currentView: view }),
+      setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
 
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
       setHighlightedLogId: (id) => set({ highlightedLogId: id }),
@@ -352,8 +362,8 @@ export const useTaskStore = create<TaskStore>()(
           priority: taskData.priority || 'medium',
           isPinned: taskData.isPinned || false,
           creatorId: taskData.creatorId || get().currentUser.id,
-          assigneeIds: taskData.assigneeIds || [get().currentUser.id],
-          reporterIds: taskData.reporterIds || [get().currentUser.id],
+          assigneeIds: taskData.assigneeIds || [],
+          reporterIds: taskData.reporterIds || [],
           mediumTags: taskData.mediumTags || [],
           progress: initialProgress,
           recurrence: taskData.recurrence || 'none',
@@ -556,7 +566,7 @@ export const useTaskStore = create<TaskStore>()(
           isPinned: false,
           creatorId: userId,
           assigneeIds: [userId],
-          reporterIds: [userId],
+          reporterIds: [],
           mediumTags: [],
           progress: 100,
           recurrence: 'none',
