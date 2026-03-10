@@ -84,10 +84,10 @@ export function KanbanView() {
             return (
               <div key={column.id} className="flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none">
                 <div className="flex items-center justify-between mb-4 px-2">
-                  <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                     {column.icon && <span>{column.icon}</span>}
                     {column.title}
-                    <span className="bg-slate-200 text-slate-600 text-xs py-0.5 px-2 rounded-full font-medium">
+                    <span className="bg-slate-200 text-slate-600 text-xs py-0.5 px-2.5 rounded-full font-medium">
                       {columnTasks.length}
                     </span>
                   </h2>
@@ -98,8 +98,8 @@ export function KanbanView() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 rounded-2xl p-3 min-h-[200px] transition-colors ${column.color} ${
-                        snapshot.isDraggingOver ? 'ring-2 ring-indigo-300 ring-inset' : ''
+                      className={`flex-1 rounded-2xl p-2 min-h-[200px] transition-colors ${column.color} ${
+                        snapshot.isDraggingOver ? 'ring-2 ring-slate-300 ring-inset bg-slate-100/50' : ''
                       }`}
                     >
                       <div className="flex flex-col gap-3">

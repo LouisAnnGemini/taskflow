@@ -805,20 +805,20 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:p-4 md:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 sm:p-4 md:p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-white sm:rounded-2xl shadow-xl w-full h-full sm:h-auto sm:max-w-4xl sm:max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white sm:rounded-3xl shadow-2xl w-full h-full sm:h-auto sm:max-w-4xl sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 gap-3 sm:gap-0 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100/50 bg-white/50 backdrop-blur-md gap-3 sm:gap-0 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             <select
               value={task.state}
               onChange={(e) => handleUpdate({ state: e.target.value as TaskState })}
-              className="bg-slate-100 border-none text-xs sm:text-sm font-medium rounded-lg px-2 sm:px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 shrink-0"
+              className="bg-slate-100 border-none text-xs sm:text-sm font-medium rounded-xl px-2 sm:px-3 py-1.5 focus:ring-2 focus:ring-slate-900 shrink-0"
             >
               {columns.map(c => (
                 <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
@@ -830,14 +830,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 type="checkbox" 
                 checked={task.isPinned}
                 onChange={(e) => handleUpdate({ isPinned: e.target.checked })}
-                className="rounded text-amber-500 focus:ring-amber-500"
+                className="rounded text-amber-500 focus:ring-amber-500 border-slate-300"
               />
               置顶
             </label>
             {task.state !== 'done' && (
               <button 
                 onClick={() => handleUpdate({ state: 'done' })}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-medium rounded-xl hover:bg-emerald-100 transition-colors shrink-0"
               >
                 <Check size={14} className="sm:w-4 sm:h-4" /> 立即完成
               </button>
@@ -845,22 +845,22 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
           </div>
           
           <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
-            <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            <div className="flex items-center bg-slate-100/80 rounded-xl p-1">
               <button 
                 onClick={() => setActiveTab('details')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === 'details' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 详情
               </button>
               <button 
                 onClick={() => setActiveTab('logs')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === 'logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 日志
               </button>
               <button 
                 onClick={() => setActiveTab('graph')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'graph' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === 'graph' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 图谱
               </button>
@@ -869,7 +869,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             <div className="flex items-center gap-1 sm:gap-2">
               <button 
                 onClick={handleQuickCopy}
-                className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
                 title="快速复制任务"
               >
                 <Copy size={18} className="sm:w-5 sm:h-5" />
@@ -893,7 +893,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               ) : (
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                   title="删除任务"
                 >
                   <Trash2 size={18} className="sm:w-5 sm:h-5" />
@@ -901,7 +901,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               )}
               <button 
                 onClick={onClose}
-                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 <X size={18} className="sm:w-5 sm:h-5" />
               </button>
@@ -921,7 +921,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       type="text"
                       value={task.title}
                       onChange={(e) => handleUpdate({ title: e.target.value })}
-                      className="w-full text-2xl font-bold text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-300"
+                      className="w-full text-2xl sm:text-3xl font-bold text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-300 bg-transparent transition-colors"
                       placeholder="任务标题"
                     />
                   </div>
@@ -942,7 +942,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     <textarea
                       value={task.description || ''}
                       onChange={(e) => handleUpdate({ description: e.target.value })}
-                      className="w-full bg-slate-50 border-slate-200 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full bg-slate-50 border-slate-200 rounded-2xl p-4 min-h-[120px] focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-shadow"
                       placeholder="添加更详细的描述..."
                     />
                   </div>
@@ -955,12 +955,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   
                   <div className="space-y-3">
                     {subtasks.map(subtask => (
-                      <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 group">
+                      <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 group hover:border-slate-200 transition-colors">
                         <input 
                           type="checkbox" 
                           checked={subtask.state === 'done'}
                           onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
-                          className="w-5 h-5 rounded text-emerald-500 focus:ring-emerald-500 border-slate-300"
+                          className="w-5 h-5 rounded text-slate-900 focus:ring-slate-900 border-slate-300"
                         />
                         {editingSubtaskId === subtask.id ? (
                           <div className="flex-1 flex items-center gap-2">
@@ -968,7 +968,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                               type="text"
                               value={editSubtaskTitle}
                               onChange={(e) => setEditSubtaskTitle(e.target.value)}
-                              className="flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
+                              className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -982,13 +982,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                                 updateTask(subtask.id, { title: editSubtaskTitle });
                                 setEditingSubtaskId(null);
                               }}
-                              className="text-emerald-600 hover:text-emerald-700"
+                              className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-xl transition-colors"
                             >
                               <Check size={16} />
                             </button>
                             <button 
                               onClick={() => setEditingSubtaskId(null)}
-                              className="text-slate-400 hover:text-slate-600"
+                              className="text-slate-400 hover:text-slate-600 p-1.5 bg-slate-100 rounded-xl transition-colors"
                             >
                               <X size={16} />
                             </button>
@@ -1006,14 +1006,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             </span>
                             <button 
                               onClick={() => convertSubtaskToTask(subtask.id)}
-                              className="text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="text-slate-400 hover:text-slate-900 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-slate-200 rounded-lg"
                               title="转为独立任务"
                             >
                               <ArrowUpRight size={16} />
                             </button>
                             <button 
                               onClick={() => deleteTask(subtask.id)}
-                              className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 rounded-lg"
                               title="删除子任务"
                             >
                               <Trash2 size={16} />
@@ -1029,9 +1029,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         value={newSubtaskTitle}
                         onChange={(e) => setNewSubtaskTitle(e.target.value)}
                         placeholder="添加子任务..."
-                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
                       />
-                      <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+                      <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:hover:bg-slate-100">
                         添加
                       </button>
                     </form>
@@ -1047,14 +1047,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       const relatedTask = getTask(relatedId);
                       if (!relatedTask) return null;
                       return (
-                        <div key={relatedId} className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100 text-sm">
-                          <button onClick={() => setSelectedTaskId(relatedId)} className="hover:underline">
+                        <div key={relatedId} className="flex items-center gap-2 bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 text-sm hover:border-slate-300 transition-colors">
+                          <button onClick={() => setSelectedTaskId(relatedId)} className="hover:text-slate-900 transition-colors">
                             {relatedTask.title}
                           </button>
                           <button onClick={() => {
                             const { unrelateTask } = useTaskStore.getState();
                             unrelateTask(task.id, relatedId);
-                          }} className="text-indigo-400 hover:text-indigo-600">
+                          }} className="text-slate-400 hover:text-red-600 transition-colors p-0.5 rounded-md hover:bg-red-50">
                             <X size={14} />
                           </button>
                         </div>
@@ -1067,11 +1067,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       type="text"
                       placeholder="搜索任务以关联..."
                       value={relatedTaskSearchQuery}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
                       onChange={(e) => setRelatedTaskSearchQuery(e.target.value)}
                     />
                     {relatedTaskSearchQuery && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
                         {useTaskStore.getState().tasks
                           .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
                           .map(t => (
@@ -1082,7 +1082,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                                 relateTask(task.id, t.id);
                                 setRelatedTaskSearchQuery('');
                               }}
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors"
+                              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
                             >
                               {t.title}
                             </button>
@@ -1112,7 +1112,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 {!isManagingLogs ? (
                   <button 
                     onClick={startManagingLogs}
-                    className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
                   >
                     <Settings2 size={14} /> 管理日志
                   </button>
@@ -1163,7 +1163,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                               type="text"
                               value={log.details}
                               onChange={(e) => updateTempLog(log.id, e.target.value)}
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
                             />
                           </div>
                         ) : (

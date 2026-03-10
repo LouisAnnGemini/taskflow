@@ -113,6 +113,10 @@ export function SettingsView() {
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  
+  // Log export state
+  const [logStartDate, setLogStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [logEndDate, setLogEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   const showMessage = (text: string, type: 'success' | 'error' = 'success') => {
     setMessage({ text, type });
@@ -267,6 +271,42 @@ export function SettingsView() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
     XLSX.writeFile(workbook, `taskflow-tasks-${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleExportLogs = () => {
+    const state = useTaskStore.getState();
+    const start = new Date(logStartDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(logEndDate);
+    end.setHours(23, 59, 59, 999);
+
+    const filteredLogs = state.activityLogs.filter(log => {
+      const logDate = new Date(log.timestamp);
+      return logDate >= start && logDate <= end;
+    });
+
+    if (filteredLogs.length === 0) {
+      showMessage('该日期范围内没有日志数据', 'error');
+      return;
+    }
+
+    const exportData = filteredLogs.map(log => {
+      const task = state.tasks.find(t => t.id === log.taskId);
+      const user = state.users.find(u => u.id === log.userId);
+      return {
+        '时间': new Date(log.timestamp).toLocaleString(),
+        '用户': user?.name || '未知用户',
+        '任务标题': task?.title || '已删除任务',
+        '动作': log.action,
+        '详情': log.details,
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Activity Logs');
+    XLSX.writeFile(workbook, `taskflow-logs-${logStartDate}-to-${logEndDate}.xlsx`);
+    showMessage('日志导出成功！');
   };
 
   const handleExport = () => {
@@ -1460,37 +1500,75 @@ export function SettingsView() {
         </div>
         
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={handleExportExcel}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-            >
-              <Upload size={18} /> 导出为 Excel
-            </button>
-            <button
-              onClick={handleExport}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
-            >
-              <Upload size={18} /> 导出数据 (JSON)
-            </button>
-            
-            <div className="relative">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <button
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium w-full"
-              >
-                <Download size={18} /> 导入数据 (JSON)
-              </button>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 mb-4">全量数据备份</h3>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                >
+                  <Upload size={18} /> 导出任务为 Excel
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                >
+                  <Upload size={18} /> 导出全量数据 (JSON)
+                </button>
+                
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImport}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <button
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium w-full"
+                  >
+                    <Download size={18} /> 导入数据 (JSON)
+                  </button>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-slate-500">
+                您可以导出所有数据进行备份，或者导入之前备份的数据。导入数据将覆盖当前的所有数据，请谨慎操作。
+              </p>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800 mb-4">日志导出</h3>
+              <div className="flex flex-col sm:flex-row items-end gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-500">开始日期</label>
+                  <input 
+                    type="date" 
+                    value={logStartDate}
+                    onChange={(e) => setLogStartDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-500">结束日期</label>
+                  <input 
+                    type="date" 
+                    value={logEndDate}
+                    onChange={(e) => setLogEndDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <button
+                  onClick={handleExportLogs}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                >
+                  <Download size={18} /> 导出选定范围日志
+                </button>
+              </div>
+              <p className="mt-4 text-xs text-slate-400">
+                导出指定日期范围内的任务操作日志，包含任务标题、操作人、操作内容及时间。
+              </p>
             </div>
           </div>
-          <p className="mt-4 text-sm text-slate-500">
-            您可以导出所有数据进行备份，或者导入之前备份的数据。导入数据将覆盖当前的所有数据，请谨慎操作。
-          </p>
         </div>
       </section>
 

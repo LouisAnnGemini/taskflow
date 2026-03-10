@@ -55,11 +55,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 md:pb-0">
       {/* Top Navigation */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center shadow-sm">
                 <span className="text-white font-bold text-lg leading-none">T</span>
               </div>
               <span className="text-xl font-bold tracking-tight text-slate-900">TaskFlow</span>
@@ -70,26 +70,26 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentView(item.id as ViewType)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     currentView === item.id
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-slate-100 text-slate-900'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <item.icon size={18} className={currentView === item.id ? 'text-indigo-600' : 'text-slate-400'} />
+                  <item.icon size={18} className={currentView === item.id ? 'text-slate-900' : 'text-slate-400'} />
                   {item.label}
                 </button>
               ))}
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentView('settings')}
-              className={`p-2 rounded-full transition-colors ${
+              className={`p-2 rounded-xl transition-colors ${
                 currentView === 'settings' 
-                  ? 'text-indigo-600 bg-indigo-50' 
-                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                  ? 'text-slate-900 bg-slate-100' 
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
               title="设置"
             >
@@ -98,15 +98,15 @@ export default function App() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className={`p-2 rounded-full transition-colors relative ${
+                className={`p-2 rounded-xl transition-colors relative ${
                   showNotifications 
-                    ? 'text-indigo-600 bg-indigo-50' 
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                    ? 'text-slate-900 bg-slate-100' 
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
               

@@ -81,9 +81,9 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
     <div 
       onClick={handleClick}
       className={cn(
-        "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer group relative",
-        task.isPinned ? "border-red-300 bg-red-50" : task.isDelegated ? "border-zinc-50 bg-zinc-50" : "border-slate-200",
-        isSelected && "ring-2 ring-indigo-500 border-indigo-500"
+        "bg-white border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group relative",
+        task.isPinned ? "border-red-200 bg-red-50/50" : task.isDelegated ? "border-slate-100 bg-slate-50" : "border-slate-200",
+        isSelected && "ring-2 ring-slate-900 border-slate-900"
       )}
     >
       {selectable && (
@@ -95,8 +95,8 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
           }}
         >
           <div className={cn(
-            "w-5 h-5 rounded border flex items-center justify-center transition-colors",
-            isSelected ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300 hover:border-indigo-400"
+            "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
+            isSelected ? "bg-slate-900 border-slate-900" : "bg-white border-slate-300 hover:border-slate-400"
           )}>
             {isSelected && <CheckCircle2 size={14} className="text-white" />}
           </div>
