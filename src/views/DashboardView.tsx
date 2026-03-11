@@ -37,13 +37,13 @@ export function DashboardView() {
     });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {pinnedTasks.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
             <span className="text-amber-500">📌</span> 置顶优先级
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {pinnedTasks.map(task => (
               <TaskCard key={task.id} task={task} />
             ))}
@@ -52,15 +52,15 @@ export function DashboardView() {
       )}
 
       <section>
-        <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
           <span className="text-blue-500">⚡️</span> 今日及逾期
         </h2>
         {todayTasks.length === 0 ? (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500 shadow-sm">
             今天的工作都完成啦！
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {todayTasks.map(task => (
               <TaskCard key={task.id} task={task} />
             ))}
@@ -70,10 +70,10 @@ export function DashboardView() {
 
       {reviewTasks.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
             <span className="text-purple-500">👀</span> 等待我审核
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {reviewTasks.map(task => (
               <TaskCard key={task.id} task={task} />
             ))}
@@ -83,10 +83,10 @@ export function DashboardView() {
 
       {delegatedTasks.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
             <span className="text-indigo-500">🤝</span> 委派给他人
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {delegatedTasks.map(task => (
               <TaskCard key={task.id} task={task} />
             ))}
