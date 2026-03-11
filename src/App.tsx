@@ -59,7 +59,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
                 <span className="text-white font-bold text-lg leading-none">T</span>
               </div>
               <span className="text-xl font-bold tracking-tight text-slate-900">TaskFlow</span>
@@ -70,13 +70,13 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentView(item.id as ViewType)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     currentView === item.id
-                      ? 'bg-slate-100 text-slate-900'
+                      ? 'bg-slate-100 text-indigo-700'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <item.icon size={18} className={currentView === item.id ? 'text-slate-900' : 'text-slate-400'} />
+                  <item.icon size={18} className={currentView === item.id ? 'text-indigo-600' : 'text-slate-400'} />
                   {item.label}
                 </button>
               ))}
@@ -86,9 +86,9 @@ export default function App() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentView('settings')}
-              className={`p-2 rounded-xl transition-colors ${
+              className={`p-2 rounded-lg transition-colors ${
                 currentView === 'settings' 
-                  ? 'text-slate-900 bg-slate-100' 
+                  ? 'text-indigo-600 bg-slate-100' 
                   : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
               title="设置"
@@ -98,9 +98,9 @@ export default function App() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className={`p-2 rounded-xl transition-colors relative ${
+                className={`p-2 rounded-lg transition-colors relative ${
                   showNotifications 
-                    ? 'text-slate-900 bg-slate-100' 
+                    ? 'text-indigo-600 bg-slate-100' 
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }`}
               >

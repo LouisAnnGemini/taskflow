@@ -87,27 +87,27 @@ export function KanbanView() {
             const hasMore = columnTasks.length > 10;
 
             return (
-              <div key={column.id} className="flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none">
-                <div className="flex items-center justify-between mb-4 px-2">
-                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-                    {column.icon && <span>{column.icon}</span>}
-                    {column.title}
-                    <span className="bg-slate-200 text-slate-600 text-xs py-0.5 px-2.5 rounded-full font-medium">
-                      {columnTasks.length}
-                    </span>
-                  </h2>
-                </div>
+                <div key={column.id} className="flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none">
+                  <div className="flex items-center justify-between mb-3 px-2">
+                    <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
+                      {column.icon && <span>{column.icon}</span>}
+                      {column.title}
+                      <span className="bg-slate-200 text-slate-600 text-[10px] py-0.5 px-2 rounded-md font-bold">
+                        {columnTasks.length}
+                      </span>
+                    </h2>
+                  </div>
 
-                <Droppable droppableId={column.id}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`flex-1 rounded-2xl p-2 min-h-[200px] transition-colors ${column.color} ${
-                        snapshot.isDraggingOver ? 'ring-2 ring-slate-300 ring-inset bg-slate-100/50' : ''
-                      }`}
-                    >
-                      <div className="flex flex-col gap-3">
+                  <Droppable droppableId={column.id}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-1 rounded-xl p-2 min-h-[500px] transition-colors ${column.color.replace('bg-', 'bg-opacity-40 bg-')} ${
+                          snapshot.isDraggingOver ? 'ring-2 ring-indigo-200 ring-inset bg-slate-200/50' : ''
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3">
                         {displayedTasks.map((task, index) => (
                           // @ts-expect-error key prop is required by React but missing in types
                           <Draggable key={task.id} draggableId={task.id} index={index}>

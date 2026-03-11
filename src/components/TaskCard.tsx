@@ -16,8 +16,7 @@ import {
   Eye,
   PauseCircle,
   UserPlus,
-  Link,
-  Check
+  Link
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../utils/cn';
@@ -66,11 +65,6 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
     changeTaskState(task.id, 'snoozed', currentUser.id);
   };
 
-  const handleMarkDone = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    changeTaskState(task.id, 'done', currentUser.id);
-  };
-
   const handleDelegate = (e: React.MouseEvent) => {
     e.stopPropagation();
     const firstAssignee = task.assigneeIds[0];
@@ -87,132 +81,97 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
     <div 
       onClick={handleClick}
       className={cn(
-        "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer group relative flex flex-col h-full",
-        task.isPinned ? "border-amber-200 bg-amber-50/30" : task.isDelegated ? "border-indigo-100 bg-indigo-50/20" : "border-slate-200",
-        isSelected && "ring-2 ring-indigo-500 border-indigo-500 shadow-indigo-100",
-        task.state === 'done' && "opacity-75 grayscale-[0.2]"
+        "bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative",
+        task.isPinned && "border-indigo-200 bg-indigo-50/30",
+        isSelected && "ring-2 ring-indigo-600 border-indigo-600"
       )}
     >
       {selectable && (
         <div 
-          className="absolute top-3 right-3 z-10"
+          className="absolute top-4 right-4 z-10"
           onClick={(e) => {
             e.stopPropagation();
             onSelect?.(!isSelected);
           }}
         >
           <div className={cn(
-            "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-            isSelected ? "bg-indigo-600 border-indigo-600 scale-110" : "bg-white border-slate-300 hover:border-indigo-400"
+            "w-5 h-5 rounded border flex items-center justify-center transition-colors",
+            isSelected ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300 hover:border-slate-400"
           )}>
-            {isSelected && <Check size={12} strokeWidth={3} className="text-white" />}
+            {isSelected && <CheckCircle2 size={14} className="text-white" />}
           </div>
         </div>
       )}
 
       <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-2 flex-wrap max-w-[80%]">
-          <div className={cn(
-            "flex items-center justify-center w-6 h-6 rounded-lg",
-            column?.color || 'bg-slate-100'
-          )}>
-            {column?.icon ? (
-              <span className="text-xs">{column.icon}</span>
-            ) : (
-              stateIcons[task.state]
-            )}
-          </div>
-          
+        <div className="flex items-center gap-2">
+          {column?.icon ? (
+            <span className="text-sm">{column.icon}</span>
+          ) : (
+            stateIcons[task.state] || (
+              <div className={`w-3 h-3 rounded-full ${column?.color || 'bg-slate-200'}`} title={column?.title || task.state} />
+            )
+          )}
           {priority && (
             <span className={cn(
-              "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider flex items-center gap-1",
+              "text-xs font-semibold px-2 py-0.5 rounded-md tracking-tight flex items-center gap-1",
               priority.color
             )}>
+              {priority.icon && <span>{priority.icon}</span>}
               {priority.label}
             </span>
           )}
-          
-          {task.isPinned && (
-            <div className="bg-amber-100 text-amber-600 p-1 rounded">
-              <Pin size={10} className="fill-current" />
-            </div>
-          )}
+          {task.isPinned && <Pin size={14} className="text-indigo-500 fill-indigo-500" />}
         </div>
         
         <div className="flex items-center gap-2">
           {/* Quick Actions (visible on hover) */}
-          <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 bg-white border border-slate-100 shadow-sm rounded-lg p-0.5">
-            {task.state !== 'done' && (
-              <button 
-                onClick={handleMarkDone}
-                className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                title="完成"
-              >
-                <Check size={14} />
-              </button>
-            )}
-            {task.state !== 'snoozed' && (
-              <button 
-                onClick={handleSnooze}
-                className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
-                title="延期"
-              >
-                <PauseCircle size={14} />
-              </button>
-            )}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg px-1 shadow-sm border border-slate-100">
+            <button 
+              onClick={handleSnooze}
+              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+              title="延期"
+            >
+              <PauseCircle size={14} />
+            </button>
           </div>
 
           {task.dueDate && (
-            <div className={cn(
-              "flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded",
-              new Date(task.dueDate) < new Date() && task.state !== 'done' 
-                ? "bg-red-50 text-red-600" 
-                : "text-slate-500"
-            )}>
-              <Clock size={10} />
+            <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
+              <Clock size={12} />
               <span>{format(new Date(task.dueDate), 'MM/dd')}</span>
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex-1">
-        <h3 className={cn(
-          "font-semibold text-slate-800 mb-2 leading-tight text-sm",
-          task.state === 'done' && "line-through text-slate-400"
-        )}>
-          {task.title}
-        </h3>
-        
-        {task.description && (
-          <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed">
-            {task.description}
-          </p>
-        )}
+      <h3 className={cn(
+        "font-semibold text-slate-900 mb-2 leading-tight text-[15px]",
+        task.state === 'done' && "line-through text-slate-400"
+      )}>
+        {task.title}
+      </h3>
 
-        {task.progress > 0 && task.progress < 100 && (
-          <div className="space-y-1 mb-3">
-            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-              <span>进度</span>
-              <span>{task.progress}%</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
-              <div 
-                className="bg-indigo-500 h-full rounded-full transition-all duration-500 ease-out" 
-                style={{ width: `${task.progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      {task.progress > 0 && task.progress < 100 && (
+        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
+          <div 
+            className="bg-indigo-600 h-1.5 rounded-full transition-all" 
+            style={{ width: `${task.progress}%` }}
+          />
+        </div>
+      )}
 
-      <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50">
-        <div className="flex flex-wrap gap-1 max-w-[60%]">
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
+        <div className="flex gap-1.5">
           {task.mediumTags.map(tagId => {
             const medium = mediums.find(m => m.id === tagId);
             return (
-              <span key={tagId} className="flex items-center gap-1 text-[9px] font-bold uppercase bg-slate-50 text-slate-500 border border-slate-100 px-1.5 py-0.5 rounded">
-                {medium?.icon && <span className="text-[10px]">{medium.icon}</span>}
+              <span key={tagId} className="flex items-center gap-1 text-[10px] font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                {medium?.icon ? (
+                  <span className="text-[10px]">{medium.icon}</span>
+                ) : (
+                  mediumIcons[tagId] || <MoreHorizontal size={12} />
+                )}
                 <span>{medium?.label || tagId}</span>
               </span>
             );
@@ -221,22 +180,18 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
 
         <div className="flex items-center gap-2">
           {(task.relatedTaskIds?.length || 0) > 0 && (
-            <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded" title="关联任务">
-              <Link size={10} /> {task.relatedTaskIds?.length}
+            <div className="flex items-center gap-1 text-xs text-slate-400">
+              <Link size={12} /> {task.relatedTaskIds?.length}
             </div>
           )}
-          {task.isDelegated && (
-            <div className="bg-indigo-50 text-indigo-600 p-1 rounded" title="已委派">
-              <UserPlus size={12} />
-            </div>
-          )}
-          <div className="flex -space-x-1.5">
+          {task.isDelegated && <UserPlus size={16} className="text-indigo-500" title="已委派" />}
+          <div className="flex -space-x-2">
             {assignees.map(assignee => (
               <Avatar 
                 key={assignee.id}
                 name={assignee.name} 
                 title={`负责人: ${getUserDisplayName(assignee, entities)}`}
-                className="w-6 h-6 border-2 border-white text-[9px] shadow-sm"
+                className="w-6 h-6 border-2 border-white text-[10px] shadow-sm"
               />
             ))}
             {reporters.filter(r => !task.assigneeIds.includes(r.id)).map(reporter => (
@@ -244,7 +199,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
                 key={`reporter-${reporter.id}`}
                 name={reporter.name} 
                 title={`汇报人: ${getUserDisplayName(reporter, entities)}`}
-                className="w-6 h-6 border-2 border-white opacity-60 text-[9px] shadow-sm grayscale-[0.5]"
+                className="w-6 h-6 border-2 border-white opacity-80 text-[10px] shadow-sm"
               />
             ))}
           </div>

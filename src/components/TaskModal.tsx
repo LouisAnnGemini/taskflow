@@ -96,33 +96,33 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       const searchQuery = fieldSearchQueries[definition.id] || '';
 
       return (
-        <div key={config.id} className="space-y-2">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{definition.name}</label>
-          {definition.type === 'text' && (
-            <input 
-              type="text"
-              value={value || ''}
-              onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-              placeholder={`输入${definition.name}...`}
-            />
-          )}
-          {definition.type === 'number' && (
-            <input 
-              type="number"
-              value={value || ''}
-              onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-            />
-          )}
-          {definition.type === 'date' && (
-            <input 
-              type="date"
-              value={value || ''}
-              onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-            />
-          )}
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">{definition.name}</label>
+            {definition.type === 'text' && (
+              <input 
+                type="text"
+                value={value || ''}
+                onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                placeholder={`输入${definition.name}...`}
+              />
+            )}
+            {definition.type === 'number' && (
+              <input 
+                type="number"
+                value={value || ''}
+                onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all data-value"
+              />
+            )}
+            {definition.type === 'date' && (
+              <input 
+                type="date"
+                value={value || ''}
+                onChange={(e) => handleCustomFieldUpdate(definition.id, e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all data-value"
+              />
+            )}
           {definition.type === 'select' && (
             <div className="space-y-2">
               {hasManyOptions ? (
@@ -293,12 +293,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     switch (config.id) {
       case 'state':
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">状态</label>
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">状态</label>
             <select
               value={task.state}
               onChange={(e) => handleUpdate({ state: e.target.value as any })}
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
             >
               {columns.map(c => (
                 <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
@@ -312,9 +312,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
         return (
           <div key={config.id} className="space-y-2">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">负责人</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">负责人</label>
             
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {/* Selected Users */}
               {selectedIds.map(id => {
                 const u = users.find(user => user.id === id);
@@ -325,8 +325,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     onClick={() => {
                       handleUpdate({ assigneeIds: selectedIds.filter(sid => sid !== u.id) });
                     }}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1"
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
                   >
+                    <Avatar name={u.name} className="w-4 h-4 text-[8px]" />
                     {getUserDisplayName(u, entities)}
                     <X size={10} />
                   </button>
@@ -342,24 +343,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder="搜索成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, assignees: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && searchQuery) {
-                    const matchedUser = users.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                    if (matchedUser) {
-                      const isSelected = selectedIds.includes(matchedUser.id);
-                      const newAssignees = isSelected
-                        ? selectedIds.filter(id => id !== matchedUser.id)
-                        : [...selectedIds, matchedUser.id];
-                      handleUpdate({ assigneeIds: newAssignees });
-                      setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
-                    }
-                  }
-                }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
               
               {searchQuery && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50 border-t-0">
                   {users
                     .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map(u => {
@@ -374,26 +362,18 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             handleUpdate({ assigneeIds: newAssignees });
                             setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                          className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center justify-between font-medium ${
                             isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50'
                           }`}
                         >
-                          {getUserDisplayName(u, entities)}
+                          <div className="flex items-center gap-2">
+                            <Avatar name={u.name} className="w-5 h-5 text-[10px]" />
+                            {getUserDisplayName(u, entities)}
+                          </div>
                           {isSelected && <Check size={14} />}
                         </button>
                       );
                     })}
-                  {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                    <button
-                      onClick={() => {
-                        addUser({ id: nanoid(), name: searchQuery });
-                        setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"
-                    >
-                      <Plus size={14} /> 快速新建: {searchQuery}
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -406,9 +386,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
         return (
           <div key={config.id} className="space-y-2">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">汇报人 / 审核人</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">汇报人 / 审核人</label>
             
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {/* Selected Users */}
               {selectedIds.map(id => {
                 const u = users.find(user => user.id === id);
@@ -419,8 +399,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     onClick={() => {
                       handleUpdate({ reporterIds: selectedIds.filter(sid => sid !== u.id) });
                     }}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1"
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1.5 hover:bg-slate-200 transition-colors"
                   >
+                    <Avatar name={u.name} className="w-4 h-4 text-[8px]" />
                     {getUserDisplayName(u, entities)}
                     <X size={10} />
                   </button>
@@ -436,24 +417,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder="搜索成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, reporters: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && searchQuery) {
-                    const matchedUser = users.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                    if (matchedUser) {
-                      const isSelected = selectedIds.includes(matchedUser.id);
-                      const newReporters = isSelected
-                        ? selectedIds.filter(id => id !== matchedUser.id)
-                        : [...selectedIds, matchedUser.id];
-                      handleUpdate({ reporterIds: newReporters });
-                      setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
-                    }
-                  }
-                }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
               
               {searchQuery && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50 border-t-0">
                   {users
                     .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map(u => {
@@ -468,26 +436,18 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             handleUpdate({ reporterIds: newReporters });
                             setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
-                            isSelected ? 'bg-purple-50 text-purple-700' : 'hover:bg-slate-50'
+                          className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center justify-between font-medium ${
+                            isSelected ? 'bg-slate-50 text-slate-900' : 'hover:bg-slate-50'
                           }`}
                         >
-                          {getUserDisplayName(u, entities)}
+                          <div className="flex items-center gap-2">
+                            <Avatar name={u.name} className="w-5 h-5 text-[10px]" />
+                            {getUserDisplayName(u, entities)}
+                          </div>
                           {isSelected && <Check size={14} />}
                         </button>
                       );
                     })}
-                  {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                    <button
-                      onClick={() => {
-                        addUser({ id: nanoid(), name: searchQuery });
-                        setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"
-                    >
-                      <Plus size={14} /> 快速新建: {searchQuery}
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -496,12 +456,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       }
       case 'priority':
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">优先级</label>
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">优先级</label>
             <select
               value={task.priority}
               onChange={(e) => handleUpdate({ priority: e.target.value })}
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
             >
               {priorities.map(p => (
                 <option key={p.id} value={p.id}>{p.icon ? `${p.icon} ` : ''}{p.label}</option>
@@ -512,23 +472,23 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       case 'startDate':
       case 'dueDate':
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">{config.name}</label>
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">{config.name}</label>
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
               {config.id === 'startDate' ? <Calendar size={16} className="text-slate-400" /> : <Clock size={16} className="text-slate-400" />}
               <input 
                 type="date" 
                 value={task[config.id] ? (task[config.id] as string).split('T')[0] : ''}
                 onChange={(e) => handleUpdate({ [config.id]: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-                className="flex-1 border-none p-0 text-sm focus:ring-0 text-slate-700"
+                className="flex-1 border-none p-0 text-sm focus:ring-0 text-slate-700 font-medium data-value outline-none"
               />
             </div>
           </div>
         );
       case 'progress':
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">进度</label>
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">进度</label>
             <div className="flex items-center gap-3">
               <input 
                 type="range" 
@@ -536,17 +496,17 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 max="100" 
                 value={task.progress}
                 onChange={(e) => handleUpdate({ progress: parseInt(e.target.value) })}
-                className="flex-1 accent-indigo-600"
+                className="flex-1 accent-indigo-600 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer"
               />
-              <span className="text-sm font-medium text-slate-700 w-8 text-right">{task.progress}%</span>
+              <span className="text-xs font-bold text-slate-700 w-10 text-right data-value">{task.progress}%</span>
             </div>
           </div>
         );
       case 'mediumTags':
         return (
-          <div key={config.id}>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">媒介标签</label>
-            <div className="flex flex-wrap gap-2">
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">媒介标签</label>
+            <div className="flex flex-wrap gap-1.5">
               {mediums.map(m => (
                 <button
                   key={m.id}
@@ -556,10 +516,10 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       : [...task.mediumTags, m.id];
                     handleUpdate({ mediumTags: newTags });
                   }}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 border ${
                     task.mediumTags.includes(m.id)
-                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   {m.icon && <span>{m.icon}</span>}
@@ -801,100 +761,91 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     onClose();
   };
 
+  const displayLogs = isManagingLogs ? tempLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp)) : logs;
+
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 sm:p-4 md:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 md:p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-white sm:rounded-[32px] shadow-2xl w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300"
+        className="bg-white sm:rounded-2xl shadow-2xl w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-xl gap-4 sm:gap-0 shrink-0 z-10">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
-            <div className="flex items-center gap-2 bg-slate-100/80 p-1 rounded-2xl">
-              {columns.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => handleUpdate({ state: c.id as TaskState })}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                    task.state === c.id 
-                      ? 'bg-white text-slate-900 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {c.icon && <span className="mr-1.5">{c.icon}</span>}
-                  {c.title}
-                </button>
-              ))}
-            </div>
-            
-            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
-
-            <button 
-              onClick={() => handleUpdate({ isPinned: !task.isPinned })}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                task.isPinned 
-                  ? 'bg-amber-50 text-amber-600 border border-amber-100' 
-                  : 'bg-slate-50 text-slate-500 border border-transparent hover:bg-slate-100'
-              }`}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/50 backdrop-blur-md gap-3 sm:gap-0 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+            <select
+              value={task.state}
+              onChange={(e) => handleUpdate({ state: e.target.value as TaskState })}
+              className="bg-white border border-slate-200 text-xs sm:text-sm font-semibold rounded-lg px-2 sm:px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 shadow-sm shrink-0"
             >
-              <Tag size={14} className={task.isPinned ? 'fill-amber-600' : ''} />
+              {columns.map(c => (
+                <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
+              ))}
+            </select>
+            
+            <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-slate-600 cursor-pointer hover:text-indigo-600 transition-colors shrink-0">
+              <input 
+                type="checkbox" 
+                checked={task.isPinned}
+                onChange={(e) => handleUpdate({ isPinned: e.target.checked })}
+                className="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+              />
               置顶
-            </button>
-
+            </label>
             {task.state !== 'done' && (
               <button 
                 onClick={() => handleUpdate({ state: 'done' })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200 shrink-0"
+                className="flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shrink-0"
               >
-                <Check size={14} /> 完成任务
+                <Check size={14} className="sm:w-4 sm:h-4" /> 标记完成
               </button>
             )}
           </div>
           
-          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
-            <div className="flex items-center bg-slate-100/80 rounded-2xl p-1">
+          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
+            <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
               <button 
                 onClick={() => setActiveTab('details')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'details' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 详情
               </button>
               <button 
                 onClick={() => setActiveTab('logs')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 日志
               </button>
               <button 
                 onClick={() => setActiveTab('graph')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'graph' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'graph' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 图谱
               </button>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-2 ml-2">
               <button 
                 onClick={handleQuickCopy}
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
                 title="快速复制任务"
               >
-                <Copy size={18} />
+                <Copy size={18} className="sm:w-5 sm:h-5" />
               </button>
               {showDeleteConfirm ? (
-                <div className="flex items-center gap-1.5 bg-red-50 px-2 py-1.5 rounded-xl border border-red-100 animate-in slide-in-from-right-2 duration-200">
+                <div className="flex items-center gap-1 sm:gap-2 bg-red-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
+                  <span className="hidden sm:inline text-xs font-bold text-red-600 mr-1">确定删除？</span>
                   <button 
                     onClick={handleDelete}
-                    className="px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
+                    className="px-2 sm:px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-md hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
                   >
-                    确认删除
+                    确认
                   </button>
                   <button 
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
+                    className="px-2 sm:px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-md border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
                   >
                     取消
                   </button>
@@ -902,235 +853,221 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               ) : (
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
                   title="删除任务"
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={18} className="sm:w-5 sm:h-5" />
                 </button>
               )}
-              <div className="w-px h-6 bg-slate-200 mx-1" />
+              <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
               <button 
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200"
               >
-                <X size={20} />
+                <X size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 sm:p-8 flex flex-col lg:flex-row gap-8 sm:gap-10 bg-slate-50/30">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6 sm:gap-8">
           {activeTab === 'details' ? (
             <>
               {/* Main Column */}
-              <div className="flex-1 space-y-10">
+              <div className="flex-1 space-y-8">
                 {fieldOrder.find(f => f.id === 'title')?.isVisible !== false && (
-                  <div className="group relative">
+                  <div>
                     <input
                       type="text"
                       value={task.title}
                       onChange={(e) => handleUpdate({ title: e.target.value })}
-                      className="w-full text-3xl sm:text-4xl font-black text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-200 bg-transparent transition-all tracking-tight"
+                      className="w-full text-2xl sm:text-3xl font-bold text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-300 bg-transparent transition-colors tracking-tight"
                       placeholder="任务标题"
                     />
-                    <div className="absolute bottom-0 left-0 w-12 h-1 bg-indigo-600 rounded-full group-focus-within:w-full transition-all duration-500" />
                   </div>
                 )}
 
-                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 space-y-4">
-                  <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
-                    <Activity size={16} className="text-indigo-600" /> 流程进度
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    <Activity size={14} /> 流程可视化
                   </div>
-                  <ProcessVisualizer task={task} onUpdate={handleUpdate} />
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <ProcessVisualizer task={task} onUpdate={handleUpdate} />
+                  </div>
                 </div>
 
                 {fieldOrder.find(f => f.id === 'description')?.isVisible !== false && (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
-                      <AlignLeft size={16} className="text-indigo-600" /> 任务描述
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                      <AlignLeft size={14} /> 描述
                     </div>
-                    <div className="relative group">
-                      <textarea
-                        value={task.description || ''}
-                        onChange={(e) => handleUpdate({ description: e.target.value })}
-                        className="w-full bg-white border-slate-200 rounded-[24px] p-5 min-h-[160px] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm text-slate-700 leading-relaxed text-base"
-                        placeholder="在此输入任务的详细背景、目标或注意事项..."
-                      />
-                      <div className="absolute top-4 right-4 text-slate-300 group-focus-within:text-indigo-400 transition-colors">
-                        <Edit3 size={18} />
-                      </div>
-                    </div>
+                    <textarea
+                      value={task.description || ''}
+                      onChange={(e) => handleUpdate({ description: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-700 text-sm leading-relaxed shadow-sm"
+                      placeholder="添加更详细的描述..."
+                    />
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
-                        <ListTree size={16} className="text-indigo-600" /> 子任务
-                      </div>
-                      <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                        {subtasks.filter(s => s.state === 'done').length}/{subtasks.length}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-2.5">
-                      {subtasks.map(subtask => (
-                        <div key={subtask.id} className="flex items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-100 group hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-500/5 transition-all">
-                          <div className="relative flex items-center justify-center">
-                            <input 
-                              type="checkbox" 
-                              checked={subtask.state === 'done'}
-                              onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
-                              className="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer transition-all"
-                            />
-                          </div>
-                          {editingSubtaskId === subtask.id ? (
-                            <div className="flex-1 flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={editSubtaskTitle}
-                                onChange={(e) => setEditSubtaskTitle(e.target.value)}
-                                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    updateTask(subtask.id, { title: editSubtaskTitle });
-                                    setEditingSubtaskId(null);
-                                  }
-                                }}
-                              />
-                              <button 
-                                onClick={() => {
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    <ListTree size={14} /> 子任务
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {subtasks.map(subtask => (
+                      <div key={subtask.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 group hover:border-indigo-200 hover:bg-indigo-50/10 transition-all shadow-sm">
+                        <input 
+                          type="checkbox" 
+                          checked={subtask.state === 'done'}
+                          onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
+                          className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        {editingSubtaskId === subtask.id ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editSubtaskTitle}
+                              onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                              className="flex-1 bg-white border border-indigo-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 transition-shadow outline-none"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
                                   updateTask(subtask.id, { title: editSubtaskTitle });
                                   setEditingSubtaskId(null);
-                                }}
-                                className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-xl transition-colors"
+                                }
+                              }}
+                            />
+                            <button 
+                              onClick={() => {
+                                updateTask(subtask.id, { title: editSubtaskTitle });
+                                setEditingSubtaskId(null);
+                              }}
+                              className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-lg transition-colors"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button 
+                              onClick={() => setEditingSubtaskId(null)}
+                              className="text-slate-400 hover:text-slate-600 p-1.5 bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <span 
+                              className={`flex-1 cursor-pointer text-sm font-medium ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
+                              onClick={() => {
+                                setEditingSubtaskId(subtask.id);
+                                setEditSubtaskTitle(subtask.title);
+                              }}
+                            >
+                              {subtask.title}
+                            </span>
+                            <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
+                              <button 
+                                onClick={() => convertSubtaskToTask(subtask.id)}
+                                className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="转为独立任务"
                               >
-                                <Check size={16} />
+                                <ArrowUpRight size={16} />
+                              </button>
+                              <button 
+                                onClick={() => deleteTask(subtask.id)}
+                                className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                title="删除子任务"
+                              >
+                                <Trash2 size={16} />
                               </button>
                             </div>
-                          ) : (
-                            <>
-                              <span 
-                                className={`flex-1 cursor-pointer text-sm font-medium transition-all ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700 hover:text-indigo-600'}`}
-                                onClick={() => {
-                                  setEditingSubtaskId(subtask.id);
-                                  setEditSubtaskTitle(subtask.title);
-                                }}
-                              >
-                                {subtask.title}
-                              </span>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                <button 
-                                  onClick={() => convertSubtaskToTask(subtask.id)}
-                                  className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
-                                  title="转为独立任务"
-                                >
-                                  <ArrowUpRight size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => deleteTask(subtask.id)}
-                                  className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="删除子任务"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                      
-                      <form onSubmit={handleAddSubtask} className="relative mt-4">
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <form onSubmit={handleAddSubtask} className="flex items-center gap-2 mt-3">
+                      <div className="relative flex-1">
+                        <Plus size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                           type="text"
                           value={newSubtaskTitle}
                           onChange={(e) => setNewSubtaskTitle(e.target.value)}
                           placeholder="添加子任务..."
-                          className="w-full bg-slate-100/50 border-transparent rounded-2xl px-4 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
+                          className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                         />
-                        <button 
-                          type="submit" 
-                          disabled={!newSubtaskTitle.trim()} 
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-0 disabled:scale-90 shadow-lg shadow-indigo-200"
-                        >
-                          <Plus size={18} />
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
-                      <ArrowUpRight size={16} className="text-indigo-600" /> 关联任务
-                    </div>
-                    <div className="space-y-2.5">
-                      {(task.relatedTaskIds || []).map(relatedId => {
-                        const relatedTask = getTask(relatedId);
-                        if (!relatedTask) return null;
-                        return (
-                          <div key={relatedId} className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-all">
-                            <button 
-                              onClick={() => setSelectedTaskId(relatedId)} 
-                              className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors text-left line-clamp-1"
-                            >
-                              {relatedTask.title}
-                            </button>
-                            <button onClick={() => {
-                              const { unrelateTask } = useTaskStore.getState();
-                              unrelateTask(task.id, relatedId);
-                            }} className="text-slate-300 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                      
-                      <div className="relative mt-4">
-                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input 
-                          type="text"
-                          placeholder="搜索任务以建立关联..."
-                          value={relatedTaskSearchQuery}
-                          className="w-full bg-slate-100/50 border-transparent rounded-2xl pl-11 pr-4 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
-                          onChange={(e) => setRelatedTaskSearchQuery(e.target.value)}
-                        />
-                        {relatedTaskSearchQuery && (
-                          <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-[24px] shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                            {useTaskStore.getState().tasks
-                              .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
-                              .map(t => (
-                                <button
-                                  key={t.id}
-                                  onClick={() => {
-                                    const { relateTask } = useTaskStore.getState();
-                                    relateTask(task.id, t.id);
-                                    setRelatedTaskSearchQuery('');
-                                  }}
-                                  className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all"
-                                >
-                                  {t.title}
-                                </button>
-                              ))}
-                          </div>
-                        )}
                       </div>
-                    </div>
+                      <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-sm">
+                        添加
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    <ListTree size={14} /> 关联任务
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(task.relatedTaskIds || []).map(relatedId => {
+                      const relatedTask = getTask(relatedId);
+                      if (!relatedTask) return null;
+                      return (
+                        <div key={relatedId} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
+                          <button onClick={() => setSelectedTaskId(relatedId)} className="hover:text-indigo-600 transition-colors">
+                            {relatedTask.title}
+                          </button>
+                          <button onClick={() => {
+                            const { unrelateTask } = useTaskStore.getState();
+                            unrelateTask(task.id, relatedId);
+                          }} className="text-slate-400 hover:text-red-600 transition-colors p-0.5 rounded-md hover:bg-red-100">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      placeholder="搜索任务以关联..."
+                      value={relatedTaskSearchQuery}
+                      className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                      onChange={(e) => setRelatedTaskSearchQuery(e.target.value)}
+                    />
+                    {relatedTaskSearchQuery && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
+                        {useTaskStore.getState().tasks
+                          .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
+                          .map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => {
+                                const { relateTask } = useTaskStore.getState();
+                                relateTask(task.id, t.id);
+                                setRelatedTaskSearchQuery('');
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors first:rounded-t-lg last:rounded-b-lg font-medium"
+                            >
+                              {t.title}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Sidebar */}
-              <div className="w-full lg:w-80 shrink-0">
-                <div className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 space-y-8 sticky top-0">
-                  <div className="space-y-8">
-                    {fieldOrder.map(config => {
-                      if (config.id === 'title' || config.id === 'description') return null;
-                      return renderField(config);
-                    })}
-                  </div>
+              <div className="w-full lg:w-80 space-y-6 bg-slate-50/50 p-6 rounded-xl border border-slate-200 h-fit shadow-sm">
+                <div className="space-y-6">
+                  {fieldOrder.map(config => {
+                    if (config.id === 'title' || config.id === 'description') return null;
+                    return renderField(config);
+                  })}
                 </div>
               </div>
             </>
@@ -1164,19 +1101,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   </div>
                 )}
               </div>
-              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-slate-200">
                 {(isManagingLogs ? tempLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp)) : logs).map(log => {
                   const user = users.find(u => u.id === log.userId);
                   return (
-                    <div key={log.id} id={`log-${log.id}`} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active transition-all duration-500 rounded-xl">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                        {user ? <Avatar name={user.name} className="w-full h-full text-sm" /> : <User size={16} />}
+                    <div key={log.id} id={`log-${log.id}`} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group transition-all duration-300">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-white bg-slate-100 text-slate-500 shadow-sm shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                        {user ? <Avatar name={user.name} className="w-full h-full text-[10px]" /> : <User size={14} />}
                       </div>
-                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="font-medium text-slate-900 text-sm">{user?.name || '未知用户'}</div>
+                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 bg-white shadow-sm hover:border-indigo-200 transition-colors">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="font-bold text-slate-900 text-xs">{user?.name || '未知用户'}</div>
                           <div className="flex items-center gap-3">
-                            <time className="text-xs text-slate-500">{format(parseISO(log.timestamp), 'MM月dd日, HH:mm')}</time>
+                            <time className="text-[10px] font-bold text-slate-400 uppercase tracking-wider data-value">{format(parseISO(log.timestamp), 'MM/dd HH:mm')}</time>
                             {isManagingLogs && (
                               <button 
                                 onClick={() => deleteTempLog(log.id)}
@@ -1194,11 +1131,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                               type="text"
                               value={log.details}
                               onChange={(e) => updateTempLog(log.id, e.target.value)}
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                             />
                           </div>
                         ) : (
-                          <div className="text-sm text-slate-600">{log.details}</div>
+                          <div className="text-sm text-slate-600 leading-relaxed">{log.details}</div>
                         )}
                       </div>
                     </div>
