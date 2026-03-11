@@ -77,8 +77,9 @@ export function KanbanView() {
             const columnTasks = tasks
               .filter((t) => t.state === column.id && !t.parentId)
               .sort((a, b) => {
-                if (a.isPinned && !b.isPinned) return -1;
-                if (!a.isPinned && b.isPinned) return 1;
+                if (a.isPinned !== b.isPinned) {
+                  return a.isPinned ? -1 : 1;
+                }
                 return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
               });
             

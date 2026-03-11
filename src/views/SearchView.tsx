@@ -170,8 +170,9 @@ export function SearchView() {
 
       return true;
     }).sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
+      if (a.isPinned !== b.isPinned) {
+        return a.isPinned ? -1 : 1;
+      }
       return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
     });
   }, [tasks, searchQuery, selectedCreators, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedStates, selectedPriorities, selectedMediums, selectedCustomFields, dateRange, progressRange, negatedFilters, negatedCustomFields, customFieldDefinitions]);
