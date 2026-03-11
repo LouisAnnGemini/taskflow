@@ -124,7 +124,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
           {task.isPinned && <Pin size={14} className="text-indigo-500 fill-indigo-500" />}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", selectable && "pr-8")}>
           {/* Quick Actions (visible on hover) */}
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg px-1 shadow-sm border border-slate-100">
             <button 
@@ -139,7 +139,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
           {task.dueDate && (
             <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
               <Clock size={12} />
-              <span>{format(new Date(task.dueDate), 'MM/dd')}</span>
+              <span className="data-value">{format(new Date(task.dueDate), 'MM/dd')}</span>
             </div>
           )}
         </div>
