@@ -801,91 +801,100 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     onClose();
   };
 
-  const displayLogs = isManagingLogs ? tempLogs.filter(log => log.taskId === task.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp)) : logs;
-
   return (
     <div 
       className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 sm:p-4 md:p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-white sm:rounded-3xl shadow-2xl w-full h-full sm:h-auto sm:max-w-4xl sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white sm:rounded-[32px] shadow-2xl w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100/50 bg-white/50 backdrop-blur-md gap-3 sm:gap-0 shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
-            <select
-              value={task.state}
-              onChange={(e) => handleUpdate({ state: e.target.value as TaskState })}
-              className="bg-slate-100 border-none text-xs sm:text-sm font-medium rounded-xl px-2 sm:px-3 py-1.5 focus:ring-2 focus:ring-slate-900 shrink-0"
-            >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-xl gap-4 sm:gap-0 shrink-0 z-10">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+            <div className="flex items-center gap-2 bg-slate-100/80 p-1 rounded-2xl">
               {columns.map(c => (
-                <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.title}</option>
+                <button
+                  key={c.id}
+                  onClick={() => handleUpdate({ state: c.id as TaskState })}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    task.state === c.id 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {c.icon && <span className="mr-1.5">{c.icon}</span>}
+                  {c.title}
+                </button>
               ))}
-            </select>
+            </div>
             
-            <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 cursor-pointer hover:text-amber-600 transition-colors shrink-0">
-              <input 
-                type="checkbox" 
-                checked={task.isPinned}
-                onChange={(e) => handleUpdate({ isPinned: e.target.checked })}
-                className="rounded text-amber-500 focus:ring-amber-500 border-slate-300"
-              />
+            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+            <button 
+              onClick={() => handleUpdate({ isPinned: !task.isPinned })}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                task.isPinned 
+                  ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                  : 'bg-slate-50 text-slate-500 border border-transparent hover:bg-slate-100'
+              }`}
+            >
+              <Tag size={14} className={task.isPinned ? 'fill-amber-600' : ''} />
               置顶
-            </label>
+            </button>
+
             {task.state !== 'done' && (
               <button 
                 onClick={() => handleUpdate({ state: 'done' })}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-medium rounded-xl hover:bg-emerald-100 transition-colors shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200 shrink-0"
               >
-                <Check size={14} className="sm:w-4 sm:h-4" /> 立即完成
+                <Check size={14} /> 完成任务
               </button>
             )}
           </div>
           
-          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
-            <div className="flex items-center bg-slate-100/80 rounded-xl p-1">
+          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
+            <div className="flex items-center bg-slate-100/80 rounded-2xl p-1">
               <button 
                 onClick={() => setActiveTab('details')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === 'details' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'details' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 详情
               </button>
               <button 
                 onClick={() => setActiveTab('logs')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === 'logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 日志
               </button>
               <button 
                 onClick={() => setActiveTab('graph')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === 'graph' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'graph' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 图谱
               </button>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1.5">
               <button 
                 onClick={handleQuickCopy}
-                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
                 title="快速复制任务"
               >
-                <Copy size={18} className="sm:w-5 sm:h-5" />
+                <Copy size={18} />
               </button>
               {showDeleteConfirm ? (
-                <div className="flex items-center gap-1 sm:gap-2 bg-red-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-red-100 transition-all duration-200 ease-out transform scale-100 opacity-100">
-                  <span className="hidden sm:inline text-xs font-bold text-red-600 mr-1">确定删除？</span>
+                <div className="flex items-center gap-1.5 bg-red-50 px-2 py-1.5 rounded-xl border border-red-100 animate-in slide-in-from-right-2 duration-200">
                   <button 
                     onClick={handleDelete}
-                    className="px-2 sm:px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
+                    className="px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider shadow-sm"
                   >
-                    确认
+                    确认删除
                   </button>
                   <button 
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-2 sm:px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
+                    className="px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider"
                   >
                     取消
                   </button>
@@ -893,213 +902,235 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               ) : (
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                   title="删除任务"
                 >
-                  <Trash2 size={18} className="sm:w-5 sm:h-5" />
+                  <Trash2 size={18} />
                 </button>
               )}
+              <div className="w-px h-6 bg-slate-200 mx-1" />
               <button 
                 onClick={onClose}
-                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
               >
-                <X size={18} className="sm:w-5 sm:h-5" />
+                <X size={20} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6 sm:gap-8">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 sm:p-8 flex flex-col lg:flex-row gap-8 sm:gap-10 bg-slate-50/30">
           {activeTab === 'details' ? (
             <>
               {/* Main Column */}
-              <div className="flex-1 space-y-8">
+              <div className="flex-1 space-y-10">
                 {fieldOrder.find(f => f.id === 'title')?.isVisible !== false && (
-                  <div>
+                  <div className="group relative">
                     <input
                       type="text"
                       value={task.title}
                       onChange={(e) => handleUpdate({ title: e.target.value })}
-                      className="w-full text-2xl sm:text-3xl font-bold text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-300 bg-transparent transition-colors"
+                      className="w-full text-3xl sm:text-4xl font-black text-slate-900 border-none px-0 py-2 focus:ring-0 placeholder-slate-200 bg-transparent transition-all tracking-tight"
                       placeholder="任务标题"
                     />
+                    <div className="absolute bottom-0 left-0 w-12 h-1 bg-indigo-600 rounded-full group-focus-within:w-full transition-all duration-500" />
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-medium">
-                    <Activity size={18} /> 流程可视化
+                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 space-y-4">
+                  <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
+                    <Activity size={16} className="text-indigo-600" /> 流程进度
                   </div>
                   <ProcessVisualizer task={task} onUpdate={handleUpdate} />
                 </div>
 
                 {fieldOrder.find(f => f.id === 'description')?.isVisible !== false && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-slate-700 font-medium">
-                      <AlignLeft size={18} /> 描述
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
+                      <AlignLeft size={16} className="text-indigo-600" /> 任务描述
                     </div>
-                    <textarea
-                      value={task.description || ''}
-                      onChange={(e) => handleUpdate({ description: e.target.value })}
-                      className="w-full bg-slate-50 border-slate-200 rounded-2xl p-4 min-h-[120px] focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-shadow"
-                      placeholder="添加更详细的描述..."
-                    />
+                    <div className="relative group">
+                      <textarea
+                        value={task.description || ''}
+                        onChange={(e) => handleUpdate({ description: e.target.value })}
+                        className="w-full bg-white border-slate-200 rounded-[24px] p-5 min-h-[160px] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm text-slate-700 leading-relaxed text-base"
+                        placeholder="在此输入任务的详细背景、目标或注意事项..."
+                      />
+                      <div className="absolute top-4 right-4 text-slate-300 group-focus-within:text-indigo-400 transition-colors">
+                        <Edit3 size={18} />
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-slate-700 font-medium">
-                    <ListTree size={18} /> 子任务
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {subtasks.map(subtask => (
-                      <div key={subtask.id} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 group hover:border-slate-200 transition-colors">
-                        <input 
-                          type="checkbox" 
-                          checked={subtask.state === 'done'}
-                          onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
-                          className="w-5 h-5 rounded text-slate-900 focus:ring-slate-900 border-slate-300"
-                        />
-                        {editingSubtaskId === subtask.id ? (
-                          <div className="flex-1 flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editSubtaskTitle}
-                              onChange={(e) => setEditSubtaskTitle(e.target.value)}
-                              className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
+                        <ListTree size={16} className="text-indigo-600" /> 子任务
+                      </div>
+                      <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                        {subtasks.filter(s => s.state === 'done').length}/{subtasks.length}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2.5">
+                      {subtasks.map(subtask => (
+                        <div key={subtask.id} className="flex items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-100 group hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-500/5 transition-all">
+                          <div className="relative flex items-center justify-center">
+                            <input 
+                              type="checkbox" 
+                              checked={subtask.state === 'done'}
+                              onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
+                              className="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer transition-all"
+                            />
+                          </div>
+                          {editingSubtaskId === subtask.id ? (
+                            <div className="flex-1 flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editSubtaskTitle}
+                                onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateTask(subtask.id, { title: editSubtaskTitle });
+                                    setEditingSubtaskId(null);
+                                  }
+                                }}
+                              />
+                              <button 
+                                onClick={() => {
                                   updateTask(subtask.id, { title: editSubtaskTitle });
                                   setEditingSubtaskId(null);
-                                }
-                              }}
-                            />
+                                }}
+                                className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-xl transition-colors"
+                              >
+                                <Check size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <span 
+                                className={`flex-1 cursor-pointer text-sm font-medium transition-all ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700 hover:text-indigo-600'}`}
+                                onClick={() => {
+                                  setEditingSubtaskId(subtask.id);
+                                  setEditSubtaskTitle(subtask.title);
+                                }}
+                              >
+                                {subtask.title}
+                              </span>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                <button 
+                                  onClick={() => convertSubtaskToTask(subtask.id)}
+                                  className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  title="转为独立任务"
+                                >
+                                  <ArrowUpRight size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => deleteTask(subtask.id)}
+                                  className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="删除子任务"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <form onSubmit={handleAddSubtask} className="relative mt-4">
+                        <input
+                          type="text"
+                          value={newSubtaskTitle}
+                          onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                          placeholder="添加子任务..."
+                          className="w-full bg-slate-100/50 border-transparent rounded-2xl px-4 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
+                        />
+                        <button 
+                          type="submit" 
+                          disabled={!newSubtaskTitle.trim()} 
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-0 disabled:scale-90 shadow-lg shadow-indigo-200"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-widest">
+                      <ArrowUpRight size={16} className="text-indigo-600" /> 关联任务
+                    </div>
+                    <div className="space-y-2.5">
+                      {(task.relatedTaskIds || []).map(relatedId => {
+                        const relatedTask = getTask(relatedId);
+                        if (!relatedTask) return null;
+                        return (
+                          <div key={relatedId} className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-all">
                             <button 
-                              onClick={() => {
-                                updateTask(subtask.id, { title: editSubtaskTitle });
-                                setEditingSubtaskId(null);
-                              }}
-                              className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-xl transition-colors"
+                              onClick={() => setSelectedTaskId(relatedId)} 
+                              className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors text-left line-clamp-1"
                             >
-                              <Check size={16} />
+                              {relatedTask.title}
                             </button>
-                            <button 
-                              onClick={() => setEditingSubtaskId(null)}
-                              className="text-slate-400 hover:text-slate-600 p-1.5 bg-slate-100 rounded-xl transition-colors"
-                            >
-                              <X size={16} />
+                            <button onClick={() => {
+                              const { unrelateTask } = useTaskStore.getState();
+                              unrelateTask(task.id, relatedId);
+                            }} className="text-slate-300 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100">
+                              <X size={14} />
                             </button>
                           </div>
-                        ) : (
-                          <>
-                            <span 
-                              className={`flex-1 cursor-pointer ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
-                              onClick={() => {
-                                setEditingSubtaskId(subtask.id);
-                                setEditSubtaskTitle(subtask.title);
-                              }}
-                            >
-                              {subtask.title}
-                            </span>
-                            <button 
-                              onClick={() => convertSubtaskToTask(subtask.id)}
-                              className="text-slate-400 hover:text-slate-900 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-slate-200 rounded-lg"
-                              title="转为独立任务"
-                            >
-                              <ArrowUpRight size={16} />
-                            </button>
-                            <button 
-                              onClick={() => deleteTask(subtask.id)}
-                              className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-50 rounded-lg"
-                              title="删除子任务"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
+                        );
+                      })}
+                      
+                      <div className="relative mt-4">
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input 
+                          type="text"
+                          placeholder="搜索任务以建立关联..."
+                          value={relatedTaskSearchQuery}
+                          className="w-full bg-slate-100/50 border-transparent rounded-2xl pl-11 pr-4 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
+                          onChange={(e) => setRelatedTaskSearchQuery(e.target.value)}
+                        />
+                        {relatedTaskSearchQuery && (
+                          <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-[24px] shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                            {useTaskStore.getState().tasks
+                              .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
+                              .map(t => (
+                                <button
+                                  key={t.id}
+                                  onClick={() => {
+                                    const { relateTask } = useTaskStore.getState();
+                                    relateTask(task.id, t.id);
+                                    setRelatedTaskSearchQuery('');
+                                  }}
+                                  className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all"
+                                >
+                                  {t.title}
+                                </button>
+                              ))}
+                          </div>
                         )}
                       </div>
-                    ))}
-                    
-                    <form onSubmit={handleAddSubtask} className="flex items-center gap-2 mt-2">
-                      <input
-                        type="text"
-                        value={newSubtaskTitle}
-                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                        placeholder="添加子任务..."
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
-                      />
-                      <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:hover:bg-slate-100">
-                        添加
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-slate-700 font-medium">
-                    <ListTree size={18} /> 关联任务
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(task.relatedTaskIds || []).map(relatedId => {
-                      const relatedTask = getTask(relatedId);
-                      if (!relatedTask) return null;
-                      return (
-                        <div key={relatedId} className="flex items-center gap-2 bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 text-sm hover:border-slate-300 transition-colors">
-                          <button onClick={() => setSelectedTaskId(relatedId)} className="hover:text-slate-900 transition-colors">
-                            {relatedTask.title}
-                          </button>
-                          <button onClick={() => {
-                            const { unrelateTask } = useTaskStore.getState();
-                            unrelateTask(task.id, relatedId);
-                          }} className="text-slate-400 hover:text-red-600 transition-colors p-0.5 rounded-md hover:bg-red-50">
-                            <X size={14} />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input 
-                      type="text"
-                      placeholder="搜索任务以关联..."
-                      value={relatedTaskSearchQuery}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 transition-shadow"
-                      onChange={(e) => setRelatedTaskSearchQuery(e.target.value)}
-                    />
-                    {relatedTaskSearchQuery && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
-                        {useTaskStore.getState().tasks
-                          .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
-                          .map(t => (
-                            <button
-                              key={t.id}
-                              onClick={() => {
-                                const { relateTask } = useTaskStore.getState();
-                                relateTask(task.id, t.id);
-                                setRelatedTaskSearchQuery('');
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                            >
-                              {t.title}
-                            </button>
-                          ))}
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Sidebar */}
-              <div className="w-full lg:w-72 space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-100 h-fit">
-                <div className="space-y-4">
-                  {fieldOrder.map(config => {
-                    if (config.id === 'title' || config.id === 'description') return null;
-                    return renderField(config);
-                  })}
+              <div className="w-full lg:w-80 shrink-0">
+                <div className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 space-y-8 sticky top-0">
+                  <div className="space-y-8">
+                    {fieldOrder.map(config => {
+                      if (config.id === 'title' || config.id === 'description') return null;
+                      return renderField(config);
+                    })}
+                  </div>
                 </div>
               </div>
             </>

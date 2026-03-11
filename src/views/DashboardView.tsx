@@ -6,15 +6,38 @@ import { isToday, isPast, parseISO } from 'date-fns';
 export function DashboardView() {
   const { tasks, currentUser } = useTaskStore();
 
-  const pinnedTasks = tasks.filter(t => t.isPinned && t.state !== 'done');
-  const todayTasks = tasks.filter(t => {
-    if (t.state === 'done') return false;
-    if (!t.dueDate) return false;
-    const date = parseISO(t.dueDate);
-    return isToday(date) || isPast(date);
-  });
-  const reviewTasks = tasks.filter(t => t.state === 'in_review' && t.reporterIds?.includes(currentUser.id));
-  const delegatedTasks = tasks.filter(t => t.creatorId === currentUser.id && !t.assigneeIds.includes(currentUser.id) && t.state !== 'done');
+  const pinnedTasks = tasks
+    .filter(t => t.isPinned && t.state !== 'done')
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  
+  const todayTasks = tasks
+    .filter(t => {
+      if (t.state === 'done') return false;
+      if (!t.dueDate) return false;
+      const date = parseISO(t.dueDate);
+      return isToday(date) || isPast(date);
+    })
+    .sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+    
+  const reviewTasks = tasks
+    .filter(t => t.state === 'in_review' && t.reporterIds?.includes(currentUser.id))
+    .sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+    
+  const delegatedTasks = tasks
+    .filter(t => t.creatorId === currentUser.id && !t.assigneeIds.includes(currentUser.id) && t.state !== 'done')
+    .sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 
   return (
     <div className="space-y-8">

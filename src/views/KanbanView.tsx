@@ -76,7 +76,11 @@ export function KanbanView() {
           {visibleColumns.map((column) => {
             const columnTasks = tasks
               .filter((t) => t.state === column.id && !t.parentId)
-              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+              .sort((a, b) => {
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
+                return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+              });
             
             const displayedTasks = columnTasks.slice(0, 10);
             const hasMore = columnTasks.length > 10;
