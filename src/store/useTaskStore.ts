@@ -393,6 +393,7 @@ export const useTaskStore = create<TaskStore>()(
         if (updates.state && updates.state !== task.state) {
           if (updates.state === 'done') {
             finalUpdates.progress = 100;
+            finalUpdates.isPinned = false;
           } else if (updates.progress === undefined) {
             if (updates.state === 'in_progress' && (task.progress === 0 || task.progress === 50)) {
               finalUpdates.progress = 50;
@@ -429,6 +430,7 @@ export const useTaskStore = create<TaskStore>()(
               if (updates.state && updates.state !== t.state) {
                 if (updates.state === 'done') {
                   finalUpdates.progress = 100;
+                  finalUpdates.isPinned = false;
                 } else if (updates.progress === undefined) {
                   if (updates.state === 'in_progress' && (t.progress === 0 || t.progress === 50)) {
                     finalUpdates.progress = 50;
