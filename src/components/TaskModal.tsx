@@ -343,6 +343,23 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder="搜索成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, assignees: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery) {
+                    const matchedUser = users.find(u => u.name.toLowerCase() === searchQuery.toLowerCase()) || users.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    if (matchedUser) {
+                      const isSelected = selectedIds.includes(matchedUser.id);
+                      const newAssignees = isSelected
+                        ? selectedIds.filter(id => id !== matchedUser.id)
+                        : [...selectedIds, matchedUser.id];
+                      handleUpdate({ assigneeIds: newAssignees });
+                    } else {
+                      const newId = nanoid();
+                      addUser({ id: newId, name: searchQuery });
+                      handleUpdate({ assigneeIds: [...selectedIds, newId] });
+                    }
+                    setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
+                  }
+                }}
                 className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
               
@@ -374,6 +391,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         </button>
                       );
                     })}
+                  {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                    <button
+                      onClick={() => {
+                        const newId = nanoid();
+                        addUser({ id: newId, name: searchQuery });
+                        handleUpdate({ assigneeIds: [...selectedIds, newId] });
+                        setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-xs text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2 border-t border-slate-100"
+                    >
+                      <Plus size={14} /> 快速新建: {searchQuery}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -417,6 +447,23 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder="搜索成员..."
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, reporters: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery) {
+                    const matchedUser = users.find(u => u.name.toLowerCase() === searchQuery.toLowerCase()) || users.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    if (matchedUser) {
+                      const isSelected = selectedIds.includes(matchedUser.id);
+                      const newReporters = isSelected
+                        ? selectedIds.filter(id => id !== matchedUser.id)
+                        : [...selectedIds, matchedUser.id];
+                      handleUpdate({ reporterIds: newReporters });
+                    } else {
+                      const newId = nanoid();
+                      addUser({ id: newId, name: searchQuery });
+                      handleUpdate({ reporterIds: [...selectedIds, newId] });
+                    }
+                    setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
+                  }
+                }}
                 className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
               
@@ -448,6 +495,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         </button>
                       );
                     })}
+                  {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                    <button
+                      onClick={() => {
+                        const newId = nanoid();
+                        addUser({ id: newId, name: searchQuery });
+                        handleUpdate({ reporterIds: [...selectedIds, newId] });
+                        setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-xs text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2 border-t border-slate-100"
+                    >
+                      <Plus size={14} /> 快速新建: {searchQuery}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -597,15 +657,19 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, delegated: e.target.value })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchQuery) {
-                        const matchedUser = others.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                        const matchedUser = others.find(u => u.name.toLowerCase() === searchQuery.toLowerCase()) || others.find(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
                         if (matchedUser) {
                           const isSelected = selectedIds.includes(matchedUser.id);
                           const newDelegated = isSelected
                             ? selectedIds.filter(id => id !== matchedUser.id)
                             : [...selectedIds, matchedUser.id];
                           handleUpdate({ delegatedToIds: newDelegated });
-                          setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
+                        } else {
+                          const newId = nanoid();
+                          addUser({ id: newId, name: searchQuery });
+                          handleUpdate({ delegatedToIds: [...selectedIds, newId] });
                         }
+                        setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
                       }
                     }}
                     className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500"
@@ -639,7 +703,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                         <button
                           onClick={() => {
-                            addUser({ id: nanoid(), name: searchQuery });
+                            const newId = nanoid();
+                            addUser({ id: newId, name: searchQuery });
+                            handleUpdate({ delegatedToIds: [...selectedIds, newId] });
                             setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
                           }}
                           className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"

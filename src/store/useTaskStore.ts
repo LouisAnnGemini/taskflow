@@ -473,9 +473,22 @@ export const useTaskStore = create<TaskStore>()(
           });
         });
         
-        set((state) => ({
-          tasks: state.tasks.filter((task) => task.id !== id && task.parentId !== id), // Also delete subtasks
-        }));
+        set((state) => {
+          const deletedIds = new Set(tasksToDelete.map(t => t.id));
+          return {
+            tasks: state.tasks
+              .filter((task) => !deletedIds.has(task.id))
+              .map(task => {
+                if (task.relatedTaskIds && task.relatedTaskIds.some(rid => deletedIds.has(rid))) {
+                  return {
+                    ...task,
+                    relatedTaskIds: task.relatedTaskIds.filter(rid => !deletedIds.has(rid))
+                  };
+                }
+                return task;
+              })
+          };
+        });
       },
 
       convertSubtaskToTask: (subtaskId) => {
