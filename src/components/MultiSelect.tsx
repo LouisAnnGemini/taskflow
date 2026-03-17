@@ -11,10 +11,12 @@ interface Option {
 interface MultiSelectProps {
   options: Option[];
   selectedIds: string[];
-  onChange: (ids: string[]) => void;
+  onChange: (ids: string[], isExclude?: boolean) => void;
   onCreate?: (name: string) => void;
   placeholder: string;
   className?: string;
+  isExclude?: boolean;
+  showExcludeOption?: boolean;
 }
 
 export function MultiSelect({ 
@@ -23,7 +25,9 @@ export function MultiSelect({
   onChange, 
   onCreate, 
   placeholder,
-  className = ''
+  className = '',
+  isExclude = false,
+  showExcludeOption = false
 }: MultiSelectProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -96,14 +100,22 @@ export function MultiSelect({
 
   return (
     <div className={`relative min-w-[200px] ${className}`} ref={containerRef}>
-      <div 
-        className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 cursor-text flex flex-wrap gap-1 min-h-[38px]"
-        onClick={() => {
-          inputRef.current?.focus();
-          setIsOpen(true);
-        }}
-      >
-        {selectedIds.map(id => {
+      <div className="flex flex-col gap-1">
+        <div 
+          className={`bg-white border rounded-lg px-2 py-1.5 text-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 cursor-text flex flex-wrap gap-1 min-h-[38px] transition-all ${
+            isExclude ? 'border-red-200 bg-red-50/30' : 'border-slate-200'
+          }`}
+          onClick={() => {
+            inputRef.current?.focus();
+            setIsOpen(true);
+          }}
+        >
+          {isExclude && selectedIds.length > 0 && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wider mr-1">
+              排除
+            </span>
+          )}
+          {selectedIds.map(id => {
           const opt = options.find(o => o.id === id);
           if (!opt) return null;
           return (
@@ -138,6 +150,19 @@ export function MultiSelect({
         <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
           <ChevronDown size={14} />
         </div>
+      </div>
+
+      {showExcludeOption && selectedIds.length > 0 && (
+        <label className="flex items-center gap-1.5 text-[11px] text-slate-500 px-1 mt-1 cursor-pointer hover:text-slate-700 transition-colors w-fit">
+          <input 
+            type="checkbox" 
+            checked={isExclude} 
+            onChange={(e) => onChange(selectedIds, e.target.checked)}
+            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+          />
+          <span>排除所选项目</span>
+        </label>
+      )}
       </div>
       
       {isOpen && createPortal(

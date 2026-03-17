@@ -332,84 +332,90 @@ export function SearchView() {
             <MultiSelect
               options={stateOptions}
               selectedIds={selectedStates}
-              onChange={setSelectedStates}
+              isExclude={negatedFilters.state}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedStates(ids);
+                setNegatedFilters(prev => ({ ...prev, state: isExclude || false }));
+              }}
               placeholder="所有状态"
               className="w-40"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-              <input type="checkbox" checked={negatedFilters.state} onChange={e => setNegatedFilters({...negatedFilters, state: e.target.checked})} />
-              排除
-            </label>
           </div>
 
           <div className="flex flex-col gap-1">
             <MultiSelect
               options={priorityOptions}
               selectedIds={selectedPriorities}
-              onChange={setSelectedPriorities}
+              isExclude={negatedFilters.priority}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedPriorities(ids);
+                setNegatedFilters(prev => ({ ...prev, priority: isExclude || false }));
+              }}
               placeholder="所有优先级"
               className="w-40"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-              <input type="checkbox" checked={negatedFilters.priority} onChange={e => setNegatedFilters({...negatedFilters, priority: e.target.checked})} />
-              排除
-            </label>
           </div>
 
           <div className="flex flex-col gap-1">
             <MultiSelect
               options={assigneeOptions}
               selectedIds={selectedAssignees}
-              onChange={setSelectedAssignees}
+              isExclude={negatedFilters.assignee}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedAssignees(ids);
+                setNegatedFilters(prev => ({ ...prev, assignee: isExclude || false }));
+              }}
               placeholder="所有负责人"
               className="w-40"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-              <input type="checkbox" checked={negatedFilters.assignee} onChange={e => setNegatedFilters({...negatedFilters, assignee: e.target.checked})} />
-              排除
-            </label>
           </div>
 
           <div className="flex flex-col gap-1">
             <MultiSelect
               options={reporterOptions}
               selectedIds={selectedReporters}
-              onChange={setSelectedReporters}
+              isExclude={negatedFilters.reporter}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedReporters(ids);
+                setNegatedFilters(prev => ({ ...prev, reporter: isExclude || false }));
+              }}
               placeholder="所有提出人"
               className="w-40"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-              <input type="checkbox" checked={negatedFilters.reporter} onChange={e => setNegatedFilters({...negatedFilters, reporter: e.target.checked})} />
-              排除
-            </label>
           </div>
 
           <div className="flex flex-col gap-1">
             <MultiSelect
               options={delegationOptions}
               selectedIds={selectedDelegationStatus}
-              onChange={setSelectedDelegationStatus}
+              isExclude={negatedFilters.delegation}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedDelegationStatus(ids);
+                setNegatedFilters(prev => ({ ...prev, delegation: isExclude || false }));
+              }}
               placeholder="所有委派状态"
               className="w-40"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-              <input type="checkbox" checked={negatedFilters.delegation} onChange={e => setNegatedFilters({...negatedFilters, delegation: e.target.checked})} />
-              排除
-            </label>
           </div>
 
           <div className="flex flex-col gap-1">
             <MultiSelect
               options={mediumOptions}
               selectedIds={selectedMediums}
-              onChange={setSelectedMediums}
+              isExclude={negatedFilters.medium}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedMediums(ids);
+                setNegatedFilters(prev => ({ ...prev, medium: isExclude || false }));
+              }}
               placeholder="所有媒介"
               className="w-40"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-              <input type="checkbox" checked={negatedFilters.medium} onChange={e => setNegatedFilters({...negatedFilters, medium: e.target.checked})} />
-              排除
-            </label>
           </div>
 
           {/* Custom Fields Filters */}
@@ -418,18 +424,15 @@ export function SearchView() {
               <MultiSelect
                 options={field.options?.map(o => ({ id: o.id, name: o.label })) || []}
                 selectedIds={selectedCustomFields[field.id] || []}
-                onChange={(ids) => setSelectedCustomFields(prev => ({ ...prev, [field.id]: ids }))}
+                isExclude={!!negatedCustomFields[field.id]}
+                showExcludeOption
+                onChange={(ids, isExclude) => {
+                  setSelectedCustomFields(prev => ({ ...prev, [field.id]: ids }));
+                  setNegatedCustomFields(prev => ({ ...prev, [field.id]: isExclude || false }));
+                }}
                 placeholder={`所有${field.name}`}
                 className="w-40"
               />
-              <label className="flex items-center gap-1 text-xs text-slate-500 px-1">
-                <input 
-                  type="checkbox" 
-                  checked={!!negatedCustomFields[field.id]} 
-                  onChange={e => setNegatedCustomFields(prev => ({ ...prev, [field.id]: e.target.checked }))} 
-                />
-                排除
-              </label>
             </div>
           ))}
 

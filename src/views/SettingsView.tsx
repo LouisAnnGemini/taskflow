@@ -113,6 +113,11 @@ export function SettingsView() {
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  // Team member filters
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userEntityFilter, setUserEntityFilter] = useState<{ ids: string[], isExclude: boolean }>({ ids: [], isExclude: false });
+  const [userPositionFilter, setUserPositionFilter] = useState<{ ids: string[], isExclude: boolean }>({ ids: [], isExclude: false });
   
   // Log export state
   const [logStartDate, setLogStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -367,6 +372,25 @@ export function SettingsView() {
     }
   };
 
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+                         (user.notes || '').toLowerCase().includes(userSearchTerm.toLowerCase());
+    
+    const matchesEntity = userEntityFilter.ids.length === 0 || (
+      userEntityFilter.isExclude 
+        ? !user.entityIds?.some(id => userEntityFilter.ids.includes(id))
+        : user.entityIds?.some(id => userEntityFilter.ids.includes(id))
+    );
+
+    const matchesPosition = userPositionFilter.ids.length === 0 || (
+      userPositionFilter.isExclude
+        ? !user.positionIds?.some(id => userPositionFilter.ids.includes(id))
+        : user.positionIds?.some(id => userPositionFilter.ids.includes(id))
+    );
+
+    return matchesSearch && matchesEntity && matchesPosition;
+  });
+
   return (
     <div className="flex gap-8 max-w-6xl mx-auto pb-12 relative">
       {/* Sidebar Outline */}
@@ -414,7 +438,7 @@ export function SettingsView() {
             </div>
           </div>
         )}
-        <section id="team-members" className="scroll-mt-24">
+          <section id="team-members" className="scroll-mt-24">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-slate-800">团队成员</h2>
             <button 
@@ -426,6 +450,61 @@ export function SettingsView() {
             >
               <Plus size={16} /> 添加成员
             </button>
+          </div>
+
+          {/* User Filters */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">搜索姓名/备注</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    placeholder="输入关键词..."
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">按实体筛选</label>
+                <MultiSelect
+                  options={entities}
+                  selectedIds={userEntityFilter.ids}
+                  isExclude={userEntityFilter.isExclude}
+                  onChange={(ids, isExclude) => setUserEntityFilter({ ids, isExclude: isExclude || false })}
+                  placeholder="选择实体..."
+                  showExcludeOption
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">按岗位筛选</label>
+                <MultiSelect
+                  options={positions}
+                  selectedIds={userPositionFilter.ids}
+                  isExclude={userPositionFilter.isExclude}
+                  onChange={(ids, isExclude) => setUserPositionFilter({ ids, isExclude: isExclude || false })}
+                  placeholder="选择岗位..."
+                  showExcludeOption
+                />
+              </div>
+            </div>
+            {(userSearchTerm || userEntityFilter.ids.length > 0 || userPositionFilter.ids.length > 0) && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setUserSearchTerm('');
+                    setUserEntityFilter({ ids: [], isExclude: false });
+                    setUserPositionFilter({ ids: [], isExclude: false });
+                  }}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  清除所有筛选
+                </button>
+              </div>
+            )}
           </div>
           
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -440,7 +519,7 @@ export function SettingsView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {users.map(user => (
+                {filteredUsers.map(user => (
                   <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                     {editingUserId === user.id ? (
                       <>
