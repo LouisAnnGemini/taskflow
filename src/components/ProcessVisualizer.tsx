@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task } from '../types/task';
-import { Check, Snowflake } from 'lucide-react';
+import { Check, Snowflake, Pause } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 interface ProcessVisualizerProps {
@@ -104,12 +104,29 @@ export function ProcessVisualizer({ task, onUpdate }: ProcessVisualizerProps) {
 
   return (
     <div className="relative p-6 bg-slate-50 rounded-xl border border-slate-100 overflow-hidden min-h-[140px] flex flex-col justify-center">
+      {/* Freeze/Snooze Button (Top Right) */}
+      {!isSnoozed && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onUpdate?.({ state: 'snoozed' });
+          }}
+          className="absolute top-0 right-0 p-1.5 rounded-bl-lg bg-white border-l border-b border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 transition-all z-30 shadow-sm"
+          title="暂停/延期任务"
+        >
+          <Pause size={14} />
+        </button>
+      )}
+
       {isSnoozed && (
         <div className="absolute inset-0 bg-blue-50/40 backdrop-blur-[2px] z-20 flex items-center justify-center border-2 border-blue-200/50 rounded-xl">
-          <div className="bg-white/90 px-4 py-2 rounded-full shadow-sm flex items-center gap-2 text-blue-600 font-medium text-sm">
+          <button 
+            onClick={() => onUpdate?.({ state: task.previousState || 'todo' })}
+            className="bg-white/90 px-4 py-2 rounded-full shadow-md flex items-center gap-2 text-blue-600 font-bold text-sm hover:scale-105 transition-transform border border-blue-100"
+          >
             <Snowflake size={16} className="animate-pulse" />
-            <span>已暂缓 (冻结)</span>
-          </div>
+            <span>已暂缓 (冻结) - 点击解冻</span>
+          </button>
         </div>
       )}
 
