@@ -36,6 +36,20 @@ export default function App() {
 
   React.useEffect(() => {
     checkExpiringTasks();
+
+    const handleRemoteSync = (event: CustomEvent) => {
+      const remoteState = event.detail;
+      if (remoteState && remoteState.state) {
+        // Zustand persist wraps the state in { state: { ... }, version: 0 }
+        useTaskStore.setState(remoteState.state);
+      }
+    };
+
+    window.addEventListener('taskflow-remote-sync', handleRemoteSync as EventListener);
+    
+    return () => {
+      window.removeEventListener('taskflow-remote-sync', handleRemoteSync as EventListener);
+    };
   }, [checkExpiringTasks]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;

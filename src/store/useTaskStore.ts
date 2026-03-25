@@ -1,8 +1,112 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
 import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption } from '../types/task';
 import { format } from 'date-fns';
+import { getSupabaseClient } from '../lib/supabase';
+
+const SYNC_USER_ID = 'default_user'; // For a single-user app or shared state, we use a default ID. In a real app, this would be the authenticated user's ID.
+
+const getSupabaseFromState = (stateStr: string | null) => {
+  if (!stateStr) return getSupabaseClient();
+  try {
+    const parsed = JSON.parse(stateStr);
+    const config = parsed?.state?.supabaseConfig;
+    if (config && config.url && config.anonKey) {
+      return getSupabaseClient(config.url, config.anonKey);
+    }
+  } catch (e) {}
+  return getSupabaseClient(); // fallback to env vars
+};
+
+const customStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    // 1. Read from localStorage first (localStorage优先)
+    const localData = localStorage.getItem(name);
+    
+    // 2. Asynchronously fetch from Supabase to sync
+    // We don't await this here to ensure fast initial load from localStorage
+    setTimeout(async () => {
+      try {
+        const supabase = getSupabaseFromState(localData);
+        if (!supabase) return;
+
+        const { data, error } = await supabase
+          .from('taskflow_app_data')
+          .select('state, updated_at')
+          .eq('id', SYNC_USER_ID)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+          console.error('Supabase fetch error:', error);
+          return;
+        }
+
+        if (data && data.state) {
+          const remoteStateStr = JSON.stringify(data.state);
+          // Only update if remote is different (basic check)
+          if (remoteStateStr !== localData) {
+            // We need to update the store with the remote data
+            // Since we are inside the storage engine, we can just set it to localStorage
+            // and then trigger a rehydration or state update if possible.
+            // A better way is to handle this outside, but for now we update localStorage.
+            // Zustand will not automatically rehydrate if we just change localStorage here,
+            // so we should ideally dispatch an event or call a store method.
+            localStorage.setItem(name, remoteStateStr);
+            
+            // Dispatch a custom event to notify the app that remote data was fetched
+            window.dispatchEvent(new CustomEvent('taskflow-remote-sync', { detail: data.state }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync from Supabase:', err);
+      }
+    }, 0);
+
+    return localData;
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    // 1. Save to localStorage
+    localStorage.setItem(name, value);
+    localStorage.setItem(`${name}-updated-at`, new Date().toISOString());
+    
+    // 2. Save to Supabase
+    try {
+      const supabase = getSupabaseFromState(value);
+      if (!supabase) return;
+
+      const parsedValue = JSON.parse(value);
+      const { error } = await supabase
+        .from('taskflow_app_data')
+        .upsert({ 
+          id: SYNC_USER_ID, 
+          state: parsedValue,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+        
+      if (error) {
+        console.error('Supabase upsert error:', error);
+      }
+    } catch (err) {
+      console.error('Failed to sync to Supabase:', err);
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    const localData = localStorage.getItem(name);
+    localStorage.removeItem(name);
+    try {
+      const supabase = getSupabaseFromState(localData);
+      if (!supabase) return;
+
+      await supabase
+        .from('taskflow_app_data')
+        .delete()
+        .eq('id', SYNC_USER_ID);
+    } catch (err) {
+      console.error('Failed to delete from Supabase:', err);
+    }
+  },
+};
 
 const defaultColumns: Column[] = [
   { id: 'todo', title: '待办', color: 'bg-slate-100', icon: '📝' },
@@ -63,9 +167,11 @@ interface TaskStore {
   memos: Memo[];
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
   searchStateFilter: string | null;
+  supabaseConfig: { url: string; anonKey: string };
   
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings') => void;
   setSearchStateFilter: (filter: string | null) => void;
+  setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -230,9 +336,11 @@ export const useTaskStore = create<TaskStore>()(
       memos: [],
       currentView: 'kanban',
       searchStateFilter: null,
+      supabaseConfig: { url: '', anonKey: '' },
 
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
+      setSupabaseConfig: (config) => set({ supabaseConfig: config }),
 
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
       setHighlightedLogId: (id) => set({ highlightedLogId: id }),
@@ -770,7 +878,7 @@ export const useTaskStore = create<TaskStore>()(
     }),
     {
       name: 'taskflow-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => customStorage),
     }
   )
 );

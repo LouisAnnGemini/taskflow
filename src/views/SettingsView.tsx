@@ -6,6 +6,7 @@ import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, Gri
 import { Avatar } from '../components/Avatar';
 import { MultiSelect } from '../components/MultiSelect';
 import { nanoid } from 'nanoid';
+import { getSupabaseClient } from '../lib/supabase';
 
 const COMMON_EMOJIS = ['📝', '🚀', '👀', '✅', '⏸️', '🔽', '⏺️', '🔼', '🔥', '💬', '📧', '💼', '📍', '📌', '💡', '🐛', '📅', '📎', '⭐', '⚡'];
 
@@ -122,6 +123,93 @@ export function SettingsView() {
   // Log export state
   const [logStartDate, setLogStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [logEndDate, setLogEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Cloud Sync state
+  const [syncStatus, setSyncStatus] = useState<{
+    isChecking: boolean;
+    cloudTimestamp: string | null;
+    localTimestamp: string | null;
+    cloudData: any | null;
+    showModal: 'cloud-to-local' | 'local-to-cloud' | null;
+  }>({
+    isChecking: false,
+    cloudTimestamp: null,
+    localTimestamp: null,
+    cloudData: null,
+    showModal: null,
+  });
+
+  const checkSyncStatus = async (action: 'cloud-to-local' | 'local-to-cloud') => {
+    setSyncStatus(prev => ({ ...prev, isChecking: true }));
+    try {
+      const state = useTaskStore.getState();
+      const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
+      if (!supabase) {
+        showMessage('Supabase 客户端未初始化，请检查配置', 'error');
+        setSyncStatus(prev => ({ ...prev, isChecking: false }));
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('taskflow_app_data')
+        .select('state, updated_at')
+        .eq('id', 'default_user')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      const localTs = localStorage.getItem('taskflow-storage-updated-at');
+      
+      setSyncStatus({
+        isChecking: false,
+        cloudTimestamp: data?.updated_at || null,
+        localTimestamp: localTs || null,
+        cloudData: data?.state || null,
+        showModal: action,
+      });
+    } catch (err) {
+      console.error(err);
+      showMessage('检查同步状态失败', 'error');
+      setSyncStatus(prev => ({ ...prev, isChecking: false }));
+    }
+  };
+
+  const handleCloudToLocal = () => {
+    if (syncStatus.cloudData) {
+      setAllData(syncStatus.cloudData);
+      showMessage('已使用云端数据覆盖本地');
+    } else {
+      showMessage('云端没有可用数据', 'error');
+    }
+    setSyncStatus(prev => ({ ...prev, showModal: null }));
+  };
+
+  const handleLocalToCloud = async () => {
+    try {
+      const state = useTaskStore.getState();
+      const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
+      if (!supabase) throw new Error('No Supabase client');
+
+      const stateStr = localStorage.getItem('taskflow-storage');
+      if (stateStr) {
+        const parsedValue = JSON.parse(stateStr);
+        await supabase
+          .from('taskflow_app_data')
+          .upsert({ 
+            id: 'default_user', 
+            state: parsedValue,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+        showMessage('已将本地数据同步至云端');
+      }
+    } catch (err) {
+      console.error(err);
+      showMessage('同步至云端失败', 'error');
+    }
+    setSyncStatus(prev => ({ ...prev, showModal: null }));
+  };
 
   const showMessage = (text: string, type: 'success' | 'error' = 'success') => {
     setMessage({ text, type });
@@ -407,6 +495,7 @@ export function SettingsView() {
               { id: 'medium-tags', label: '媒介标签设置' },
               { id: 'custom-fields', label: '自定义字段' },
               { id: 'field-order', label: '字段排序与显示' },
+              { id: 'cloud-sync', label: '云端同步 (Supabase)' },
               { id: 'data-management', label: '数据管理' },
               { id: 'performance-test', label: '性能测试' },
             ].map(item => (
@@ -1651,6 +1740,100 @@ export function SettingsView() {
         </div>
       </section>
 
+      {/* Cloud Sync Section */}
+      <section id="cloud-sync" className="scroll-mt-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">云端同步 (Supabase)</h2>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              配置您的 Supabase 项目信息以启用云端数据同步。这允许您在多台设备之间同步任务数据。
+              如果留空，系统将尝试使用环境变量中的默认配置。
+            </p>
+            
+            <div className="space-y-4 max-w-2xl">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Supabase URL</label>
+                <input
+                  type="text"
+                  value={useTaskStore.getState().supabaseConfig?.url || ''}
+                  onChange={(e) => {
+                    const currentConfig = useTaskStore.getState().supabaseConfig || { url: '', anonKey: '' };
+                    useTaskStore.getState().setSupabaseConfig({ ...currentConfig, url: e.target.value });
+                  }}
+                  onBlur={() => showMessage('Supabase URL 已更新')}
+                  placeholder="https://your-project-id.supabase.co"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                />
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Supabase Anon Key</label>
+                <input
+                  type="password"
+                  value={useTaskStore.getState().supabaseConfig?.anonKey || ''}
+                  onChange={(e) => {
+                    const currentConfig = useTaskStore.getState().supabaseConfig || { url: '', anonKey: '' };
+                    useTaskStore.getState().setSupabaseConfig({ ...currentConfig, anonKey: e.target.value });
+                  }}
+                  onBlur={() => showMessage('Supabase Anon Key 已更新')}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono"
+                />
+              </div>
+            </div>
+            
+            <div className="pt-4 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  // Force a re-save to trigger sync with new credentials
+                  const state = useTaskStore.getState();
+                  useTaskStore.setState({ ...state });
+                  showMessage('已应用同步配置并尝试连接');
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+              >
+                应用并测试连接
+              </button>
+              <button
+                onClick={() => {
+                  useTaskStore.getState().setSupabaseConfig({ url: '', anonKey: '' });
+                  showMessage('已清除自定义同步配置，将使用默认环境变量');
+                }}
+                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm"
+              >
+                清除配置
+              </button>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 mt-6">
+              <h3 className="text-sm font-bold text-slate-800 mb-4">手动同步数据</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                如果数据出现不一致，您可以手动选择使用云端数据覆盖本地，或者将本地数据强制同步至云端。
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => checkSyncStatus('cloud-to-local')}
+                  disabled={syncStatus.isChecking}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors font-medium text-sm disabled:opacity-50"
+                >
+                  <Download size={16} /> 云端数据覆盖本地
+                </button>
+                <button
+                  onClick={() => checkSyncStatus('local-to-cloud')}
+                  disabled={syncStatus.isChecking}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm disabled:opacity-50"
+                >
+                  <Upload size={16} /> 保留本地数据 (覆盖云端)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Performance Test Section */}
       <section id="performance-test" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
@@ -1765,6 +1948,56 @@ export function SettingsView() {
                 className="px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
               >
                 确认导入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {syncStatus.showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">
+              {syncStatus.showModal === 'cloud-to-local' ? '确认使用云端数据覆盖本地？' : '确认将本地数据同步至云端？'}
+            </h3>
+            
+            <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500">云端数据时间：</span>
+                <span className="font-medium text-slate-800">
+                  {syncStatus.cloudTimestamp ? new Date(syncStatus.cloudTimestamp).toLocaleString() : '无数据'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500">本地数据时间：</span>
+                <span className="font-medium text-slate-800">
+                  {syncStatus.localTimestamp ? new Date(syncStatus.localTimestamp).toLocaleString() : '无数据'}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-slate-600 text-sm mb-6">
+              {syncStatus.showModal === 'cloud-to-local' 
+                ? '此操作将使用云端的最新数据完全替换您当前设备上的本地数据。未同步的本地更改将会丢失。' 
+                : '此操作将强制使用您当前设备的本地数据覆盖云端数据。云端原有的数据将被替换。'}
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setSyncStatus(prev => ({ ...prev, showModal: null }))}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={syncStatus.showModal === 'cloud-to-local' ? handleCloudToLocal : handleLocalToCloud}
+                className={`px-6 py-2 text-white font-bold rounded-xl transition-colors shadow-sm ${
+                  syncStatus.showModal === 'cloud-to-local' 
+                    ? 'bg-amber-600 hover:bg-amber-700' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {syncStatus.showModal === 'cloud-to-local' ? '确认覆盖本地' : '确认覆盖云端'}
               </button>
             </div>
           </div>
