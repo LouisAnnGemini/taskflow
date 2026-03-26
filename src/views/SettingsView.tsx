@@ -79,7 +79,9 @@ export function SettingsView() {
     addPosition, updatePosition, deletePosition,
     customFieldDefinitions, addCustomFieldDefinition, updateCustomFieldDefinition, deleteCustomFieldDefinition,
     fieldOrder, setFieldOrder,
-    setAllData
+    setAllData,
+    versionConflict,
+    setVersionConflict
   } = useTaskStore();
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -1948,6 +1950,37 @@ export function SettingsView() {
                 className="px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
               >
                 确认导入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {versionConflict && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">检测到数据冲突</h3>
+            <p className="text-slate-600 text-sm mb-6">
+              检测到本地数据与云端数据不一致。请选择如何处理：
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setVersionConflict(false);
+                  checkSyncStatus('cloud-to-local');
+                }}
+                className="px-4 py-2 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 transition-colors"
+              >
+                使用云端数据
+              </button>
+              <button
+                onClick={() => {
+                  setVersionConflict(false);
+                  checkSyncStatus('local-to-cloud');
+                }}
+                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                使用本地数据
               </button>
             </div>
           </div>

@@ -47,8 +47,14 @@ export default function App() {
 
     window.addEventListener('taskflow-remote-sync', handleRemoteSync as EventListener);
     
+    // Save version every 5 minutes
+    const interval = setInterval(() => {
+      useTaskStore.getState().saveVersionToCloud();
+    }, 5 * 60 * 1000);
+    
     return () => {
       window.removeEventListener('taskflow-remote-sync', handleRemoteSync as EventListener);
+      clearInterval(interval);
     };
   }, [checkExpiringTasks]);
 

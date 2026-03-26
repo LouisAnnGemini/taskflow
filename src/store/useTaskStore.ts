@@ -46,16 +46,8 @@ const customStorage: StateStorage = {
           const remoteStateStr = JSON.stringify(data.state);
           // Only update if remote is different (basic check)
           if (remoteStateStr !== localData) {
-            // We need to update the store with the remote data
-            // Since we are inside the storage engine, we can just set it to localStorage
-            // and then trigger a rehydration or state update if possible.
-            // A better way is to handle this outside, but for now we update localStorage.
-            // Zustand will not automatically rehydrate if we just change localStorage here,
-            // so we should ideally dispatch an event or call a store method.
-            localStorage.setItem(name, remoteStateStr);
-            
-            // Dispatch a custom event to notify the app that remote data was fetched
-            window.dispatchEvent(new CustomEvent('taskflow-remote-sync', { detail: data.state }));
+            // Instead of auto-sync, set conflict flag
+            useTaskStore.getState().setVersionConflict(true);
           }
         }
       } catch (err) {
@@ -168,10 +160,13 @@ interface TaskStore {
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
   searchStateFilter: string | null;
   supabaseConfig: { url: string; anonKey: string };
+  versionConflict: boolean;
   
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings') => void;
   setSearchStateFilter: (filter: string | null) => void;
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
+  setVersionConflict: (conflict: boolean) => void;
+  saveVersionToCloud: () => Promise<void>;
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -337,10 +332,52 @@ export const useTaskStore = create<TaskStore>()(
       currentView: 'kanban',
       searchStateFilter: null,
       supabaseConfig: { url: '', anonKey: '' },
+      versionConflict: false,
 
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
       setSupabaseConfig: (config) => set({ supabaseConfig: config }),
+      setVersionConflict: (conflict) => set({ versionConflict: conflict }),
+
+      saveVersionToCloud: async () => {
+        const state = get();
+        const supabase = getSupabaseFromState(null);
+        if (!supabase) return;
+
+        // 1. Insert new version
+        const { error: insertError } = await supabase
+          .from('taskflow_app_versions')
+          .insert({
+            user_id: SYNC_USER_ID,
+            state: state,
+            created_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('Failed to save version:', insertError);
+          return;
+        }
+
+        // 2. Keep only last 20 versions
+        const { data: versions, error: fetchError } = await supabase
+          .from('taskflow_app_versions')
+          .select('id')
+          .eq('user_id', SYNC_USER_ID)
+          .order('created_at', { ascending: false });
+
+        if (fetchError) {
+          console.error('Failed to fetch versions:', fetchError);
+          return;
+        }
+
+        if (versions && versions.length > 10) {
+          const idsToDelete = versions.slice(10).map(v => v.id);
+          await supabase
+            .from('taskflow_app_versions')
+            .delete()
+            .in('id', idsToDelete);
+        }
+      },
 
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
       setHighlightedLogId: (id) => set({ highlightedLogId: id }),
