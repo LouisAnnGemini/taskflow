@@ -16,87 +16,27 @@ const getSupabaseFromState = (stateStr: string | null) => {
       return getSupabaseClient(config.url, config.anonKey);
     }
   } catch (e) {}
-  return getSupabaseClient(); // fallback to env vars
+  
+  // Only fallback to env vars if they are actually set (not empty strings)
+  const envUrl = process.env.TASKFLOW_SUPABASE_URL;
+  const envKey = process.env.TASKFLOW_SUPABASE_ANON_KEY;
+  if (envUrl && envKey) {
+    return getSupabaseClient();
+  }
+  
+  return null;
 };
 
 const customStorage: StateStorage = {
-  getItem: async (name: string): Promise<string | null> => {
-    // 1. Read from localStorage first (localStorage优先)
-    const localData = localStorage.getItem(name);
-    
-    // 2. Asynchronously fetch from Supabase to sync
-    // We don't await this here to ensure fast initial load from localStorage
-    setTimeout(async () => {
-      try {
-        const supabase = getSupabaseFromState(localData);
-        if (!supabase) return;
-
-        const { data, error } = await supabase
-          .from('taskflow_app_data')
-          .select('state, updated_at')
-          .eq('id', SYNC_USER_ID)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-          console.error('Supabase fetch error:', error);
-          return;
-        }
-
-        if (data && data.state) {
-          const remoteStateStr = JSON.stringify(data.state);
-          // Only update if remote is different (basic check)
-          if (remoteStateStr !== localData) {
-            // Instead of auto-sync, set conflict flag
-            useTaskStore.getState().setVersionConflict(true);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to sync from Supabase:', err);
-      }
-    }, 0);
-
-    return localData;
+  getItem: (name: string): string | null => {
+    return localStorage.getItem(name);
   },
-  setItem: async (name: string, value: string): Promise<void> => {
-    // 1. Save to localStorage
+  setItem: (name: string, value: string): void => {
     localStorage.setItem(name, value);
     localStorage.setItem(`${name}-updated-at`, new Date().toISOString());
-    
-    // 2. Save to Supabase
-    try {
-      const supabase = getSupabaseFromState(value);
-      if (!supabase) return;
-
-      const parsedValue = JSON.parse(value);
-      const { error } = await supabase
-        .from('taskflow_app_data')
-        .upsert({ 
-          id: SYNC_USER_ID, 
-          state: parsedValue,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-        
-      if (error) {
-        console.error('Supabase upsert error:', error);
-      }
-    } catch (err) {
-      console.error('Failed to sync to Supabase:', err);
-    }
   },
-  removeItem: async (name: string): Promise<void> => {
-    const localData = localStorage.getItem(name);
+  removeItem: (name: string): void => {
     localStorage.removeItem(name);
-    try {
-      const supabase = getSupabaseFromState(localData);
-      if (!supabase) return;
-
-      await supabase
-        .from('taskflow_app_data')
-        .delete()
-        .eq('id', SYNC_USER_ID);
-    } catch (err) {
-      console.error('Failed to delete from Supabase:', err);
-    }
   },
 };
 
@@ -160,12 +100,10 @@ interface TaskStore {
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
   searchStateFilter: string | null;
   supabaseConfig: { url: string; anonKey: string };
-  versionConflict: boolean;
   
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings') => void;
   setSearchStateFilter: (filter: string | null) => void;
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
-  setVersionConflict: (conflict: boolean) => void;
   saveVersionToCloud: () => Promise<void>;
   
   addTask: (task: Partial<Task>) => void;
@@ -332,12 +270,10 @@ export const useTaskStore = create<TaskStore>()(
       currentView: 'kanban',
       searchStateFilter: null,
       supabaseConfig: { url: '', anonKey: '' },
-      versionConflict: false,
 
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
       setSupabaseConfig: (config) => set({ supabaseConfig: config }),
-      setVersionConflict: (conflict) => set({ versionConflict: conflict }),
 
       saveVersionToCloud: async () => {
         const state = get();

@@ -9,7 +9,7 @@ import { SettingsView } from './views/SettingsView';
 import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2 } from 'lucide-react';
 import { useTaskStore } from './store/useTaskStore';
 
 type ViewType = 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
 
 export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { 
     currentUser, 
     selectedTaskId, 
@@ -47,16 +48,32 @@ export default function App() {
 
     window.addEventListener('taskflow-remote-sync', handleRemoteSync as EventListener);
     
-    // Save version every 5 minutes
+    // Save version every 30 minutes
     const interval = setInterval(() => {
       useTaskStore.getState().saveVersionToCloud();
-    }, 5 * 60 * 1000);
+    }, 30 * 60 * 1000);
+    
+    // Save version on browser close
+    const handleBeforeUnload = () => {
+      useTaskStore.getState().saveVersionToCloud();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
       window.removeEventListener('taskflow-remote-sync', handleRemoteSync as EventListener);
       clearInterval(interval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [checkExpiringTasks]);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await useTaskStore.getState().saveVersionToCloud();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -104,6 +121,14 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="p-2 rounded-lg transition-colors text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              title="手动同步到云端"
+            >
+              {isSyncing ? <Loader2 size={20} className="animate-spin" /> : <CloudUpload size={20} />}
+            </button>
             <button 
               onClick={() => setCurrentView('settings')}
               className={`p-2 rounded-lg transition-colors ${

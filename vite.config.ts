@@ -9,8 +9,8 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.TASKFLOW_SUPABASE_URL': JSON.stringify(env.TASKFLOW_SUPABASE_URL || env.VITE_TASKFLOW_SUPABASE_URL || 'https://aomnwqjhaeavkfereche.supabase.co'),
-      'process.env.TASKFLOW_SUPABASE_ANON_KEY': JSON.stringify(env.TASKFLOW_SUPABASE_ANON_KEY || env.VITE_TASKFLOW_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvbW53cWpoYWVhdmtmZXJlY2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNTM2MTIsImV4cCI6MjA4OTgyOTYxMn0.Z6FxCbaotO01xlPPlk00zyEklFEbyc-Ds1tCOw0BbAo'),
+      'process.env.TASKFLOW_SUPABASE_URL': JSON.stringify(env.TASKFLOW_SUPABASE_URL || env.VITE_TASKFLOW_SUPABASE_URL || ''),
+      'process.env.TASKFLOW_SUPABASE_ANON_KEY': JSON.stringify(env.TASKFLOW_SUPABASE_ANON_KEY || env.VITE_TASKFLOW_SUPABASE_ANON_KEY || ''),
     },
     resolve: {
       alias: {
