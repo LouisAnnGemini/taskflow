@@ -301,7 +301,10 @@ export const useTaskStore = create<TaskStore>()(
 
         if (insertError) {
           console.error('Failed to save version:', insertError);
-          return;
+          if (insertError.code === 'PGRST205' || insertError.message?.includes('Could not find the table')) {
+            throw new Error('TABLE_NOT_FOUND');
+          }
+          throw insertError;
         }
 
         set({ lastCloudSyncTimestamp: Date.now() });
@@ -335,7 +338,12 @@ export const useTaskStore = create<TaskStore>()(
           .select('id, created_at')
           .eq('user_id', SYNC_USER_ID)
           .order('created_at', { ascending: false });
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+            throw new Error('TABLE_NOT_FOUND');
+          }
+          throw error;
+        }
         return data || [];
       },
       restoreVersion: async (versionId: string) => {

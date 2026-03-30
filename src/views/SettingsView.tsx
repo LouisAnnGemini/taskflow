@@ -126,15 +126,20 @@ export function SettingsView() {
   const [logEndDate, setLogEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [versions, setVersions] = useState<{ id: string; created_at: string }[]>([]);
   const [isFetchingVersions, setIsFetchingVersions] = useState(false);
+  const [isVersionsTableMissing, setIsVersionsTableMissing] = useState(false);
 
   useEffect(() => {
     const loadVersions = async () => {
       setIsFetchingVersions(true);
+      setIsVersionsTableMissing(false);
       try {
         const v = await fetchVersions();
         setVersions(v);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load versions:', err);
+        if (err.message === 'TABLE_NOT_FOUND') {
+          setIsVersionsTableMissing(true);
+        }
       } finally {
         setIsFetchingVersions(false);
       }
@@ -1860,10 +1865,16 @@ export function SettingsView() {
                         await useTaskStore.getState().saveVersionToCloud();
                         const v = await fetchVersions();
                         setVersions(v);
+                        setIsVersionsTableMissing(false);
                         showMessage('已保存当前版本并刷新列表');
-                      } catch (err) {
+                      } catch (err: any) {
                         console.error(err);
-                        showMessage('保存或刷新失败', 'error');
+                        if (err.message === 'TABLE_NOT_FOUND') {
+                          setIsVersionsTableMissing(true);
+                          showMessage('请先在 Supabase 中创建 taskflow_app_versions 表', 'error');
+                        } else {
+                          showMessage('保存或刷新失败', 'error');
+                        }
                       } finally {
                         setIsFetchingVersions(false);
                       }
@@ -1878,10 +1889,16 @@ export function SettingsView() {
                       try {
                         const v = await fetchVersions();
                         setVersions(v);
+                        setIsVersionsTableMissing(false);
                         showMessage('已刷新版本列表');
-                      } catch (err) {
+                      } catch (err: any) {
                         console.error(err);
-                        showMessage('刷新失败', 'error');
+                        if (err.message === 'TABLE_NOT_FOUND') {
+                          setIsVersionsTableMissing(true);
+                          showMessage('请先在 Supabase 中创建 taskflow_app_versions 表', 'error');
+                        } else {
+                          showMessage('刷新失败', 'error');
+                        }
                       } finally {
                         setIsFetchingVersions(false);
                       }
@@ -1893,7 +1910,22 @@ export function SettingsView() {
                 </div>
               </div>
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
-                {isFetchingVersions ? (
+                {isVersionsTableMissing ? (
+                  <div className="text-sm text-slate-600 space-y-3">
+                    <p className="text-red-600 font-medium">⚠️ 缺少历史版本数据表</p>
+                    <p>请在您的 Supabase SQL Editor 中运行以下代码来创建表：</p>
+                    <pre className="bg-slate-800 text-slate-100 p-3 rounded-lg overflow-x-auto text-xs font-mono">
+{`create table public.taskflow_app_versions (
+  id uuid default gen_random_uuid() primary key,
+  user_id text not null,
+  state jsonb not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create index idx_taskflow_app_versions_user_id on public.taskflow_app_versions(user_id);`}
+                    </pre>
+                  </div>
+                ) : isFetchingVersions ? (
                   <p className="text-sm text-slate-500">加载中...</p>
                 ) : versions.length === 0 ? (
                   <p className="text-sm text-slate-500">暂无历史版本</p>
