@@ -79,7 +79,8 @@ export function SettingsView() {
     addPosition, updatePosition, deletePosition,
     customFieldDefinitions, addCustomFieldDefinition, updateCustomFieldDefinition, deleteCustomFieldDefinition,
     fieldOrder, setFieldOrder,
-    setAllData
+    setAllData,
+    fetchVersions, restoreVersion
   } = useTaskStore();
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -123,6 +124,23 @@ export function SettingsView() {
   // Log export state
   const [logStartDate, setLogStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [logEndDate, setLogEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [versions, setVersions] = useState<{ id: string; created_at: string }[]>([]);
+  const [isFetchingVersions, setIsFetchingVersions] = useState(false);
+
+  useEffect(() => {
+    const loadVersions = async () => {
+      setIsFetchingVersions(true);
+      try {
+        const v = await fetchVersions();
+        setVersions(v);
+      } catch (err) {
+        console.error('Failed to load versions:', err);
+      } finally {
+        setIsFetchingVersions(false);
+      }
+    };
+    loadVersions();
+  }, [fetchVersions]);
 
   // Cloud Sync state
   const [syncStatus, setSyncStatus] = useState<{
@@ -1828,6 +1846,36 @@ export function SettingsView() {
                 >
                   <Upload size={16} /> 保留本地数据 (覆盖云端)
                 </button>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 mt-6">
+              <h3 className="text-sm font-bold text-slate-800 mb-4">历史版本还原</h3>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
+                {isFetchingVersions ? (
+                  <p className="text-sm text-slate-500">加载中...</p>
+                ) : versions.length === 0 ? (
+                  <p className="text-sm text-slate-500">暂无历史版本</p>
+                ) : (
+                  <div className="space-y-2">
+                    {versions.map(v => (
+                      <div key={v.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100">
+                        <span className="text-sm text-slate-700 font-mono">{new Date(v.created_at).toLocaleString()}</span>
+                        <button 
+                          onClick={async () => {
+                            if (confirm('确定要还原到此版本吗？这将覆盖当前本地数据。')) {
+                              await restoreVersion(v.id);
+                              showMessage('版本还原成功！');
+                            }
+                          }}
+                          className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition-colors text-xs font-medium"
+                        >
+                          还原
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

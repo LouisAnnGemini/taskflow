@@ -105,6 +105,8 @@ interface TaskStore {
   setSearchStateFilter: (filter: string | null) => void;
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
   saveVersionToCloud: () => Promise<void>;
+  fetchVersions: () => Promise<{ id: string; created_at: string }[]>;
+  restoreVersion: (versionId: string) => Promise<void>;
   
   addTask: (task: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -294,7 +296,7 @@ export const useTaskStore = create<TaskStore>()(
           return;
         }
 
-        // 2. Keep only last 20 versions
+        // 2. Keep only last 10 versions
         const { data: versions, error: fetchError } = await supabase
           .from('taskflow_app_versions')
           .select('id')
@@ -312,6 +314,31 @@ export const useTaskStore = create<TaskStore>()(
             .from('taskflow_app_versions')
             .delete()
             .in('id', idsToDelete);
+        }
+      },
+      fetchVersions: async () => {
+        const supabase = getSupabaseFromState(null);
+        if (!supabase) return [];
+        const { data, error } = await supabase
+          .from('taskflow_app_versions')
+          .select('id, created_at')
+          .eq('user_id', SYNC_USER_ID)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      },
+      restoreVersion: async (versionId: string) => {
+        const supabase = getSupabaseFromState(null);
+        if (!supabase) return;
+        const { data, error } = await supabase
+          .from('taskflow_app_versions')
+          .select('state')
+          .eq('id', versionId)
+          .single();
+        if (error) throw error;
+        if (data && data.state) {
+          useTaskStore.setState(data.state);
+          localStorage.setItem('task-storage', JSON.stringify(data.state));
         }
       },
 
