@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
@@ -18,8 +19,8 @@ const getSupabaseFromState = (stateStr: string | null) => {
   } catch (e) {}
   
   // Only fallback to env vars if they are actually set (not empty strings)
-  const envUrl = process.env.TASKFLOW_SUPABASE_URL;
-  const envKey = process.env.TASKFLOW_SUPABASE_ANON_KEY;
+  const envUrl = import.meta.env.VITE_TASKFLOW_SUPABASE_URL;
+  const envKey = import.meta.env.VITE_TASKFLOW_SUPABASE_ANON_KEY;
   if (envUrl && envKey) {
     return getSupabaseClient();
   }
@@ -100,6 +101,7 @@ interface TaskStore {
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
   searchStateFilter: string | null;
   supabaseConfig: { url: string; anonKey: string };
+  lastCloudSyncTimestamp: number | null;
   
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings') => void;
   setSearchStateFilter: (filter: string | null) => void;
@@ -272,6 +274,7 @@ export const useTaskStore = create<TaskStore>()(
       currentView: 'kanban',
       searchStateFilter: null,
       supabaseConfig: { url: '', anonKey: '' },
+      lastCloudSyncTimestamp: null,
 
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
@@ -279,15 +282,20 @@ export const useTaskStore = create<TaskStore>()(
 
       saveVersionToCloud: async () => {
         const state = get();
-        const supabase = getSupabaseFromState(null);
+        const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
         if (!supabase) return;
+
+        // Extract only data fields, omit functions
+        const dataState = Object.fromEntries(
+          Object.entries(state).filter(([_, value]) => typeof value !== 'function')
+        );
 
         // 1. Insert new version
         const { error: insertError } = await supabase
           .from('taskflow_app_versions')
           .insert({
             user_id: SYNC_USER_ID,
-            state: state,
+            state: dataState,
             created_at: new Date().toISOString()
           });
 
@@ -295,6 +303,8 @@ export const useTaskStore = create<TaskStore>()(
           console.error('Failed to save version:', insertError);
           return;
         }
+
+        set({ lastCloudSyncTimestamp: Date.now() });
 
         // 2. Keep only last 10 versions
         const { data: versions, error: fetchError } = await supabase
@@ -317,7 +327,8 @@ export const useTaskStore = create<TaskStore>()(
         }
       },
       fetchVersions: async () => {
-        const supabase = getSupabaseFromState(null);
+        const state = get();
+        const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
         if (!supabase) return [];
         const { data, error } = await supabase
           .from('taskflow_app_versions')
@@ -328,7 +339,8 @@ export const useTaskStore = create<TaskStore>()(
         return data || [];
       },
       restoreVersion: async (versionId: string) => {
-        const supabase = getSupabaseFromState(null);
+        const state = get();
+        const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
         if (!supabase) return;
         const { data, error } = await supabase
           .from('taskflow_app_versions')

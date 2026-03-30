@@ -52,6 +52,12 @@ export default function App() {
     const interval = setInterval(() => {
       useTaskStore.getState().saveVersionToCloud();
     }, 30 * 60 * 1000);
+
+    // Check if we need to save immediately on load (if > 30 mins since last save)
+    const lastSync = useTaskStore.getState().lastCloudSyncTimestamp;
+    if (!lastSync || Date.now() - lastSync > 30 * 60 * 1000) {
+      useTaskStore.getState().saveVersionToCloud();
+    }
     
     // Save version on browser close
     const handleBeforeUnload = () => {

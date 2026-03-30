@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useTaskStore } from '../store/useTaskStore';
 import { User, Column, PriorityOption, MediumOption, CustomFieldDefinition, CustomFieldType, FieldConfig } from '../types/task';
-import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown, Check, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown, Check, Search, Loader2 } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 import { MultiSelect } from '../components/MultiSelect';
 import { nanoid } from 'nanoid';
@@ -1850,7 +1850,48 @@ export function SettingsView() {
             </div>
 
             <div className="pt-6 border-t border-slate-100 mt-6">
-              <h3 className="text-sm font-bold text-slate-800 mb-4">历史版本还原</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-slate-800">历史版本还原</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setIsFetchingVersions(true);
+                      try {
+                        await useTaskStore.getState().saveVersionToCloud();
+                        const v = await fetchVersions();
+                        setVersions(v);
+                        showMessage('已保存当前版本并刷新列表');
+                      } catch (err) {
+                        console.error(err);
+                        showMessage('保存或刷新失败', 'error');
+                      } finally {
+                        setIsFetchingVersions(false);
+                      }
+                    }}
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                  >
+                    <Plus size={14} /> 保存当前版本
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsFetchingVersions(true);
+                      try {
+                        const v = await fetchVersions();
+                        setVersions(v);
+                        showMessage('已刷新版本列表');
+                      } catch (err) {
+                        console.error(err);
+                        showMessage('刷新失败', 'error');
+                      } finally {
+                        setIsFetchingVersions(false);
+                      }
+                    }}
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                  >
+                    <Loader2 size={14} className={isFetchingVersions ? 'animate-spin' : ''} /> 刷新列表
+                  </button>
+                </div>
+              </div>
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
                 {isFetchingVersions ? (
                   <p className="text-sm text-slate-500">加载中...</p>
