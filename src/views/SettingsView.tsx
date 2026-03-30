@@ -1912,17 +1912,26 @@ export function SettingsView() {
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
                 {isVersionsTableMissing ? (
                   <div className="text-sm text-slate-600 space-y-3">
-                    <p className="text-red-600 font-medium">⚠️ 缺少历史版本数据表</p>
-                    <p>请在您的 Supabase SQL Editor 中运行以下代码来创建表：</p>
+                    <p className="text-red-600 font-medium">⚠️ 缺少历史版本数据表或权限不足</p>
+                    <p>请在您的 Supabase SQL Editor 中运行以下代码来创建表并配置权限：</p>
                     <pre className="bg-slate-800 text-slate-100 p-3 rounded-lg overflow-x-auto text-xs font-mono">
-{`create table public.taskflow_app_versions (
+{`create table if not exists public.taskflow_app_versions (
   id uuid default gen_random_uuid() primary key,
   user_id text not null,
   state jsonb not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-create index idx_taskflow_app_versions_user_id on public.taskflow_app_versions(user_id);`}
+create index if not exists idx_taskflow_app_versions_user_id on public.taskflow_app_versions(user_id);
+
+-- 允许匿名访问 (因为应用目前使用 anon key)
+alter table public.taskflow_app_versions enable row level security;
+
+create policy "Allow all operations for anon" 
+on public.taskflow_app_versions 
+for all 
+using (true) 
+with check (true);`}
                     </pre>
                   </div>
                 ) : isFetchingVersions ? (

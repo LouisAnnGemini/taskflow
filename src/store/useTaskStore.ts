@@ -301,7 +301,7 @@ export const useTaskStore = create<TaskStore>()(
 
         if (insertError) {
           console.error('Failed to save version:', insertError);
-          if (insertError.code === 'PGRST205' || insertError.message?.includes('Could not find the table')) {
+          if (insertError.code === 'PGRST205' || insertError.message?.includes('Could not find the table') || insertError.code === '42501') {
             throw new Error('TABLE_NOT_FOUND');
           }
           throw insertError;
@@ -339,7 +339,7 @@ export const useTaskStore = create<TaskStore>()(
           .eq('user_id', SYNC_USER_ID)
           .order('created_at', { ascending: false });
         if (error) {
-          if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          if (error.code === 'PGRST205' || error.message?.includes('Could not find the table') || error.code === '42501') {
             throw new Error('TABLE_NOT_FOUND');
           }
           throw error;
