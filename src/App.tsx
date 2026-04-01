@@ -9,14 +9,16 @@ import { SettingsView } from './views/SettingsView';
 import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2 } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2, GitMerge } from 'lucide-react';
 import { useTaskStore } from './store/useTaskStore';
+import { ProjectView } from './views/ProjectView';
 
-type ViewType = 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
+type ViewType = 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
   { id: 'kanban', label: '看板', icon: KanbanSquare },
+  { id: 'projects', label: '项目', icon: GitMerge },
   { id: 'calendar', label: '日历', icon: CalendarDays },
   { id: 'memos', label: '备忘录', icon: StickyNote },
   { id: 'search', label: '搜索', icon: Search },
@@ -86,6 +88,7 @@ export default function App() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard': return <DashboardView />;
+      case 'projects': return <ProjectView />;
       case 'kanban': return <KanbanView />;
       case 'calendar': return <CalendarView />;
       case 'memos': return <MemosView />;
@@ -170,8 +173,8 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8 ${currentView === 'kanban' || currentView === 'calendar' ? 'max-w-none' : 'max-w-7xl'}`}>
-        {currentView !== 'search' && currentView !== 'calendar' && (
+      <main className={`flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8 ${currentView === 'kanban' || currentView === 'calendar' || currentView === 'projects' ? 'max-w-none' : 'max-w-7xl'}`}>
+        {currentView !== 'search' && currentView !== 'calendar' && currentView !== 'projects' && (
           <div className="max-w-7xl mx-auto w-full">
             <QuickCapture />
           </div>

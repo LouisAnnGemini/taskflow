@@ -9,6 +9,7 @@ import { TaskCard } from './TaskCard';
 import { Avatar } from './Avatar';
 import { ProcessVisualizer } from './ProcessVisualizer';
 import { TaskGraph } from './TaskGraph';
+import { ProjectTaskGraph } from './ProjectTaskGraph';
 
 interface TaskModalProps {
   taskId: string;
@@ -16,7 +17,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId, projects } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1130,6 +1131,82 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               {/* Sidebar */}
               <div className="w-full lg:w-80 space-y-6 bg-slate-50/50 p-6 rounded-xl border border-slate-200 h-fit shadow-sm">
                 <div className="space-y-6">
+                  {/* Project Selection */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">所属项目</label>
+                    <select
+                      value={task.projectId || ''}
+                      onChange={(e) => {
+                        const projectId = e.target.value || undefined;
+                        handleUpdate({ 
+                          projectId,
+                          projectNodeType: projectId ? (task.projectNodeType || 'branch') : undefined,
+                          dependencies: projectId ? task.dependencies : []
+                        });
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    >
+                      <option value="">无项目</option>
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {task.projectId && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">项目节点类型</label>
+                        <select
+                          value={task.projectNodeType || 'branch'}
+                          onChange={(e) => handleUpdate({ projectNodeType: e.target.value as 'mainline' | 'branch' })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        >
+                          <option value="mainline">主线任务</option>
+                          <option value="branch">支线任务</option>
+                        </select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">前置任务 (项目内)</label>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {(task.dependencies || []).map(depId => {
+                            const depTask = getTask(depId);
+                            if (!depTask) return null;
+                            return (
+                              <button
+                                key={depId}
+                                onClick={() => {
+                                  handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) });
+                                }}
+                                className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
+                              >
+                                {depTask.title}
+                                <X size={10} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value && !(task.dependencies || []).includes(e.target.value)) {
+                              handleUpdate({ dependencies: [...(task.dependencies || []), e.target.value] });
+                            }
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        >
+                          <option value="">添加前置任务...</option>
+                          {useTaskStore.getState().tasks
+                            .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
+                            .map(t => (
+                              <option key={t.id} value={t.id}>{t.title}</option>
+                            ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
                   {fieldOrder.map(config => {
                     if (config.id === 'title' || config.id === 'description') return null;
                     return renderField(config);
@@ -1211,7 +1288,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </div>
           ) : (
             <div className="flex-1 w-full">
-              <TaskGraph taskId={task.id} />
+              {task.projectId ? (
+                <ProjectTaskGraph taskId={task.id} />
+              ) : (
+                <TaskGraph taskId={task.id} />
+              )}
             </div>
           )}
         </div>

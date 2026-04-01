@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { TaskCard } from '../components/TaskCard';
 import { GanttChart } from '../components/GanttChart';
 import { getUserDisplayName } from '../utils/user';
@@ -238,11 +239,16 @@ export function SearchView() {
     }
   };
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   const handleBatchDelete = () => {
-    if (confirm(`确定要删除选中的 ${selectedTaskIds.length} 个任务吗？此操作不可恢复。`)) {
-      selectedTaskIds.forEach(id => deleteTask(id));
-      setSelectedTaskIds([]);
-    }
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmBatchDelete = () => {
+    selectedTaskIds.forEach(id => deleteTask(id));
+    setSelectedTaskIds([]);
+    setIsDeleteModalOpen(false);
   };
 
   const handleBatchUpdateState = (newState: string) => {
@@ -602,6 +608,14 @@ export function SearchView() {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="删除任务"
+        message={`确定要删除选中的 ${selectedTaskIds.length} 个任务吗？此操作不可恢复。`}
+        onConfirm={confirmBatchDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
 
       {/* Batch Edit Modal */}
       {showBatchEditModal && (

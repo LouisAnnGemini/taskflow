@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useTaskStore } from '../store/useTaskStore';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { User, Column, PriorityOption, MediumOption, CustomFieldDefinition, CustomFieldType, FieldConfig } from '../types/task';
 import { Plus, Trash2, Edit2, Save, X, Smile, Download, Upload, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown, Check, Search, Loader2 } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
@@ -97,6 +98,22 @@ export function SettingsView() {
 
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
   const [editEntityForm, setEditEntityForm] = useState<{ name?: string }>({});
+
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [versionToRestore, setVersionToRestore] = useState<string | null>(null);
+
+  const handleRestoreVersion = (versionId: string) => {
+    setVersionToRestore(versionId);
+    setIsRestoreModalOpen(true);
+  };
+
+  const confirmRestoreVersion = async () => {
+    if (!versionToRestore) return;
+    await restoreVersion(versionToRestore);
+    showMessage('版本还原成功！');
+    setIsRestoreModalOpen(false);
+    setVersionToRestore(null);
+  };
 
   const [editingPositionId, setEditingPositionId] = useState<string | null>(null);
   const [editPositionForm, setEditPositionForm] = useState<{ name?: string }>({});
@@ -1944,12 +1961,7 @@ with check (true);`}
                       <div key={v.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100">
                         <span className="text-sm text-slate-700 font-mono">{new Date(v.created_at).toLocaleString()}</span>
                         <button 
-                          onClick={async () => {
-                            if (confirm('确定要还原到此版本吗？这将覆盖当前本地数据。')) {
-                              await restoreVersion(v.id);
-                              showMessage('版本还原成功！');
-                            }
-                          }}
+                          onClick={() => handleRestoreVersion(v.id)}
                           className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition-colors text-xs font-medium"
                         >
                           还原
@@ -2133,6 +2145,13 @@ with check (true);`}
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={isRestoreModalOpen}
+        title="还原版本"
+        message="确定要还原到此版本吗？这将覆盖当前本地数据。"
+        onConfirm={confirmRestoreVersion}
+        onCancel={() => setIsRestoreModalOpen(false)}
+      />
     </div>
   );
 }

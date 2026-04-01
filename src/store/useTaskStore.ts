@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
-import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption } from '../types/task';
+import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption, Project } from '../types/task';
 import { format } from 'date-fns';
 import { getSupabaseClient } from '../lib/supabase';
 
@@ -84,6 +84,7 @@ const defaultFieldOrder: FieldConfig[] = [
 
 interface TaskStore {
   tasks: Task[];
+  projects: Project[];
   users: User[];
   columns: Column[];
   priorities: PriorityOption[];
@@ -98,19 +99,24 @@ interface TaskStore {
   customFieldDefinitions: CustomFieldDefinition[];
   fieldOrder: FieldConfig[];
   memos: Memo[];
-  currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings';
+  currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
   searchStateFilter: string | null;
   supabaseConfig: { url: string; anonKey: string };
   lastCloudSyncTimestamp: number | null;
   
-  setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings') => void;
+  setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects') => void;
   setSearchStateFilter: (filter: string | null) => void;
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
   saveVersionToCloud: () => Promise<void>;
   fetchVersions: () => Promise<{ id: string; created_at: string }[]>;
   restoreVersion: (versionId: string) => Promise<void>;
   
-  addTask: (task: Partial<Task>) => void;
+  // Project Management
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateProject: (id: string, updates: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
+  
+  addTask: (task: Partial<Task>) => string;
   updateTask: (id: string, updates: Partial<Task>) => void;
   updateTasks: (ids: string[], updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -257,6 +263,7 @@ export const useTaskStore = create<TaskStore>()(
   persist(
     (set, get) => ({
       tasks: initialTasks,
+      projects: [],
       users: defaultUsers,
       columns: defaultColumns,
       priorities: defaultPriorities,
@@ -279,6 +286,25 @@ export const useTaskStore = create<TaskStore>()(
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
       setSupabaseConfig: (config) => set({ supabaseConfig: config }),
+
+      // Project Management
+      addProject: (project) => {
+        const newProject: Project = {
+          ...project,
+          id: nanoid(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        set((state) => ({ projects: [...state.projects, newProject] }));
+      },
+      updateProject: (id, updates) => set((state) => ({
+        projects: state.projects.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p)
+      })),
+      deleteProject: (id) => set((state) => ({
+        projects: state.projects.filter(p => p.id !== id),
+        // Also remove tasks from this project
+        tasks: state.tasks.map(t => t.projectId === id ? { ...t, projectId: undefined, projectNodeType: undefined, dependencies: [] } : t)
+      })),
 
       saveVersionToCloud: async () => {
         const state = get();
@@ -510,6 +536,8 @@ export const useTaskStore = create<TaskStore>()(
           action: 'created',
           details: `创建了任务 "${newTask.title}"`,
         });
+
+        return newTask.id;
       },
 
       updateTask: (id, updates) => {

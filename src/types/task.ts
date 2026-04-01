@@ -54,11 +54,26 @@ export interface FieldConfig {
   isVisible: boolean;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+  isArchived?: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
   description?: string;
-  parentId?: string; // For subtasks
+  parentId?: string; // For subtasks or branch tasks in projects
+  
+  // Project Management
+  projectId?: string;
+  projectNodeType?: 'mainline' | 'branch';
+  dependencies?: string[]; // IDs of tasks that must be completed before this one (horizontal sequence)
   
   state: TaskState;
   previousState?: TaskState; // To remember state when snoozed
@@ -121,4 +136,10 @@ export interface Memo {
   content: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GraphNode extends Task {
+  x: number;
+  y: number;
+  type: 'mainline' | 'branch';
 }
