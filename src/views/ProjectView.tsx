@@ -326,9 +326,9 @@ export function ProjectView() {
         y = findFreeY(x, parentY + preferredYDir);
       } else {
         // Sequence node: horizontal from dependency
-        x = parentX + 2;
+        x = parentX + 1;
         y = parentY;
-        while (occupied.has(`${x},${y}`)) x += 2;
+        while (occupied.has(`${x},${y}`)) x += 1;
       }
       
       nodePositions.set(task.id, { x, y });

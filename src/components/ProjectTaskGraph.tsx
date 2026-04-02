@@ -212,7 +212,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
              // If dependency exists, place this task to the right of the dependency
              const depPos = nodePositions.get(depId);
              if (depPos) {
-               x = Math.max(x, depPos.x + 2);
+               x = Math.max(x, depPos.x + 1);
                nodePositions.set(t.id, { x, y });
                occupied.add(`${x},${y}`);
                // Update node in nodes array
@@ -230,8 +230,8 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
       const nextInSequence = branchTasks.filter(nt => nt.dependencies?.includes(t.id));
       nextInSequence.forEach(nextTask => {
         // Horizontal continuation
-        let nextX = x + 2;
-        while (occupied.has(`${nextX},${y}`)) nextX += 2;
+        let nextX = x + 1;
+        while (occupied.has(`${nextX},${y}`)) nextX += 1;
         nodePositions.set(nextTask.id, { x: nextX, y });
         occupied.add(`${nextX},${y}`);
         nodes.push({ ...nextTask, x: nextX, y, type: 'branch' });
