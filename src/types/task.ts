@@ -62,6 +62,8 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   isArchived?: boolean;
+  status?: 'active' | 'completed' | 'archived';
+  progress?: number;
 }
 
 export interface Task {

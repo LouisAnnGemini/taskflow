@@ -10,13 +10,14 @@ import { format } from 'date-fns';
 import { MultiSelect } from '../components/MultiSelect';
 
 export function SearchView() {
-  const { tasks, users, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions, searchStateFilter, setSearchStateFilter } = useTaskStore();
+  const { tasks, users, projects, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions, searchStateFilter, setSearchStateFilter } = useTaskStore();
   
   const searchContainerRef = React.useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedDelegationStatus, setSelectedDelegationStatus] = useState<string[]>([]);
   const [selectedStates, setSelectedStates] = useState<string[]>(searchStateFilter ? [searchStateFilter] : []);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
@@ -32,6 +33,7 @@ export function SearchView() {
     state: false,
     priority: false,
     medium: false,
+    project: false,
   });
   // Initialize negated filters for custom fields
   const [negatedCustomFields, setNegatedCustomFields] = useState<Record<string, boolean>>({});
@@ -147,6 +149,21 @@ export function SearchView() {
         if (negatedFilters.medium ? matches : !matches) return false;
       }
 
+      // Project filter
+      if (selectedProjects.length > 0) {
+        const includeNone = selectedProjects.includes('none');
+        const specificProjects = selectedProjects.filter(id => id !== 'none');
+
+        let matches = false;
+        if (includeNone && !task.projectId) {
+          matches = true;
+        } else if (task.projectId && specificProjects.includes(task.projectId)) {
+          matches = true;
+        }
+
+        if (negatedFilters.project ? matches : !matches) return false;
+      }
+
       // Custom fields filter
       for (const [fieldId, value] of Object.entries(selectedCustomFields)) {
         const selectedValues = value as string[];
@@ -187,6 +204,7 @@ export function SearchView() {
     setSelectedStates([]);
     setSelectedPriorities([]);
     setSelectedMediums([]);
+    setSelectedProjects([]);
     setSelectedCustomFields({});
     setDateRange({ start: '', end: '' });
     setProgressRange({ min: '', max: '' });
@@ -198,6 +216,7 @@ export function SearchView() {
       state: false,
       priority: false,
       medium: false,
+      project: false,
     });
     setNegatedCustomFields({});
   };
@@ -210,6 +229,7 @@ export function SearchView() {
     selectedStates.length > 0,
     selectedPriorities.length > 0,
     selectedMediums.length > 0,
+    selectedProjects.length > 0,
     Object.values(selectedCustomFields).some((v: any) => v.length > 0),
     dateRange.start !== '' || dateRange.end !== '',
     progressRange.min !== '' || progressRange.max !== '',
@@ -220,6 +240,7 @@ export function SearchView() {
     (selectedStates.length > 0 && negatedFilters.state),
     (selectedPriorities.length > 0 && negatedFilters.priority),
     (selectedMediums.length > 0 && negatedFilters.medium),
+    (selectedProjects.length > 0 && negatedFilters.project),
     ...Object.entries(selectedCustomFields).map(([k, v]: [string, any]) => v.length > 0 && negatedCustomFields[k]),
   ].filter(Boolean).length;
 
@@ -297,6 +318,15 @@ export function SearchView() {
       id: m.id,
       name: m.label,
       icon: m.icon ? <span>{m.icon}</span> : undefined
+    }))
+  ];
+
+  const projectOptions = [
+    { id: 'none', name: '无项目' },
+    ...projects.map(p => ({
+      id: p.id,
+      name: p.name,
+      icon: <span className={`w-2 h-2 rounded-full ${p.color}`}></span>
     }))
   ];
 
@@ -420,6 +450,21 @@ export function SearchView() {
                 setNegatedFilters(prev => ({ ...prev, medium: isExclude || false }));
               }}
               placeholder="所有媒介"
+              className="w-40"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <MultiSelect
+              options={projectOptions}
+              selectedIds={selectedProjects}
+              isExclude={negatedFilters.project}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedProjects(ids);
+                setNegatedFilters(prev => ({ ...prev, project: isExclude || false }));
+              }}
+              placeholder="所有项目"
               className="w-40"
             />
           </div>

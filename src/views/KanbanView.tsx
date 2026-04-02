@@ -6,7 +6,7 @@ import { TaskCard } from '../components/TaskCard';
 import { Eye, EyeOff, Settings2, Check } from 'lucide-react';
 
 export function KanbanView() {
-  const { tasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter } = useTaskStore();
+  const { tasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter, kanbanProjectFilter, setKanbanProjectFilter } = useTaskStore();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
@@ -29,7 +29,30 @@ export function KanbanView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end px-2">
+      <div className="flex justify-between items-center px-2">
+        <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+          <button
+            onClick={() => setKanbanProjectFilter('all')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              kanbanProjectFilter === 'all'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            全部任务
+          </button>
+          <button
+            onClick={() => setKanbanProjectFilter('none')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              kanbanProjectFilter === 'none'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            无项目任务
+          </button>
+        </div>
+
         <div className="relative">
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -75,7 +98,16 @@ export function KanbanView() {
         <div className="flex gap-4 md:gap-6 overflow-x-auto pb-8 snap-x snap-mandatory md:snap-none px-4 md:px-0 -mx-4 md:mx-0">
           {visibleColumns.map((column) => {
             const columnTasks = tasks
-              .filter((t) => t.state === column.id && !t.parentId)
+              .filter((t) => {
+                const matchesColumn = t.state === column.id && !t.parentId;
+                if (!matchesColumn) return false;
+                
+                if (kanbanProjectFilter === 'none') {
+                  return !t.projectId;
+                }
+                
+                return true;
+              })
               .sort((a, b) => {
                 if (a.isPinned !== b.isPinned) {
                   return a.isPinned ? -1 : 1;

@@ -80,6 +80,7 @@ const defaultFieldOrder: FieldConfig[] = [
   { id: 'progress', name: '进度', isCustom: false, isVisible: true },
   { id: 'recurrence', name: '重复', isCustom: false, isVisible: true },
   { id: 'mediumTags', name: '媒介标签', isCustom: false, isVisible: true },
+  { id: 'project-info', name: '项目信息', isCustom: false, isVisible: true },
 ];
 
 interface TaskStore {
@@ -101,15 +102,18 @@ interface TaskStore {
   memos: Memo[];
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
   searchStateFilter: string | null;
+  kanbanProjectFilter: 'all' | 'none';
   supabaseConfig: { url: string; anonKey: string };
   lastCloudSyncTimestamp: number | null;
   
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects') => void;
   setSearchStateFilter: (filter: string | null) => void;
+  setKanbanProjectFilter: (filter: 'all' | 'none') => void;
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
   saveVersionToCloud: () => Promise<void>;
   fetchVersions: () => Promise<{ id: string; created_at: string }[]>;
   restoreVersion: (versionId: string) => Promise<void>;
+  compressDatabase: () => void;
   
   // Project Management
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -280,11 +284,13 @@ export const useTaskStore = create<TaskStore>()(
       memos: [],
       currentView: 'kanban',
       searchStateFilter: null,
+      kanbanProjectFilter: 'all',
       supabaseConfig: { url: '', anonKey: '' },
       lastCloudSyncTimestamp: null,
 
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
+      setKanbanProjectFilter: (filter) => set({ kanbanProjectFilter: filter }),
       setSupabaseConfig: (config) => set({ supabaseConfig: config }),
 
       // Project Management
@@ -292,6 +298,8 @@ export const useTaskStore = create<TaskStore>()(
         const newProject: Project = {
           ...project,
           id: nanoid(),
+          status: 'active',
+          progress: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -311,9 +319,20 @@ export const useTaskStore = create<TaskStore>()(
         const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
         if (!supabase) return;
 
-        // Extract only data fields, omit functions
+        // Fields to EXCLUDE from cloud sync to keep data small
+        const excludedFields = [
+          'selectedTaskId',
+          'highlightedLogId',
+          'currentView',
+          'searchStateFilter',
+          'lastCloudSyncTimestamp'
+        ];
+
+        // Extract only data fields, omit functions and excluded UI states
         const dataState = Object.fromEntries(
-          Object.entries(state).filter(([_, value]) => typeof value !== 'function')
+          Object.entries(state).filter(([key, value]) => 
+            typeof value !== 'function' && !excludedFields.includes(key)
+          )
         );
 
         // 1. Insert new version
@@ -799,6 +818,38 @@ export const useTaskStore = create<TaskStore>()(
 
       setAllData: (data) => set(data),
 
+      compressDatabase: () => {
+        const state = get();
+        const taskIds = new Set(state.tasks.map(t => t.id));
+
+        // 1. Prune Logs (Keep current and previous month)
+        const now = new Date();
+        const firstDayOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        
+        const prunedLogs = state.activityLogs.filter(log => {
+          const logDate = new Date(log.timestamp);
+          return logDate >= firstDayOfPreviousMonth;
+        });
+
+        // 2. Prune Notifications (Keep last 100)
+        const prunedNotifications = [...state.notifications]
+          .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+          .slice(0, 100);
+
+        // 3. Clean up broken task relations
+        const cleanedTasks = state.tasks.map(task => ({
+          ...task,
+          relatedTaskIds: (task.relatedTaskIds || []).filter(id => taskIds.has(id)),
+          dependencies: (task.dependencies || []).filter(id => taskIds.has(id))
+        }));
+
+        set({
+          activityLogs: prunedLogs,
+          notifications: prunedNotifications,
+          tasks: cleanedTasks
+        });
+      },
+
       checkExpiringTasks: () => {
         const now = new Date();
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -921,12 +972,25 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       clearTasks: () => {
-        set({ tasks: [], activityLogs: [], notifications: [] });
+        set({ tasks: [], projects: [], activityLogs: [], notifications: [] });
       },
     }),
     {
       name: 'taskflow-storage',
       storage: createJSONStorage(() => customStorage),
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 2) {
+          const fieldOrder = persistedState.fieldOrder || [];
+          if (!fieldOrder.find((f: any) => f.id === 'project-info')) {
+            persistedState.fieldOrder = [
+              ...fieldOrder,
+              { id: 'project-info', name: '项目信息', isCustom: false, isVisible: true }
+            ];
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );

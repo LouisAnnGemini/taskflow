@@ -28,7 +28,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     }
   }, [taskId]);
 
-  const [activeTab, setActiveTab] = useState<'details' | 'logs' | 'graph'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'project' | 'graph' | 'logs'>('details');
 
   // Switch to logs tab if highlightedLogId is set
   useEffect(() => {
@@ -84,6 +84,85 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       }
     });
   };
+
+  const renderProjectInfo = () => (
+    <div key="project-info" className="space-y-6">
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">所属项目</label>
+        <select
+          value={task.projectId || ''}
+          onChange={(e) => {
+            const projectId = e.target.value || undefined;
+            handleUpdate({ 
+              projectId,
+              projectNodeType: projectId ? (task.projectNodeType || 'branch') : undefined,
+              dependencies: projectId ? task.dependencies : []
+            });
+          }}
+          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+        >
+          <option value="">无项目</option>
+          {projects.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {task.projectId && (
+        <>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">项目节点类型</label>
+            <select
+              value={task.projectNodeType || 'branch'}
+              onChange={(e) => handleUpdate({ projectNodeType: e.target.value as 'mainline' | 'branch' })}
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            >
+              <option value="mainline">主线任务</option>
+              <option value="branch">支线任务</option>
+            </select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">前置任务 (项目内)</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {(task.dependencies || []).map(depId => {
+                const depTask = getTask(depId);
+                if (!depTask) return null;
+                return (
+                  <button
+                    key={depId}
+                    onClick={() => {
+                      handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) });
+                    }}
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
+                  >
+                    {depTask.title}
+                    <X size={10} />
+                  </button>
+                );
+              })}
+            </div>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value && !(task.dependencies || []).includes(e.target.value)) {
+                  handleUpdate({ dependencies: [...(task.dependencies || []), e.target.value] });
+                }
+              }}
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            >
+              <option value="">添加前置任务...</option>
+              {useTaskStore.getState().tasks
+                .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
+                .map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+            </select>
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   const renderField = (config: any) => {
     if (!config.isVisible) return null;
@@ -877,19 +956,25 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 onClick={() => setActiveTab('details')}
                 className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                详情
+                基本信息
               </button>
               <button 
-                onClick={() => setActiveTab('logs')}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                onClick={() => setActiveTab('project')}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'project' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                日志
+                关联/项目
               </button>
               <button 
                 onClick={() => setActiveTab('graph')}
                 className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'graph' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 图谱
+              </button>
+              <button 
+                onClick={() => setActiveTab('logs')}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-md transition-all ${activeTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                日志
               </button>
             </div>
 
@@ -1131,82 +1216,6 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               {/* Sidebar */}
               <div className="w-full lg:w-80 space-y-6 bg-slate-50/50 p-6 rounded-xl border border-slate-200 h-fit shadow-sm">
                 <div className="space-y-6">
-                  {/* Project Selection */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">所属项目</label>
-                    <select
-                      value={task.projectId || ''}
-                      onChange={(e) => {
-                        const projectId = e.target.value || undefined;
-                        handleUpdate({ 
-                          projectId,
-                          projectNodeType: projectId ? (task.projectNodeType || 'branch') : undefined,
-                          dependencies: projectId ? task.dependencies : []
-                        });
-                      }}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    >
-                      <option value="">无项目</option>
-                      {projects.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {task.projectId && (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">项目节点类型</label>
-                        <select
-                          value={task.projectNodeType || 'branch'}
-                          onChange={(e) => handleUpdate({ projectNodeType: e.target.value as 'mainline' | 'branch' })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                        >
-                          <option value="mainline">主线任务</option>
-                          <option value="branch">支线任务</option>
-                        </select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">前置任务 (项目内)</label>
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {(task.dependencies || []).map(depId => {
-                            const depTask = getTask(depId);
-                            if (!depTask) return null;
-                            return (
-                              <button
-                                key={depId}
-                                onClick={() => {
-                                  handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) });
-                                }}
-                                className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
-                              >
-                                {depTask.title}
-                                <X size={10} />
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <select
-                          value=""
-                          onChange={(e) => {
-                            if (e.target.value && !(task.dependencies || []).includes(e.target.value)) {
-                              handleUpdate({ dependencies: [...(task.dependencies || []), e.target.value] });
-                            }
-                          }}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                        >
-                          <option value="">添加前置任务...</option>
-                          {useTaskStore.getState().tasks
-                            .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
-                            .map(t => (
-                              <option key={t.id} value={t.id}>{t.title}</option>
-                            ))}
-                        </select>
-                      </div>
-                    </>
-                  )}
-
                   {fieldOrder.map(config => {
                     if (config.id === 'title' || config.id === 'description') return null;
                     return renderField(config);
@@ -1214,6 +1223,18 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 </div>
               </div>
             </>
+          ) : activeTab === 'project' ? (
+            <div className="flex-1">
+              {renderProjectInfo()}
+            </div>
+          ) : activeTab === 'graph' ? (
+            <div className="flex-1 w-full">
+              {task.projectId ? (
+                <ProjectTaskGraph taskId={task.id} />
+              ) : (
+                <TaskGraph taskId={task.id} />
+              )}
+            </div>
           ) : activeTab === 'logs' ? (
             <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">

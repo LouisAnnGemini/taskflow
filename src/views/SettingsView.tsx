@@ -83,6 +83,12 @@ export function SettingsView() {
     setAllData,
     fetchVersions, restoreVersion
   } = useTaskStore();
+
+  useEffect(() => {
+    if (!fieldOrder.find(f => f.id === 'project-info')) {
+      setFieldOrder([...fieldOrder, { id: 'project-info', name: '项目信息', isCustom: false, isVisible: true }]);
+    }
+  }, [fieldOrder, setFieldOrder]);
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<User>>({});
@@ -400,10 +406,51 @@ export function SettingsView() {
 
   const handleExportExcel = () => {
     const state = useTaskStore.getState();
-    const worksheet = XLSX.utils.json_to_sheet(state.tasks);
+    
+    // Prepare tasks data with project names
+    const tasksWithProjectNames = state.tasks.map(task => {
+      const project = state.projects.find(p => p.id === task.projectId);
+      const assigneeNames = task.assigneeIds?.map(id => state.users.find(u => u.id === id)?.name).filter(Boolean).join(', ') || '';
+      const reporterNames = task.reporterIds?.map(id => state.users.find(u => u.id === id)?.name).filter(Boolean).join(', ') || '';
+      
+      return {
+        'ID': task.id,
+        '标题': task.title,
+        '描述': task.description || '',
+        '状态': state.columns.find(c => c.id === task.state)?.title || task.state,
+        '优先级': state.priorities.find(p => p.id === task.priority)?.label || task.priority,
+        '项目': project?.name || '无',
+        '进度': `${task.progress}%`,
+        '负责人': assigneeNames,
+        '审核人': reporterNames,
+        '开始日期': task.startDate || '',
+        '截止日期': task.dueDate || '',
+        '创建时间': new Date(task.createdAt).toLocaleString(),
+        '更新时间': new Date(task.updatedAt).toLocaleString(),
+      };
+    });
+
+    // Prepare projects data
+    const projectsData = state.projects.map(project => ({
+      'ID': project.id,
+      '项目名称': project.name,
+      '描述': project.description || '',
+      '状态': project.status === 'active' ? '进行中' : project.status === 'completed' ? '已完成' : '已归档',
+      '进度': `${project.progress}%`,
+      '创建时间': new Date(project.createdAt).toLocaleString(),
+      '更新时间': new Date(project.updatedAt).toLocaleString(),
+    }));
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
-    XLSX.writeFile(workbook, `taskflow-tasks-${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    const tasksWorksheet = XLSX.utils.json_to_sheet(tasksWithProjectNames);
+    XLSX.utils.book_append_sheet(workbook, tasksWorksheet, 'Tasks');
+    
+    const projectsWorksheet = XLSX.utils.json_to_sheet(projectsData);
+    XLSX.utils.book_append_sheet(workbook, projectsWorksheet, 'Projects');
+    
+    XLSX.writeFile(workbook, `taskflow-data-${new Date().toISOString().split('T')[0]}.xlsx`);
+    showMessage('数据已导出至 Excel');
   };
 
   const handleExportLogs = () => {
@@ -458,6 +505,7 @@ export function SettingsView() {
       customFieldDefinitions: state.customFieldDefinitions,
       fieldOrder: state.fieldOrder,
       memos: state.memos,
+      projects: state.projects,
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1775,6 +1823,27 @@ export function SettingsView() {
               <p className="mt-4 text-xs text-slate-400">
                 导出指定日期范围内的任务操作日志，包含任务标题、操作人、操作内容及时间。
               </p>
+              
+              <div className="mt-6 pt-6 border-t border-slate-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 mb-1">垃圾清理</h4>
+                    <p className="text-xs text-slate-500">清理两个月前的旧日志和通知，优化数据结构以减小备份体积。</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const start = performance.now();
+                      useTaskStore.getState().compressDatabase();
+                      const end = performance.now();
+                      showMessage(`垃圾清理完成！已移除两个月前的日志及冗余数据，耗时 ${(end - start).toFixed(2)}ms`);
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm"
+                    title="清理两个月前的旧日志和通知，优化数据结构"
+                  >
+                    <Trash2 size={16} /> 立即清理
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
