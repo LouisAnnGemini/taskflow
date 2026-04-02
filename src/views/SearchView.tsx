@@ -4,7 +4,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import { TaskCard } from '../components/TaskCard';
 import { GanttChart } from '../components/GanttChart';
 import { getUserDisplayName } from '../utils/user';
-import { Search, Filter, X, CheckSquare, Square, Edit, Trash2, MoreHorizontal, Check, ChevronDown, GanttChartSquare } from 'lucide-react';
+import { Search, Filter, X, CheckSquare, Square, Edit, Trash2, MoreHorizontal, Check, ChevronDown, GanttChartSquare, Briefcase } from 'lucide-react';
 import { Task, TaskState } from '../types/task';
 import { format } from 'date-fns';
 import { MultiSelect } from '../components/MultiSelect';
@@ -454,21 +454,6 @@ export function SearchView() {
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <MultiSelect
-              options={projectOptions}
-              selectedIds={selectedProjects}
-              isExclude={negatedFilters.project}
-              showExcludeOption
-              onChange={(ids, isExclude) => {
-                setSelectedProjects(ids);
-                setNegatedFilters(prev => ({ ...prev, project: isExclude || false }));
-              }}
-              placeholder="所有项目"
-              className="w-40"
-            />
-          </div>
-
           {/* Custom Fields Filters */}
           {customFieldDefinitions.filter(field => field.type === 'select' || field.type === 'multi-select').map(field => (
             <div key={field.id} className="flex flex-col gap-1">
@@ -523,6 +508,58 @@ export function SearchView() {
               <GanttChartSquare size={16} />
               {showGantt ? '隐藏甘特图' : '生成甘特图'}
             </button>
+          </div>
+        </div>
+
+        {/* Project Specific Filter Row */}
+        <div className="flex flex-wrap gap-4 items-center pt-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-700 mr-2">
+            <Briefcase size={16} className="text-indigo-500" />
+            项目筛选
+          </div>
+
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => {
+                setSelectedProjects([]);
+                setNegatedFilters(prev => ({ ...prev, project: false }));
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                selectedProjects.length === 0
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              全部任务
+            </button>
+            <button
+              onClick={() => {
+                setSelectedProjects(['none']);
+                setNegatedFilters(prev => ({ ...prev, project: false }));
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                selectedProjects.length === 1 && selectedProjects[0] === 'none' && !negatedFilters.project
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              无项目任务
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <MultiSelect
+              options={projectOptions}
+              selectedIds={selectedProjects}
+              isExclude={negatedFilters.project}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedProjects(ids);
+                setNegatedFilters(prev => ({ ...prev, project: isExclude || false }));
+              }}
+              placeholder="选择特定项目..."
+              className="w-64"
+            />
           </div>
         </div>
       </div>
