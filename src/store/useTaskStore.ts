@@ -103,12 +103,14 @@ interface TaskStore {
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
   searchStateFilter: string | null;
   kanbanProjectFilter: 'all' | 'none';
+  kanbanShowSubtasks: boolean;
   supabaseConfig: { url: string; anonKey: string };
   lastCloudSyncTimestamp: number | null;
   
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects') => void;
   setSearchStateFilter: (filter: string | null) => void;
   setKanbanProjectFilter: (filter: 'all' | 'none') => void;
+  setKanbanShowSubtasks: (show: boolean) => void;
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
   saveVersionToCloud: () => Promise<void>;
   fetchVersions: () => Promise<{ id: string; created_at: string }[]>;
@@ -116,9 +118,10 @@ interface TaskStore {
   compressDatabase: () => void;
   
   // Project Management
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
+  reorderProjects: (startIndex: number, endIndex: number, isArchived: boolean) => void;
   
   addTask: (task: Partial<Task>) => string;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -184,6 +187,8 @@ interface TaskStore {
 
   // Data Management
   setAllData: (data: Partial<TaskStore>) => void;
+  mergeData: (data: Partial<TaskStore>) => void;
+  exportAndDeleteByDateRange: (startDate: string, endDate: string) => Partial<TaskStore>;
   checkExpiringTasks: () => void;
   generateTestTasks: (count: number) => void;
   clearTasks: () => void;
@@ -285,12 +290,14 @@ export const useTaskStore = create<TaskStore>()(
       currentView: 'kanban',
       searchStateFilter: null,
       kanbanProjectFilter: 'all',
+      kanbanShowSubtasks: false,
       supabaseConfig: { url: '', anonKey: '' },
       lastCloudSyncTimestamp: null,
 
       setCurrentView: (view) => set({ currentView: view }),
       setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
       setKanbanProjectFilter: (filter) => set({ kanbanProjectFilter: filter }),
+      setKanbanShowSubtasks: (show) => set({ kanbanShowSubtasks: show }),
       setSupabaseConfig: (config) => set({ supabaseConfig: config }),
 
       // Project Management
@@ -300,10 +307,12 @@ export const useTaskStore = create<TaskStore>()(
           id: nanoid(),
           status: 'active',
           progress: 0,
+          order: get().projects.length,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
         set((state) => ({ projects: [...state.projects, newProject] }));
+        return newProject.id;
       },
       updateProject: (id, updates) => set((state) => ({
         projects: state.projects.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p)
@@ -313,6 +322,20 @@ export const useTaskStore = create<TaskStore>()(
         // Also remove tasks from this project
         tasks: state.tasks.map(t => t.projectId === id ? { ...t, projectId: undefined, projectNodeType: undefined, dependencies: [] } : t)
       })),
+      reorderProjects: (startIndex, endIndex, isArchived) => set((state) => {
+        const filteredProjects = state.projects
+          .filter(p => !!p.isArchived === isArchived)
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+        const otherProjects = state.projects.filter(p => !!p.isArchived !== isArchived);
+        
+        const result = Array.from(filteredProjects);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+        
+        const updatedProjects = result.map((p, index) => ({ ...p, order: index }));
+        
+        return { projects: [...otherProjects, ...updatedProjects] };
+      }),
 
       saveVersionToCloud: async () => {
         const state = get();
@@ -817,6 +840,69 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       setAllData: (data) => set(data),
+
+      mergeData: (data) => set((state) => {
+        const mergeArray = <T extends { id: string }>(existing: T[], incoming: T[] | undefined) => {
+          if (!incoming) return existing;
+          const map = new Map(existing.map(item => [item.id, item]));
+          incoming.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
+        };
+
+        return {
+          tasks: mergeArray(state.tasks, data.tasks),
+          projects: mergeArray(state.projects, data.projects),
+          users: mergeArray(state.users, data.users),
+          columns: mergeArray(state.columns, data.columns),
+          priorities: mergeArray(state.priorities, data.priorities),
+          mediums: mergeArray(state.mediums, data.mediums),
+          entities: mergeArray(state.entities, data.entities),
+          positions: mergeArray(state.positions, data.positions),
+          activityLogs: mergeArray(state.activityLogs, data.activityLogs),
+          notifications: mergeArray(state.notifications, data.notifications),
+          customFieldDefinitions: mergeArray(state.customFieldDefinitions, data.customFieldDefinitions),
+          memos: mergeArray(state.memos, data.memos),
+          fieldOrder: data.fieldOrder || state.fieldOrder,
+        };
+      }),
+
+      exportAndDeleteByDateRange: (startDate, endDate) => {
+        const state = get();
+        const start = new Date(startDate).getTime();
+        const end = new Date(endDate).getTime() + 86400000 - 1; // End of day
+
+        const isWithinRange = (dateStr: string) => {
+          if (!dateStr) return false;
+          const time = new Date(dateStr).getTime();
+          return time >= start && time <= end;
+        };
+
+        const exportedData: Partial<TaskStore> = {
+          tasks: state.tasks.filter(t => isWithinRange(t.createdAt)),
+          activityLogs: state.activityLogs.filter(l => isWithinRange(l.timestamp)),
+          notifications: state.notifications.filter(n => isWithinRange(n.timestamp)),
+          memos: state.memos.filter(m => isWithinRange(m.createdAt)),
+          projects: state.projects.filter(p => isWithinRange(p.createdAt)),
+          users: state.users,
+          columns: state.columns,
+          priorities: state.priorities,
+          mediums: state.mediums,
+          entities: state.entities,
+          positions: state.positions,
+          customFieldDefinitions: state.customFieldDefinitions,
+          fieldOrder: state.fieldOrder,
+        };
+
+        set({
+          tasks: state.tasks.filter(t => !isWithinRange(t.createdAt)),
+          activityLogs: state.activityLogs.filter(l => !isWithinRange(l.timestamp)),
+          notifications: state.notifications.filter(n => !isWithinRange(n.timestamp)),
+          memos: state.memos.filter(m => !isWithinRange(m.createdAt)),
+          projects: state.projects.filter(p => !isWithinRange(p.createdAt)),
+        });
+
+        return exportedData;
+      },
 
       compressDatabase: () => {
         const state = get();

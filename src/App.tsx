@@ -173,14 +173,14 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8 ${currentView === 'kanban' || currentView === 'calendar' || currentView === 'projects' ? 'max-w-none' : 'max-w-7xl'}`}>
+      <main className={`flex-1 mx-auto w-full ${currentView === 'projects' ? 'px-0 py-0 md:px-6 md:py-8' : 'px-4 sm:px-6 lg:px-8 py-4 md:py-8'} ${currentView === 'kanban' || currentView === 'calendar' || currentView === 'projects' ? 'max-w-none' : 'max-w-7xl'}`}>
         {currentView !== 'search' && currentView !== 'calendar' && currentView !== 'projects' && (
           <div className="max-w-7xl mx-auto w-full">
             <QuickCapture />
           </div>
         )}
         
-        <div className="mt-4 md:mt-8">
+        <div className={currentView === 'projects' ? 'mt-0 md:mt-8' : 'mt-4 md:mt-8'}>
           {renderView()}
         </div>
       </main>

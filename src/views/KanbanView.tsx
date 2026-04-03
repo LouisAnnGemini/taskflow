@@ -6,7 +6,7 @@ import { TaskCard } from '../components/TaskCard';
 import { Eye, EyeOff, Settings2, Check } from 'lucide-react';
 
 export function KanbanView() {
-  const { tasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter, kanbanProjectFilter, setKanbanProjectFilter } = useTaskStore();
+  const { tasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter, kanbanProjectFilter, setKanbanProjectFilter, kanbanShowSubtasks, setKanbanShowSubtasks } = useTaskStore();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
@@ -30,27 +30,43 @@ export function KanbanView() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center px-2">
-        <div className="flex items-center bg-slate-100 p-1 rounded-lg">
-          <button
-            onClick={() => setKanbanProjectFilter('all')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              kanbanProjectFilter === 'all'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            全部任务
-          </button>
-          <button
-            onClick={() => setKanbanProjectFilter('none')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              kanbanProjectFilter === 'none'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            无项目任务
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setKanbanProjectFilter('all')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                kanbanProjectFilter === 'all'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              全部任务
+            </button>
+            <button
+              onClick={() => setKanbanProjectFilter('none')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                kanbanProjectFilter === 'none'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              无项目任务
+            </button>
+          </div>
+          
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setKanbanShowSubtasks(!kanbanShowSubtasks)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
+                kanbanShowSubtasks
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {kanbanShowSubtasks ? <Eye size={14} /> : <EyeOff size={14} />}
+              子任务
+            </button>
+          </div>
         </div>
 
         <div className="relative">
@@ -99,9 +115,13 @@ export function KanbanView() {
           {visibleColumns.map((column) => {
             const columnTasks = tasks
               .filter((t) => {
-                const matchesColumn = t.state === column.id && !t.parentId;
-                if (!matchesColumn) return false;
+                // Filter by state
+                if (t.state !== column.id) return false;
                 
+                // Filter by subtask visibility
+                if (!kanbanShowSubtasks && t.parentId) return false;
+                
+                // Filter by project
                 if (kanbanProjectFilter === 'none') {
                   return !t.projectId;
                 }

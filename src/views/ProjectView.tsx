@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { Plus, GitMerge, Settings, Trash2, Edit2, ChevronRight, ArrowLeft, ArrowRight, GitBranch, RefreshCw, X, Archive, ArchiveRestore, LayoutGrid, ArrowLeftCircle, MoreVertical } from 'lucide-react';
+import { Plus, GitMerge, Settings, Trash2, Edit2, ChevronRight, ArrowLeft, ArrowRight, GitBranch, RefreshCw, X, Archive, ArchiveRestore, LayoutGrid, ArrowLeftCircle, MoreVertical, Search } from 'lucide-react';
 import { Project, Task, GraphNode } from '../types/task';
 import * as d3 from 'd3';
 import { nanoid } from 'nanoid';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export function ProjectView() {
   const { projects, tasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, setSelectedTaskId } = useTaskStore();
@@ -33,22 +34,25 @@ export function ProjectView() {
     e.preventDefault();
     if (!newProjectName.trim()) return;
     
-    addProject({
+    const newProjectId = addProject({
       name: newProjectName.trim(),
       color: newProjectColor,
       isArchived: false,
     });
     
+    // Add a default mainline task
+    addTask({
+      title: '初始主线站点',
+      projectId: newProjectId,
+      projectNodeType: 'mainline',
+    });
+    
     setNewProjectName('');
     setIsCreatingProject(false);
     
-    // Select the newly created project (it will be the last one)
-    setTimeout(() => {
-      const latestProjects = useTaskStore.getState().projects;
-      const newId = latestProjects[latestProjects.length - 1].id;
-      setSelectedProjectId(newId);
-      setViewMode('detail');
-    }, 0);
+    // Select the newly created project
+    setSelectedProjectId(newProjectId);
+    setViewMode('detail');
   };
 
   const handleStartEditProject = () => {
@@ -145,6 +149,26 @@ export function ProjectView() {
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editProjectName, setEditProjectName] = useState('');
   const [editProjectColor, setEditProjectColor] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    if (result.source.index === result.destination.index) return;
+    
+    // Only allow reordering when not searching
+    if (searchQuery.trim()) return;
+
+    let sourceIndex = result.source.index;
+    let destIndex = result.destination.index;
+
+    if (isCreatingProject) {
+      if (sourceIndex === 0 || destIndex === 0) return; // Cannot drag the create form or drop before it
+      sourceIndex -= 1;
+      destIndex -= 1;
+    }
+
+    useTaskStore.getState().reorderProjects(sourceIndex, destIndex, showArchived);
+  };
 
   const handleOpenReplaceModal = (nodeId: string) => {
     setNodeToReplace(nodeId);
@@ -185,6 +209,19 @@ export function ProjectView() {
       parentId: undefined,
       dependencies: [],
     });
+
+    // 5. Bring over all descendant subtasks of the selectedTask into the project as branch tasks
+    const bringOverSubtasks = (parentId: string) => {
+      const subtasks = tasks.filter(t => t.parentId === parentId);
+      subtasks.forEach(t => {
+        updateTask(t.id, {
+          projectId: currentProject.id,
+          projectNodeType: 'branch',
+        });
+        bringOverSubtasks(t.id);
+      });
+    };
+    bringOverSubtasks(selectedTask.id);
 
     setIsReplaceModalOpen(false);
     setNodeToReplace(null);
@@ -509,15 +546,50 @@ export function ProjectView() {
     // Node circles (Stations)
     nodeGroups.append("circle")
       .attr("r", (d: GraphNode) => d.type === 'mainline' ? 12 : 8)
-      .attr("fill", "#fff")
+      .attr("fill", (d: GraphNode) => d.state === 'done' ? currentProject.color : "#fff")
       .attr("stroke", currentProject.color)
-      .attr("stroke-width", (d: GraphNode) => d.type === 'mainline' ? 4 : 2);
+      .attr("stroke-width", (d: GraphNode) => d.type === 'mainline' ? 4 : 2)
+      .attr("stroke-dasharray", (d: GraphNode) => 
+        (d.state === 'in_progress' || d.state === 'in_review') ? (d.type === 'mainline' ? "5,4" : "4,3") : "none"
+      );
 
-    // Inner dot for completed tasks
-    nodeGroups.filter((d: GraphNode) => d.state === 'done')
-      .append("circle")
-      .attr("r", (d: GraphNode) => d.type === 'mainline' ? 6 : 4)
-      .attr("fill", currentProject.color);
+    // Inner elements based on state
+    nodeGroups.each(function(d: GraphNode) {
+      const group = d3.select(this);
+      const isMainline = d.type === 'mainline';
+      
+      if (d.state === 'in_progress' || d.state === 'in_review') {
+        // Small inner dot
+        group.append("circle")
+          .attr("r", isMainline ? 4 : 3)
+          .attr("fill", currentProject.color);
+      } else if (d.state === 'snoozed') {
+        // Pause symbol (||)
+        const lineLength = isMainline ? 8 : 6;
+        const gap = isMainline ? 2.5 : 2;
+        const strokeWidth = isMainline ? 2.5 : 2;
+        
+        // Left line
+        group.append("line")
+          .attr("x1", -gap)
+          .attr("y1", -lineLength/2)
+          .attr("x2", -gap)
+          .attr("y2", lineLength/2)
+          .attr("stroke", currentProject.color)
+          .attr("stroke-width", strokeWidth)
+          .attr("stroke-linecap", "round");
+          
+        // Right line
+        group.append("line")
+          .attr("x1", gap)
+          .attr("y1", -lineLength/2)
+          .attr("x2", gap)
+          .attr("y2", lineLength/2)
+          .attr("stroke", currentProject.color)
+          .attr("stroke-width", strokeWidth)
+          .attr("stroke-linecap", "round");
+      }
+    });
 
     // Node labels
     nodeGroups.append("text")
@@ -562,13 +634,16 @@ export function ProjectView() {
   };
 
   if (viewMode === 'grid' || !currentProject) {
-    const filteredProjects = projects.filter(p => !!p.isArchived === showArchived);
+    const filteredProjects = projects
+      .filter(p => !!p.isArchived === showArchived)
+      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     return (
-      <div className="h-[calc(100vh-8rem)] flex flex-col bg-[#f8fafc] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)] flex flex-col bg-[#f8fafc] md:rounded-xl md:shadow-sm md:border border-slate-200 overflow-hidden">
         {/* Grid Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
               <LayoutGrid className="text-white" size={24} />
             </div>
@@ -579,6 +654,16 @@ export function ProjectView() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="搜索项目..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-1.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 w-48 transition-all"
+              />
+            </div>
             <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
               <button
                 onClick={() => setShowArchived(false)}
@@ -614,202 +699,243 @@ export function ProjectView() {
 
         {/* Grid Content */}
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* New Project Card */}
-            {isCreatingProject && (
-              <div className="bg-white rounded-2xl border-2 border-dashed border-indigo-200 p-6 flex flex-col animate-in fade-in zoom-in duration-200">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">新建项目</h3>
-                <form onSubmit={handleCreateProject} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">项目名称</label>
-                    <input
-                      type="text"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      placeholder="例如：Q3 营销计划"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主题颜色</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={newProjectColor}
-                        onChange={(e) => setNewProjectColor(e.target.value)}
-                        className="w-10 h-10 p-0 border-0 rounded-lg cursor-pointer overflow-hidden"
-                      />
-                      <span className="text-sm font-mono text-slate-500 uppercase">{newProjectColor}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all">
-                      创建
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setIsCreatingProject(false)}
-                      className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
-                    >
-                      取消
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {filteredProjects.map(p => {
-              const pTasks = tasks.filter(t => t.projectId === p.id);
-              const doneCount = pTasks.filter(t => t.state === 'done').length;
-              const progress = pTasks.length > 0 ? Math.round((doneCount / pTasks.length) * 100) : 0;
-
-              if (isEditingProject && selectedProjectId === p.id) {
-                return (
-                  <div key={p.id} className="bg-white rounded-2xl border-2 border-indigo-500 p-6 shadow-xl shadow-indigo-100 animate-in fade-in zoom-in duration-200">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">修改项目</h3>
-                    <form onSubmit={handleUpdateProject} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">项目名称</label>
-                        <input
-                          type="text"
-                          value={editProjectName}
-                          onChange={(e) => setEditProjectName(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主题颜色</label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={editProjectColor}
-                            onChange={(e) => setEditProjectColor(e.target.value)}
-                            className="w-10 h-10 p-0 border-0 rounded-lg cursor-pointer overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <span className="text-sm font-mono text-slate-500 uppercase">{editProjectColor}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <button 
-                          type="submit" 
-                          className="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          保存
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={(e) => { e.stopPropagation(); setIsEditingProject(false); }}
-                          className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
-                        >
-                          取消
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                );
-              }
-
-              return (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="projects-grid" direction="horizontal" isDropDisabled={!!searchQuery.trim()}>
+              {(provided) => (
                 <div 
-                  key={p.id}
-                  onClick={() => handleSelectProject(p.id)}
-                  className="group bg-white rounded-2xl border border-slate-200 p-6 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-50 transition-all cursor-pointer relative overflow-hidden"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
                 >
-                  {/* Color Strip */}
-                  <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: p.color }}></div>
-                  
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-2" style={{ backgroundColor: `${p.color}15`, color: p.color }}>
-                      <GitMerge size={24} />
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setSelectedProjectId(p.id); handleStartEditProject(); }}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); updateProject(p.id, { isArchived: !p.isArchived }); }}
-                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-50 rounded-lg"
-                      >
-                        {p.isArchived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
-                      </button>
-                    </div>
-                  </div>
+                  {/* New Project Card */}
+                  {isCreatingProject && (
+                    <Draggable draggableId="creating-project" index={0} isDragDisabled={true}>
+                      {(provided) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="bg-white rounded-2xl border-2 border-dashed border-indigo-200 p-6 flex flex-col animate-in fade-in zoom-in duration-200"
+                        >
+                          <h3 className="text-lg font-bold text-slate-800 mb-4">新建项目</h3>
+                          <form onSubmit={handleCreateProject} className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">项目名称</label>
+                              <input
+                                type="text"
+                                value={newProjectName}
+                                onChange={(e) => setNewProjectName(e.target.value)}
+                                placeholder="例如：Q3 营销计划"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                autoFocus
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主题颜色</label>
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="color"
+                                  value={newProjectColor}
+                                  onChange={(e) => setNewProjectColor(e.target.value)}
+                                  className="w-10 h-10 p-0 border-0 rounded-lg cursor-pointer overflow-hidden"
+                                />
+                                <span className="text-sm font-mono text-slate-500 uppercase">{newProjectColor}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                              <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all">
+                                创建
+                              </button>
+                              <button 
+                                type="button" 
+                                onClick={() => setIsCreatingProject(false)}
+                                className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+                              >
+                                取消
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+                    </Draggable>
+                  )}
 
-                  <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors">{p.name}</h3>
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="text-xs font-medium text-slate-400">{pTasks.length} 个任务</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                    <span className="text-xs font-medium text-slate-400">{progress}% 已完成</span>
-                  </div>
+                  {filteredProjects.map((p, index) => {
+                    const pTasks = tasks.filter(t => t.projectId === p.id);
+                    const doneCount = pTasks.filter(t => t.state === 'done').length;
+                    const progress = pTasks.length > 0 ? Math.round((doneCount / pTasks.length) * 100) : 0;
 
-                  {/* Progress Bar */}
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full transition-all duration-500 ease-out"
-                      style={{ backgroundColor: p.color, width: `${progress}%` }}
-                    ></div>
-                  </div>
+                    if (isEditingProject && selectedProjectId === p.id) {
+                      return (
+                        // @ts-ignore - React 19 type issue with @hello-pangea/dnd
+                        <Draggable key={p.id} draggableId={p.id} index={index + (isCreatingProject ? 1 : 0)} isDragDisabled={true}>
+                          {(provided) => (
+                            <div 
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className="bg-white rounded-2xl border-2 border-indigo-500 p-6 shadow-xl shadow-indigo-100 animate-in fade-in zoom-in duration-200"
+                            >
+                              <h3 className="text-lg font-bold text-slate-800 mb-4">修改项目</h3>
+                              <form onSubmit={handleUpdateProject} className="space-y-4">
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">项目名称</label>
+                                  <input
+                                    type="text"
+                                    value={editProjectName}
+                                    onChange={(e) => setEditProjectName(e.target.value)}
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主题颜色</label>
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="color"
+                                      value={editProjectColor}
+                                      onChange={(e) => setEditProjectColor(e.target.value)}
+                                      className="w-10 h-10 p-0 border-0 rounded-lg cursor-pointer overflow-hidden"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <span className="text-sm font-mono text-slate-500 uppercase">{editProjectColor}</span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                  <button 
+                                    type="submit" 
+                                    className="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    保存
+                                  </button>
+                                  <button 
+                                    type="button" 
+                                    onClick={(e) => { e.stopPropagation(); setIsEditingProject(false); }}
+                                    className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+                                  >
+                                    取消
+                                  </button>
+                                </div>
+                              </form>
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    }
+
+                    return (
+                      // @ts-ignore - React 19 type issue with @hello-pangea/dnd
+                      <Draggable key={p.id} draggableId={p.id} index={index + (isCreatingProject ? 1 : 0)} isDragDisabled={!!searchQuery.trim()}>
+                        {(provided, snapshot) => (
+                          <div 
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            onClick={() => handleSelectProject(p.id)}
+                            className={`group bg-white rounded-2xl border border-slate-200 p-6 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-50 transition-all cursor-pointer relative overflow-hidden ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-indigo-500 rotate-2 z-50' : ''}`}
+                          >
+                            {/* Color Strip */}
+                            <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: p.color }}></div>
+                            
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-2" style={{ backgroundColor: `${p.color}15`, color: p.color }}>
+                                <GitMerge size={24} />
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setSelectedProjectId(p.id); handleStartEditProject(); }}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); updateProject(p.id, { isArchived: !p.isArchived }); }}
+                                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-50 rounded-lg"
+                                >
+                                  {p.isArchived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                                </button>
+                              </div>
+                            </div>
+
+                            <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors">{p.name}</h3>
+                            <div className="flex items-center gap-2 mb-6">
+                              <span className="text-xs font-medium text-slate-400">{pTasks.length} 个任务</span>
+                              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                              <span className="text-xs font-medium text-slate-400">{progress}% 已完成</span>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full transition-all duration-500 ease-out"
+                                style={{ backgroundColor: p.color, width: `${progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
+
+                  {filteredProjects.length === 0 && !isCreatingProject && (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-400">
+                      <LayoutGrid size={64} className="mb-4 opacity-10" />
+                      <p className="text-lg font-medium">暂无{showArchived ? '已归档' : '活跃'}项目</p>
+                      <button 
+                        onClick={() => setIsCreatingProject(true)}
+                        className="mt-4 text-indigo-600 font-bold hover:underline"
+                      >
+                        立即创建一个
+                      </button>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-
-            {filteredProjects.length === 0 && !isCreatingProject && (
-              <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-400">
-                <LayoutGrid size={64} className="mb-4 opacity-10" />
-                <p className="text-lg font-medium">暂无{showArchived ? '已归档' : '活跃'}项目</p>
-                <button 
-                  onClick={() => setIsCreatingProject(true)}
-                  className="mt-4 text-indigo-600 font-bold hover:underline"
-                >
-                  立即创建一个
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className={`flex flex-col bg-white md:rounded-xl md:shadow-sm md:border border-slate-200 overflow-hidden ${
+      viewMode === 'detail' 
+        ? 'fixed inset-0 z-50 md:relative md:inset-auto md:z-auto md:h-[calc(100vh-8rem)] safe-area-top' 
+        : 'h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)]'
+    }`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between p-4 border-b border-slate-200 bg-slate-50 gap-4">
+        <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setViewMode('grid')}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-200 shadow-none hover:shadow-sm"
+            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-200 shadow-none hover:shadow-sm shrink-0"
             title="返回项目中心"
           >
             <ArrowLeftCircle size={24} />
           </button>
           
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <GitMerge className="text-indigo-600" size={24} />
             <h1 className="text-xl font-bold text-slate-800">项目详情</h1>
           </div>
           
           {/* Project Selector (Tabs) */}
-          <div className="flex items-center gap-1 ml-4 bg-slate-200/50 p-1 rounded-xl overflow-x-auto max-w-[400px] no-scrollbar">
+          <div className="flex items-center gap-1 md:ml-4 bg-slate-200/50 p-1 rounded-xl overflow-x-auto flex-1 md:max-w-[400px] no-scrollbar">
             {projects.filter(p => !p.isArchived).map(p => (
               <button
                 key={p.id}
                 onClick={() => setSelectedProjectId(p.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
                   selectedProjectId === p.id 
                     ? 'bg-white text-slate-900 shadow-sm' 
                     : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                 }`}
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }}></span>
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }}></span>
                 {p.name}
               </button>
             ))}
@@ -817,7 +943,7 @@ export function ProjectView() {
         </div>
         
         {currentProject && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar shrink-0">
             {isEditingProject ? (
               <form onSubmit={handleUpdateProject} className="flex items-center gap-2 mr-4 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                 <input
@@ -958,22 +1084,48 @@ export function ProjectView() {
             )}
 
             {/* Legend / Instructions */}
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur p-3 rounded-lg shadow-sm border border-slate-200 text-xs text-slate-600">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: currentProject.color }}></div>
-                <span>主线站点 (未完成)</span>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-3 h-3 rounded-full border-2 flex items-center justify-center" style={{ borderColor: currentProject.color }}>
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentProject.color }}></div>
+            <div className="hidden md:flex absolute bottom-4 left-4 bg-white/90 backdrop-blur p-4 rounded-xl shadow-sm border border-slate-200 text-xs text-slate-600 flex-col gap-3">
+              <div className="flex gap-6">
+                {/* Node Types */}
+                <div>
+                  <div className="font-bold text-slate-700 mb-2">节点大小</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-4 h-4 rounded-full border-[3px]" style={{ borderColor: currentProject.color }}></div>
+                    <span>主线</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full border-2" style={{ borderColor: currentProject.color }}></div>
+                    <span>支线</span>
+                  </div>
                 </div>
-                <span>主线站点 (已完成)</span>
+                
+                {/* Task States */}
+                <div>
+                  <div className="font-bold text-slate-700 mb-2">任务状态</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3.5 h-3.5 rounded-full border-2 bg-white" style={{ borderColor: currentProject.color }}></div>
+                    <span>待办</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center bg-white" style={{ borderColor: currentProject.color, borderStyle: 'dashed' }}>
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentProject.color }}></div>
+                    </div>
+                    <span>进行中/审核</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: currentProject.color }}></div>
+                    <span>已完成</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center bg-white gap-[1px]" style={{ borderColor: currentProject.color }}>
+                      <div className="w-[2px] h-1.5 rounded-sm" style={{ backgroundColor: currentProject.color }}></div>
+                      <div className="w-[2px] h-1.5 rounded-sm" style={{ backgroundColor: currentProject.color }}></div>
+                    </div>
+                    <span>延期</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: currentProject.color }}></div>
-                <span>支线任务</span>
-              </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-slate-400">
+              <div className="pt-2 border-t border-slate-200 text-slate-400">
                 提示: 滚动缩放，拖拽平移。点击节点查看详情。
               </div>
             </div>

@@ -37,7 +37,7 @@ export function DashboardView() {
     });
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 px-4 md:px-0">
       {pinnedTasks.length > 0 && (
         <section>
           <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">

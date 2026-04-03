@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
 import { getUserDisplayName } from '../utils/user';
-import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight, Copy } from 'lucide-react';
+import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight, Copy, GitBranch } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { TaskCard } from './TaskCard';
@@ -830,6 +830,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       title: newSubtaskTitle.trim(),
       parentId: task.id,
       state: 'todo',
+      projectId: task.projectId,
+      projectNodeType: task.projectId ? 'branch' : undefined,
     });
     setNewSubtaskTitle('');
   };
@@ -1060,6 +1062,26 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       className="w-full bg-white border border-slate-200 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-700 text-sm leading-relaxed shadow-sm"
                       placeholder="添加更详细的描述..."
                     />
+                  </div>
+                )}
+
+                {task.parentId && getTask(task.parentId) && (
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                      <GitBranch size={14} /> 父任务
+                    </div>
+                    <div 
+                      onClick={() => setSelectedTaskId(task.parentId!)}
+                      className="flex items-center gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm cursor-pointer group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                        <ArrowUpRight size={16} className="group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-slate-800">{getTask(task.parentId!)?.title}</div>
+                        <div className="text-xs text-slate-500">点击查看父任务详情</div>
+                      </div>
+                    </div>
                   </div>
                 )}
 

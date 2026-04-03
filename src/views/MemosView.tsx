@@ -36,7 +36,7 @@ export function MemosView() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 md:px-0">
         <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <StickyNote className="text-indigo-600" />
           备忘录

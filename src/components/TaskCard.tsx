@@ -16,7 +16,8 @@ import {
   Eye,
   PauseCircle,
   UserPlus,
-  Link
+  Link,
+  GitBranch
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../utils/cn';
@@ -48,10 +49,11 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: TaskCardProps) {
-  const { users, columns, priorities, mediums, entities, setSelectedTaskId, changeTaskState, currentUser, updateTask } = useTaskStore();
+  const { users, columns, priorities, mediums, entities, tasks, setSelectedTaskId, changeTaskState, currentUser, updateTask } = useTaskStore();
   const assignees = users.filter(u => task.assigneeIds.includes(u.id));
   const reporters = users.filter(u => task.reporterIds?.includes(u.id));
   const column = columns.find(c => c.id === task.state);
+  const parentTask = task.parentId ? tasks.find(t => t.id === task.parentId) : null;
   
   const priority = priorities.find(p => p.id === task.priority);
 
@@ -144,6 +146,13 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
           )}
         </div>
       </div>
+
+      {parentTask && (
+        <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium mb-2 bg-indigo-50 w-fit px-2 py-0.5 rounded-md">
+          <GitBranch size={12} />
+          <span className="truncate max-w-[150px]">{parentTask.title}</span>
+        </div>
+      )}
 
       <h3 className={cn(
         "font-semibold text-slate-900 mb-2 leading-tight text-[15px]",

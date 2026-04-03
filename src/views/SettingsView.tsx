@@ -136,6 +136,8 @@ export function SettingsView() {
   const [deletingFieldId, setDeletingFieldId] = useState<string | null>(null);
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [showDecrementConfirm, setShowDecrementConfirm] = useState(false);
+  const [isIncrementalImport, setIsIncrementalImport] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
@@ -147,6 +149,11 @@ export function SettingsView() {
   // Log export state
   const [logStartDate, setLogStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [logEndDate, setLogEndDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Decremental export state
+  const [decrementStartDate, setDecrementStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [decrementEndDate, setDecrementEndDate] = useState(new Date().toISOString().split('T')[0]);
+  
   const [versions, setVersions] = useState<{ id: string; created_at: string }[]>([]);
   const [isFetchingVersions, setIsFetchingVersions] = useState(false);
   const [isVersionsTableMissing, setIsVersionsTableMissing] = useState(false);
@@ -519,7 +526,7 @@ export function SettingsView() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>, isIncremental: boolean = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -528,6 +535,7 @@ export function SettingsView() {
       try {
         const data = JSON.parse(event.target?.result as string);
         setPendingImportData(data);
+        setIsIncrementalImport(isIncremental);
         setShowImportConfirm(true);
       } catch (error) {
         showMessage('导入失败：无效的 JSON 文件', 'error');
@@ -541,11 +549,46 @@ export function SettingsView() {
 
   const confirmImport = () => {
     if (pendingImportData) {
-      setAllData(pendingImportData);
+      if (isIncrementalImport) {
+        useTaskStore.getState().mergeData(pendingImportData);
+        showMessage('增量数据导入成功！');
+      } else {
+        setAllData(pendingImportData);
+        showMessage('全量数据导入成功！');
+      }
       setPendingImportData(null);
       setShowImportConfirm(false);
-      showMessage('数据导入成功！');
+      setIsIncrementalImport(false);
     }
+  };
+
+  const handleDecrementExport = () => {
+    const start = new Date(decrementStartDate);
+    const end = new Date(decrementEndDate);
+    
+    if (start > end) {
+      showMessage('开始日期不能晚于结束日期', 'error');
+      return;
+    }
+
+    setShowDecrementConfirm(true);
+  };
+
+  const confirmDecrementExport = () => {
+    const exportedData = useTaskStore.getState().exportAndDeleteByDateRange(decrementStartDate, decrementEndDate);
+    
+    const blob = new Blob([JSON.stringify(exportedData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `taskflow-decremental-export-${decrementStartDate}-to-${decrementEndDate}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    setShowDecrementConfirm(false);
+    showMessage(`成功导出并删除选定范围内的数据！`);
   };
 
   const filteredUsers = users.filter(user => {
@@ -1777,18 +1820,67 @@ export function SettingsView() {
                   <input
                     type="file"
                     accept=".json"
-                    onChange={handleImport}
+                    onChange={(e) => handleImport(e, false)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <button
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium w-full"
                   >
-                    <Download size={18} /> 导入数据 (JSON)
+                    <Download size={18} /> 导入数据 (覆盖)
                   </button>
                 </div>
               </div>
               <p className="mt-4 text-sm text-slate-500">
-                您可以导出所有数据进行备份，或者导入之前备份的数据。导入数据将覆盖当前的所有数据，请谨慎操作。
+                您可以导出所有数据进行备份，或者导入之前备份的数据。导入数据将替换当前的所有数据，请谨慎操作。
+              </p>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800 mb-4">增量导入与减量导出</h3>
+              <div className="flex flex-col sm:flex-row items-end gap-4 mb-4">
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => handleImport(e, true)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <button
+                    className="flex items-center justify-center gap-2 px-6 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
+                  >
+                    <Download size={18} /> 增量导入 (合并)
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-end gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-500">开始日期</label>
+                  <input 
+                    type="date" 
+                    value={decrementStartDate}
+                    onChange={(e) => setDecrementStartDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-500">结束日期</label>
+                  <input 
+                    type="date" 
+                    value={decrementEndDate}
+                    onChange={(e) => setDecrementEndDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <button
+                  onClick={handleDecrementExport}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                >
+                  <Upload size={18} /> 减量导出并删除
+                </button>
+              </div>
+              <p className="mt-4 text-xs text-slate-400">
+                <span className="font-medium text-slate-600">增量导入：</span>保留现有数据，仅合并新数据。<br/>
+                <span className="font-medium text-slate-600">减量导出：</span>导出指定日期范围内的数据（任务、日志、通知等），并在导出成功后从当前数据库中永久删除这些数据。
               </p>
             </div>
 
@@ -2221,6 +2313,32 @@ with check (true);`}
         onConfirm={confirmRestoreVersion}
         onCancel={() => setIsRestoreModalOpen(false)}
       />
+
+      {showDecrementConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-md w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">确认导出并删除数据？</h3>
+            <p className="text-slate-600 text-sm mb-6">
+              您即将导出并删除 <span className="font-bold text-slate-800">{decrementStartDate}</span> 至 <span className="font-bold text-slate-800">{decrementEndDate}</span> 期间的所有数据。<br/><br/>
+              <span className="text-red-600 font-bold">此操作不可撤销</span>，删除后的数据将无法在系统中恢复（除非您重新导入）。
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDecrementConfirm(false)}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmDecrementExport}
+                className="px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+              >
+                确认导出并删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
