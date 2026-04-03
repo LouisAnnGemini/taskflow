@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskCard } from '../components/TaskCard';
 import { isToday, isPast, parseISO } from 'date-fns';
@@ -6,11 +6,11 @@ import { isToday, isPast, parseISO } from 'date-fns';
 export function DashboardView() {
   const { tasks, currentUser } = useTaskStore();
 
-  const pinnedTasks = tasks
+  const pinnedTasks = useMemo(() => tasks
     .filter(t => t.isPinned && t.state !== 'done')
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()), [tasks]);
   
-  const todayTasks = tasks
+  const todayTasks = useMemo(() => tasks
     .filter(t => {
       if (t.state === 'done') return false;
       if (!t.dueDate) return false;
@@ -20,21 +20,21 @@ export function DashboardView() {
     .sort((a, b) => {
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+    }), [tasks]);
 
-  const reviewTasks = tasks
+  const reviewTasks = useMemo(() => tasks
     .filter(t => t.state === 'in_review' && t.reporterIds?.includes(currentUser.id))
     .sort((a, b) => {
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+    }), [tasks, currentUser.id]);
 
-  const delegatedTasks = tasks
+  const delegatedTasks = useMemo(() => tasks
     .filter(t => t.creatorId === currentUser.id && !t.assigneeIds.includes(currentUser.id) && t.state !== 'done')
     .sort((a, b) => {
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
+    }), [tasks, currentUser.id]);
 
   return (
     <div className="space-y-12 px-4 md:px-0">

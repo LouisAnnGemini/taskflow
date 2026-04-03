@@ -9,7 +9,7 @@ interface GraphProps {
 
 export function TaskGraph({ taskId }: GraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { getTask, tasks, setSelectedTaskId } = useTaskStore();
+  const { getTask, tasks, openTaskModal } = useTaskStore();
   const task = getTask(taskId);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function TaskGraph({ taskId }: GraphProps) {
       })
       .attr('cursor', 'pointer')
       .on('click', (event, d: any) => {
-        setSelectedTaskId(d.id);
+        openTaskModal(d.id);
       })
       .call(d3.drag<SVGCircleElement, unknown>()
         .on('start', (event, d: any) => {
@@ -115,7 +115,7 @@ export function TaskGraph({ taskId }: GraphProps) {
         .attr('x', (d: any) => d.x)
         .attr('y', (d: any) => d.y);
     });
-  }, [task, tasks, setSelectedTaskId]);
+  }, [task, tasks, openTaskModal]);
 
   return (
     <div className="relative w-full h-[400px] bg-slate-50 rounded-xl overflow-hidden border border-slate-200">

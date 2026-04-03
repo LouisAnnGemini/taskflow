@@ -80,6 +80,7 @@ export function SettingsView() {
     addPosition, updatePosition, deletePosition,
     customFieldDefinitions, addCustomFieldDefinition, updateCustomFieldDefinition, deleteCustomFieldDefinition,
     fieldOrder, setFieldOrder,
+    navItemsConfig, setNavItemsConfig,
     setAllData,
     fetchVersions, restoreVersion
   } = useTaskStore();
@@ -624,6 +625,7 @@ export function SettingsView() {
               { id: 'kanban-columns', label: '看板列设置' },
               { id: 'priorities', label: '优先级设置' },
               { id: 'medium-tags', label: '媒介标签设置' },
+              { id: 'main-features', label: '主功能设置' },
               { id: 'custom-fields', label: '自定义字段' },
               { id: 'field-order', label: '字段排序与显示' },
               { id: 'cloud-sync', label: '云端同步 (Supabase)' },
@@ -1494,6 +1496,82 @@ export function SettingsView() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Features Settings */}
+      <section id="main-features" className="scroll-mt-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-slate-800">主功能设置</h2>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {navItemsConfig.map((item, index) => {
+              const labels: Record<string, string> = {
+                dashboard: '仪表盘',
+                kanban: '看板',
+                projects: '项目',
+                calendar: '日历',
+                memos: '备忘录',
+                search: '搜索',
+              };
+              
+              const moveItem = (idx: number, direction: 'up' | 'down') => {
+                const newConfig = [...navItemsConfig];
+                if (direction === 'up' && idx > 0) {
+                  [newConfig[idx - 1], newConfig[idx]] = [newConfig[idx], newConfig[idx - 1]];
+                } else if (direction === 'down' && idx < newConfig.length - 1) {
+                  [newConfig[idx + 1], newConfig[idx]] = [newConfig[idx], newConfig[idx + 1]];
+                }
+                setNavItemsConfig(newConfig);
+              };
+
+              const toggleVisibility = (id: string) => {
+                setNavItemsConfig(navItemsConfig.map(config => 
+                  config.id === id ? { ...config, isVisible: !config.isVisible } : config
+                ));
+              };
+
+              return (
+                <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col gap-1">
+                      <button 
+                        onClick={() => moveItem(index, 'up')}
+                        disabled={index === 0}
+                        className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button 
+                        onClick={() => moveItem(index, 'down')}
+                        disabled={index === navItemsConfig.length - 1}
+                        className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
+                    <GripVertical size={18} className="text-slate-300" />
+                    <div>
+                      <span className="font-medium text-slate-700">{labels[item.id] || item.id}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleVisibility(item.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      item.isVisible
+                        ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+                        : 'text-slate-400 bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    {item.isVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+                    {item.isVisible ? '显示' : '隐藏'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -2,14 +2,16 @@ import React, { useState, useMemo } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO, getHours, getMinutes } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, X, Clock, Activity } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Clock, Activity, Calendar as CalendarIcon, LayoutGrid } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { ActivityLog } from '../types/task';
+import { WeeklyPlanView } from '../components/WeeklyPlanView';
 
 export function CalendarView() {
-  const { tasks, activityLogs, setSelectedTaskId, addTask, currentUser, setHighlightedLogId } = useTaskStore();
+  const { tasks, activityLogs, openTaskModal, addTask, currentUser, setHighlightedLogId } = useTaskStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [mode, setMode] = useState<'record' | 'plan'>('record');
 
   const daysInMonth = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
@@ -208,7 +210,7 @@ export function CalendarView() {
                       <button 
                         onClick={() => {
                           if (task) {
-                            setSelectedTaskId(task.id);
+                            openTaskModal(task.id);
                             // If there are logs, highlight the first one
                             if (taskLogs.length > 0) {
                               setHighlightedLogId(taskLogs[0].id);
@@ -243,7 +245,7 @@ export function CalendarView() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (task) {
-                                  setSelectedTaskId(task.id);
+                                  openTaskModal(task.id);
                                   setHighlightedLogId(log.id);
                                 }
                               }}
@@ -276,122 +278,152 @@ export function CalendarView() {
 
   return (
     <div className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/50 gap-3 sm:gap-0">
-        <div className="flex items-center justify-between sm:justify-start gap-4">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800">
-            {format(currentDate, 'yyyy年 M月', { locale: zhCN })}
-          </h2>
-          <div className="flex items-center bg-white rounded-lg border border-slate-200 shadow-sm p-1">
-            <button 
-              onClick={prevMonth}
-              className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button 
-              onClick={goToToday}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
-            >
-              今天
-            </button>
-            <button 
-              onClick={nextMonth}
-              className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-slate-500">
-          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white border border-slate-200"></div> 0</div>
-          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-100"></div> 1-2</div>
-          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-300"></div> 3-5</div>
-          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500"></div> 6-9</div>
-          <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-700"></div> 10+</div>
+      {/* Mode Toggle */}
+      <div className="flex items-center justify-center p-2 border-b border-slate-200 bg-slate-50">
+        <div className="flex items-center bg-slate-200/50 p-1 rounded-lg">
+          <button
+            onClick={() => setMode('record')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              mode === 'record' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <CalendarIcon size={16} />
+            记录模式
+          </button>
+          <button
+            onClick={() => setMode('plan')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              mode === 'plan' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <LayoutGrid size={16} />
+            计划模式
+          </button>
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Days of week header */}
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-          {['周一', '周二', '周三', '周四', '周五', '周六', '周日'].map((day, i) => (
-            <div key={day} className={`py-3 text-center text-sm font-semibold ${i >= 5 ? 'text-slate-400' : 'text-slate-600'}`}>
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Days grid */}
-        <div className="flex-1 grid grid-cols-7 auto-rows-fr overflow-y-auto">
-          {daysInMonth.map((date, i) => {
-            const completedCount = getCompletedTaskCount(date);
-            const isCurrentMonth = isSameMonth(date, currentDate);
-            const isTodayDate = isToday(date);
-            const isSelected = selectedDate && isSameDay(date, selectedDate);
-            
-            // Only show heatmap color for current month and past/today
-            const isPastOrToday = date <= new Date();
-            const cellColor = isCurrentMonth && isPastOrToday ? getHeatmapColor(completedCount) : 'bg-white';
-            
-            // Text color based on background darkness
-            const textColor = (isCurrentMonth && isPastOrToday && completedCount >= 6) ? 'text-white' : 'text-slate-700';
-            
-            return (
-              <div 
-                key={date.toISOString()} 
-                onClick={() => setSelectedDate(date)}
-                title={`共完成 ${completedCount} 个任务`}
-                className={`min-h-[80px] border-b border-r border-slate-100 p-2 flex flex-col group transition-all cursor-pointer relative ${
-                  !isCurrentMonth ? 'bg-slate-50/50' : cellColor
-                } ${i % 7 === 6 ? 'border-r-0' : ''} ${
-                  isSelected ? 'ring-2 ring-indigo-500 ring-inset z-10' : 'hover:brightness-95'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
-                    isTodayDate 
-                      ? 'bg-indigo-600 text-white shadow-sm' 
-                      : !isCurrentMonth 
-                        ? 'text-slate-400' 
-                        : textColor
-                  }`}>
-                    {format(date, 'd')}
-                  </span>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuickAdd(date);
-                    }}
-                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${
-                       (isCurrentMonth && isPastOrToday && completedCount >= 6) 
-                       ? 'text-emerald-100 hover:text-white hover:bg-white/20' 
-                       : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
-                    }`}
-                    title="添加任务"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-                
-                {isCurrentMonth && completedCount > 0 && (
-                  <div className="flex-1 flex items-center justify-center">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                       completedCount >= 6 ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {completedCount} 完成
-                    </span>
-                  </div>
-                )}
+      {mode === 'plan' ? (
+        <WeeklyPlanView />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/50 gap-3 sm:gap-0">
+            <div className="flex items-center justify-between sm:justify-start gap-4">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800">
+                {format(currentDate, 'yyyy年 M月', { locale: zhCN })}
+              </h2>
+              <div className="flex items-center bg-white rounded-lg border border-slate-200 shadow-sm p-1">
+                <button 
+                  onClick={prevMonth}
+                  className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button 
+                  onClick={goToToday}
+                  className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+                >
+                  今天
+                </button>
+                <button 
+                  onClick={nextMonth}
+                  className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                >
+                  <ChevronRight size={18} />
+                </button>
               </div>
-            );
-          })}
-        </div>
-      </div>
-      
-      {/* Timeline Panel */}
-      {renderTimeline()}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-slate-500">
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white border border-slate-200"></div> 0</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-100"></div> 1-2</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-300"></div> 3-5</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500"></div> 6-9</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-700"></div> 10+</div>
+            </div>
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Days of week header */}
+            <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+              {['周一', '周二', '周三', '周四', '周五', '周六', '周日'].map((day, i) => (
+                <div key={day} className={`py-3 text-center text-sm font-semibold ${i >= 5 ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Days grid */}
+            <div className="flex-1 grid grid-cols-7 auto-rows-fr overflow-y-auto">
+              {daysInMonth.map((date, i) => {
+                const completedCount = getCompletedTaskCount(date);
+                const isCurrentMonth = isSameMonth(date, currentDate);
+                const isTodayDate = isToday(date);
+                const isSelected = selectedDate && isSameDay(date, selectedDate);
+                
+                // Only show heatmap color for current month and past/today
+                const isPastOrToday = date <= new Date();
+                const cellColor = isCurrentMonth && isPastOrToday ? getHeatmapColor(completedCount) : 'bg-white';
+                
+                // Text color based on background darkness
+                const textColor = (isCurrentMonth && isPastOrToday && completedCount >= 6) ? 'text-white' : 'text-slate-700';
+                
+                return (
+                  <div 
+                    key={date.toISOString()} 
+                    onClick={() => setSelectedDate(date)}
+                    title={`共完成 ${completedCount} 个任务`}
+                    className={`min-h-[80px] border-b border-r border-slate-100 p-2 flex flex-col group transition-all cursor-pointer relative ${
+                      !isCurrentMonth ? 'bg-slate-50/50' : cellColor
+                    } ${i % 7 === 6 ? 'border-r-0' : ''} ${
+                      isSelected ? 'ring-2 ring-indigo-500 ring-inset z-10' : 'hover:brightness-95'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
+                        isTodayDate 
+                          ? 'bg-indigo-600 text-white shadow-sm' 
+                          : !isCurrentMonth 
+                            ? 'text-slate-400' 
+                            : textColor
+                      }`}>
+                        {format(date, 'd')}
+                      </span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQuickAdd(date);
+                        }}
+                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${
+                           (isCurrentMonth && isPastOrToday && completedCount >= 6) 
+                           ? 'text-emerald-100 hover:text-white hover:bg-white/20' 
+                           : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                        }`}
+                        title="添加任务"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                    
+                    {isCurrentMonth && completedCount > 0 && (
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                           completedCount >= 6 ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {completedCount} 完成
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Timeline Panel */}
+          {renderTimeline()}
+        </>
+      )}
     </div>
   );
 }

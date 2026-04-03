@@ -17,7 +17,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, setSelectedTaskId, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId, projects } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, openTaskModal, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId, projects } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -122,42 +122,82 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </select>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">前置任务 (项目内)</label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {(task.dependencies || []).map(depId => {
-                const depTask = getTask(depId);
-                if (!depTask) return null;
-                return (
-                  <button
-                    key={depId}
-                    onClick={() => {
-                      handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) });
-                    }}
-                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
-                  >
-                    {depTask.title}
-                    <X size={10} />
-                  </button>
-                );
-              })}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">前置任务 (项目内)</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(task.dependencies || []).map(depId => {
+                  const depTask = getTask(depId);
+                  if (!depTask) return null;
+                  return (
+                    <button
+                      key={depId}
+                      onClick={() => {
+                        handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) });
+                      }}
+                      className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
+                    >
+                      {depTask.title}
+                      <X size={10} />
+                    </button>
+                  );
+                })}
+              </div>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value && !(task.dependencies || []).includes(e.target.value)) {
+                    handleUpdate({ dependencies: [...(task.dependencies || []), e.target.value] });
+                  }
+                }}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              >
+                <option value="">添加前置任务...</option>
+                {useTaskStore.getState().tasks
+                  .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
+                  .map(t => (
+                    <option key={t.id} value={t.id}>{t.title}</option>
+                  ))}
+              </select>
             </div>
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value && !(task.dependencies || []).includes(e.target.value)) {
-                  handleUpdate({ dependencies: [...(task.dependencies || []), e.target.value] });
-                }
-              }}
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            >
-              <option value="">添加前置任务...</option>
-              {useTaskStore.getState().tasks
-                .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
-                .map(t => (
-                  <option key={t.id} value={t.id}>{t.title}</option>
-                ))}
-            </select>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">后置任务 (项目内)</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(task.postDependencies || []).map(depId => {
+                  const depTask = getTask(depId);
+                  if (!depTask) return null;
+                  return (
+                    <button
+                      key={depId}
+                      onClick={() => {
+                        handleUpdate({ postDependencies: (task.postDependencies || []).filter(id => id !== depId) });
+                      }}
+                      className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 flex items-center gap-1.5 hover:bg-amber-100 transition-colors"
+                    >
+                      {depTask.title}
+                      <X size={10} />
+                    </button>
+                  );
+                })}
+              </div>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value && !(task.postDependencies || []).includes(e.target.value)) {
+                    handleUpdate({ postDependencies: [...(task.postDependencies || []), e.target.value] });
+                  }
+                }}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+              >
+                <option value="">添加后置任务...</option>
+                {useTaskStore.getState().tasks
+                  .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.postDependencies || []).includes(t.id))
+                  .map(t => (
+                    <option key={t.id} value={t.id}>{t.title}</option>
+                  ))}
+              </select>
+            </div>
           </div>
         </>
       )}
@@ -1071,7 +1111,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       <GitBranch size={14} /> 父任务
                     </div>
                     <div 
-                      onClick={() => setSelectedTaskId(task.parentId!)}
+                      onClick={() => openTaskModal(task.parentId!)}
                       className="flex items-center gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm cursor-pointer group"
                     >
                       <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
@@ -1190,7 +1230,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       if (!relatedTask) return null;
                       return (
                         <div key={relatedId} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
-                          <button onClick={() => setSelectedTaskId(relatedId)} className="hover:text-indigo-600 transition-colors">
+                          <button onClick={() => openTaskModal(relatedId)} className="hover:text-indigo-600 transition-colors">
                             {relatedTask.title}
                           </button>
                           <button onClick={() => {

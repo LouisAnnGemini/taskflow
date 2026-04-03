@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskState } from '../types/task';
@@ -25,7 +25,25 @@ export function KanbanView() {
     changeTaskState(draggableId, newStatus, currentUser.id);
   };
 
-  const visibleColumns = columns.filter(col => !col.isHidden);
+  const visibleColumns = useMemo(() => columns.filter(col => !col.isHidden), [columns]);
+
+  const tasksByColumn = useMemo(() => {
+    const grouped: Record<string, typeof tasks> = {};
+    visibleColumns.forEach(col => {
+      grouped[col.id] = tasks
+        .filter((t) => {
+          if (t.state !== col.id) return false;
+          if (!kanbanShowSubtasks && t.parentId) return false;
+          if (kanbanProjectFilter === 'none') return !t.projectId;
+          return true;
+        })
+        .sort((a, b) => {
+          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
+    });
+    return grouped;
+  }, [tasks, visibleColumns, kanbanShowSubtasks, kanbanProjectFilter]);
 
   return (
     <div className="space-y-4">
@@ -113,27 +131,7 @@ export function KanbanView() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 md:gap-6 overflow-x-auto pb-8 snap-x snap-mandatory md:snap-none px-4 md:px-0 -mx-4 md:mx-0">
           {visibleColumns.map((column) => {
-            const columnTasks = tasks
-              .filter((t) => {
-                // Filter by state
-                if (t.state !== column.id) return false;
-                
-                // Filter by subtask visibility
-                if (!kanbanShowSubtasks && t.parentId) return false;
-                
-                // Filter by project
-                if (kanbanProjectFilter === 'none') {
-                  return !t.projectId;
-                }
-                
-                return true;
-              })
-              .sort((a, b) => {
-                if (a.isPinned !== b.isPinned) {
-                  return a.isPinned ? -1 : 1;
-                }
-                return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-              });
+            const columnTasks = tasksByColumn[column.id] || [];
             
             const displayedTasks = columnTasks.slice(0, 10);
             const hasMore = columnTasks.length > 10;

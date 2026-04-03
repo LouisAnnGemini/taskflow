@@ -47,6 +47,11 @@ export interface CustomFieldDefinition {
   isRequired?: boolean;
 }
 
+export interface NavItemConfig {
+  id: string;
+  isVisible: boolean;
+}
+
 export interface FieldConfig {
   id: string;
   name: string;
@@ -77,6 +82,7 @@ export interface Task {
   projectId?: string;
   projectNodeType?: 'mainline' | 'branch';
   dependencies?: string[]; // IDs of tasks that must be completed before this one (horizontal sequence)
+  postDependencies?: string[]; // IDs of tasks that depend on this one (horizontal sequence)
   
   state: TaskState;
   previousState?: TaskState; // To remember state when snoozed
@@ -93,6 +99,8 @@ export interface Task {
   
   startDate?: string; // ISO date string
   dueDate?: string; // ISO date string
+  plannedStartTime?: string; // ISO date string for weekly plan mode
+  plannedEndTime?: string; // ISO date string for weekly plan mode
   progress: number; // 0 to 100
   
   relatedTaskIds?: string[];
@@ -139,6 +147,24 @@ export interface Memo {
   content: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type TaskUpdate = Omit<Partial<Task>, 'id' | 'createdAt' | 'creatorId'>;
+export type ProjectUpdate = Omit<Partial<Project>, 'id' | 'createdAt'>;
+
+export type ModalType = 'task' | 'confirmation' | null;
+
+export interface ConfirmationModalConfig {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel?: () => void;
+}
+
+export interface ModalState {
+  type: ModalType;
+  taskId?: string; // For task modal
+  confirmationConfig?: ConfirmationModalConfig; // For confirmation modal
 }
 
 export interface GraphNode extends Task {

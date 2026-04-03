@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export function ProjectView() {
-  const { projects, tasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, setSelectedTaskId } = useTaskStore();
+  const { projects, tasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, openTaskModal } = useTaskStore();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>(projects.length > 0 ? 'grid' : 'grid');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -522,7 +522,7 @@ export function ProjectView() {
         if (activeMenuNodeIdRef.current === d.id) {
           // If clicking the same node, close menu and open task details
           setActiveMenuNodeId(null);
-          setSelectedTaskId(d.id);
+          openTaskModal(d.id);
         } else {
           // Otherwise, open the menu
           setActiveMenuNodeId(d.id);
@@ -601,7 +601,7 @@ export function ProjectView() {
       .attr("fill", "#1e293b")
       .style("pointer-events", "none");
 
-  }, [graphData, currentProject, setSelectedTaskId]);
+  }, [graphData, currentProject, openTaskModal]);
 
   const handleCreateMainlineTask = () => {
     if (!currentProject) return;

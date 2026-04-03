@@ -4,7 +4,7 @@ import { DashboardView } from './views/DashboardView';
 import { KanbanView } from './views/KanbanView';
 import { CalendarView } from './views/CalendarView';
 import { SearchView } from './views/SearchView';
-import { TaskModal } from './components/TaskModal';
+import { ModalStack } from './components/ModalStack';
 import { SettingsView } from './views/SettingsView';
 import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
@@ -29,13 +29,17 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const { 
     currentUser, 
-    selectedTaskId, 
-    setSelectedTaskId, 
     notifications, 
     checkExpiringTasks,
     currentView,
-    setCurrentView
+    setCurrentView,
+    navItemsConfig
   } = useTaskStore();
+
+  const visibleNavItems = navItemsConfig
+    .filter(config => config.isVisible)
+    .map(config => NAV_ITEMS.find(item => item.id === config.id))
+    .filter(Boolean) as typeof NAV_ITEMS;
 
   React.useEffect(() => {
     checkExpiringTasks();
@@ -112,7 +116,7 @@ export default function App() {
             </div>
             
             <nav className="hidden md:flex space-x-1">
-              {NAV_ITEMS.map((item) => (
+              {visibleNavItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setCurrentView(item.id as ViewType)}
@@ -187,7 +191,7 @@ export default function App() {
 
       {/* Bottom Navigation (Mobile) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 px-2 py-2 flex justify-around items-center safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        {NAV_ITEMS.map((item) => (
+        {visibleNavItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setCurrentView(item.id as ViewType)}
@@ -205,12 +209,7 @@ export default function App() {
         ))}
       </nav>
 
-      {selectedTaskId && (
-        <TaskModal 
-          taskId={selectedTaskId} 
-          onClose={() => setSelectedTaskId(null)} 
-        />
-      )}
+      <ModalStack />
     </div>
   );
 }

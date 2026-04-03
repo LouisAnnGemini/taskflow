@@ -9,7 +9,7 @@ interface GanttChartProps {
 }
 
 export function GanttChart({ tasks }: GanttChartProps) {
-  const { setSelectedTaskId } = useTaskStore();
+  const { openTaskModal } = useTaskStore();
 
   if (tasks.length === 0) {
     return (
@@ -80,7 +80,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
               <div 
                 key={task.id} 
                 className="flex hover:bg-slate-50 transition-colors group cursor-pointer"
-                onClick={() => setSelectedTaskId(task.id)}
+                onClick={() => openTaskModal(task.id)}
               >
                 <div className="w-64 shrink-0 border-r border-slate-200 p-4 truncate text-sm font-medium text-slate-800">
                   {task.title}

@@ -15,7 +15,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     markNotificationAsRead, 
     markAllNotificationsAsRead, 
     clearNotifications,
-    setSelectedTaskId 
+    openTaskModal 
   } = useTaskStore();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -23,7 +23,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const handleNotificationClick = (id: string, taskId?: string) => {
     markNotificationAsRead(id);
     if (taskId) {
-      setSelectedTaskId(taskId);
+      openTaskModal(taskId);
     }
     onClose();
   };

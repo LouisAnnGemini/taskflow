@@ -16,7 +16,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
   const activeMenuNodeIdRef = useRef<string | null>(null);
   const zoomTransformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
   
-  const { getTask, tasks, projects, setSelectedTaskId, addTask, updateTask, deleteTask } = useTaskStore();
+  const { getTask, tasks, projects, openTaskModal, addTask, updateTask, deleteTask } = useTaskStore();
   const task = getTask(taskId);
   
   const currentProject = projects.find(p => p.id === task?.projectId);
@@ -180,71 +180,45 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
     };
 
     // Process branches recursively from parents
-    const processBranch = (t: Task, parentX: number, parentY: number, preferredYDir: number) => {
-      if (nodePositions.has(t.id)) return;
+    const processBranch = (task: Task, parentX: number, parentY: number, preferredYDir: number) => {
+      if (nodePositions.has(task.id)) return;
 
-      // Diagonal offset: +1 X (which is 0.5 in our 2-unit scale), and some Y
-      let x = parentX + 1;
-      let y = findFreeY(x, parentY + preferredYDir); // Always find a free Y for a new branch
-      
-      nodePositions.set(t.id, { x, y });
-      occupied.add(`${x},${y}`);
-      nodes.push({ ...t, x, y, type: 'branch' });
-
-      // Add diagonal link from parent
-      if (t.parentId && (mainlineMap.has(t.parentId) || branchMap.has(t.parentId))) {
-        const branchDep = t.dependencies?.find(depId => branchMap.has(depId));
-        if (branchDep) {
-           links.push({ source: t.parentId, target: branchDep, type: 'diagonal', isMainline: false });
-           links.push({ source: branchDep, target: t.id, type: 'horizontal', isMainline: false });
-        } else {
-           links.push({ source: t.parentId, target: t.id, type: 'diagonal', isMainline: false });
-        }
+      let x, y;
+      if (task.parentId) {
+        // Branch entry: diagonal from parent
+        x = parentX + 1;
+        y = findFreeY(x, parentY + preferredYDir);
+      } else {
+        // Sequence node: horizontal from dependency
+        x = parentX + 1;
+        y = parentY;
+        while (occupied.has(`${x},${y}`)) x += 1;
       }
       
-      // Add horizontal link from dependencies
-      if (t.dependencies) {
-        const branchDep = t.dependencies?.find(depId => branchMap.has(depId));
-        t.dependencies.forEach(depId => {
-          if (depId === branchDep) return; // Skip branch dependency as it's already handled
-          const depTask = branchMap.get(depId) || mainlineMap.get(depId);
-          if (depTask) {
-             // If dependency exists, place this task to the right of the dependency
-             const depPos = nodePositions.get(depId);
-             if (depPos) {
-               x = Math.max(x, depPos.x + 1);
-               nodePositions.set(t.id, { x, y });
-               occupied.add(`${x},${y}`);
-               // Update node in nodes array
-               const nodeIndex = nodes.findIndex(n => n.id === t.id);
-               if (nodeIndex !== -1) {
-                 nodes[nodeIndex].x = x;
-               }
-             }
-             links.push({ source: depId, target: t.id, type: 'horizontal', isMainline: false });
+      nodePositions.set(task.id, { x, y });
+      occupied.add(`${x},${y}`);
+      nodes.push({ ...task, x, y, type: 'branch' });
+
+      // Add links
+      if (task.parentId) {
+        links.push({ source: task.parentId, target: task.id, type: 'diagonal', isMainline: false });
+      }
+      
+      if (task.dependencies) {
+        task.dependencies.forEach(depId => {
+          if (branchMap.has(depId) || mainlineMap.has(depId)) {
+            links.push({ source: depId, target: task.id, type: 'horizontal', isMainline: false });
           }
         });
       }
 
-      // Process its sequence (tasks that depend on it)
-      const nextInSequence = branchTasks.filter(nt => nt.dependencies?.includes(t.id));
-      nextInSequence.forEach(nextTask => {
-        // Horizontal continuation
-        let nextX = x + 1;
-        while (occupied.has(`${nextX},${y}`)) nextX += 1;
-        nodePositions.set(nextTask.id, { x: nextX, y });
-        occupied.add(`${nextX},${y}`);
-        nodes.push({ ...nextTask, x: nextX, y, type: 'branch' });
-        links.push({ source: t.id, target: nextTask.id, type: 'horizontal', isMainline: false });
-        
-        // Recursively process children of this sequence node
-        const children = branchTasks.filter(ct => ct.parentId === nextTask.id);
-        children.forEach((child, i) => processBranch(child, nextX, y, i % 2 === 0 ? 1 : -1));
-      });
+      // Process sub-branches (children)
+      const children = branchTasks.filter(t => t.parentId === task.id);
+      children.forEach((child, i) => processBranch(child, x, y, i % 2 === 0 ? 1 : -1));
 
-      // Process its children (sub-branches)
-      const children = branchTasks.filter(ct => ct.parentId === t.id);
-      children.forEach((child, i) => processBranch(child, x, y, y > 0 ? 1 : -1));
+      // Process sequence (successors)
+      const nextInSequence = branchTasks.filter(t => t.dependencies?.includes(task.id));
+      nextInSequence.forEach(nextTask => processBranch(nextTask, x, y, preferredYDir));
     };
 
     // Start processing branches from mainline nodes
@@ -366,7 +340,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
         if (activeMenuNodeIdRef.current === d.id) {
           // If clicking the same node, close menu and open task details
           setActiveMenuNodeId(null);
-          setSelectedTaskId(d.id);
+          openTaskModal(d.id);
         } else {
           // Otherwise, open the menu
           setActiveMenuNodeId(d.id);
@@ -420,7 +394,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
       .attr("fill", (d: GraphNode) => d.id === task.id ? "#f59e0b" : "#1e293b")
       .style("pointer-events", "none");
 
-  }, [graphData, currentProject, task, setSelectedTaskId]);
+  }, [graphData, currentProject, task, openTaskModal]);
 
   if (!currentProject) return null;
 

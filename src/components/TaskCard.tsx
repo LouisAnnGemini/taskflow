@@ -49,7 +49,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: TaskCardProps) {
-  const { users, columns, priorities, mediums, entities, tasks, setSelectedTaskId, changeTaskState, currentUser, updateTask } = useTaskStore();
+  const { users, columns, priorities, mediums, entities, tasks, openTaskModal, changeTaskState, currentUser, updateTask } = useTaskStore();
   const assignees = users.filter(u => task.assigneeIds.includes(u.id));
   const reporters = users.filter(u => task.reporterIds?.includes(u.id));
   const column = columns.find(c => c.id === task.state);
@@ -59,7 +59,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
 
   const handleClick = () => {
     if (onClick) onClick();
-    else setSelectedTaskId(task.id);
+    else openTaskModal(task.id);
   };
 
   const handleSnooze = (e: React.MouseEvent) => {
@@ -188,6 +188,16 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
         </div>
 
         <div className="flex items-center gap-2">
+          {(task.dependencies?.length || 0) > 0 && (
+            <div className="flex items-center gap-1 text-xs text-indigo-400" title="前置任务">
+              <GitBranch size={12} className="rotate-90" /> {task.dependencies?.length}
+            </div>
+          )}
+          {(task.postDependencies?.length || 0) > 0 && (
+            <div className="flex items-center gap-1 text-xs text-amber-400" title="后置任务">
+              <GitBranch size={12} className="-rotate-90" /> {task.postDependencies?.length}
+            </div>
+          )}
           {(task.relatedTaskIds?.length || 0) > 0 && (
             <div className="flex items-center gap-1 text-xs text-slate-400">
               <Link size={12} /> {task.relatedTaskIds?.length}
