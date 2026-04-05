@@ -67,6 +67,8 @@ const defaultFieldOrder: FieldConfig[] = [
   { id: 'reporterIds', name: '审核人', isCustom: false, isVisible: true },
   { id: 'startDate', name: '开始日期', isCustom: false, isVisible: true },
   { id: 'dueDate', name: '截止日期', isCustom: false, isVisible: true },
+  { id: 'plannedStartTime', name: '计划开始时间', isCustom: false, isVisible: true },
+  { id: 'plannedEndTime', name: '计划结束时间', isCustom: false, isVisible: true },
   { id: 'progress', name: '进度', isCustom: false, isVisible: true },
   { id: 'recurrence', name: '重复', isCustom: false, isVisible: true },
   { id: 'mediumTags', name: '媒介标签', isCustom: false, isVisible: true },
@@ -170,23 +172,43 @@ export const useTaskStore = create<TaskStore>()(
     {
       name: 'task-storage',
       storage: createJSONStorage(() => customStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => {
         const { modalState, ...rest } = state;
         return rest;
       },
       migrate: (persistedState: any, version: number) => {
-        if (version === 0 || version === 1) {
-          return {
-            ...persistedState,
-            navItemsConfig: persistedState.navItemsConfig || defaultNavItemsConfig,
-            fieldOrder: persistedState.fieldOrder || defaultFieldOrder,
-            customFieldDefinitions: persistedState.customFieldDefinitions || [],
-            memos: persistedState.memos || [],
-            supabaseConfig: persistedState.supabaseConfig || { url: '', anonKey: '' },
+        let state = persistedState;
+        
+        if (version === 0 || version === 1 || version === 2) {
+          state = {
+            ...state,
+            navItemsConfig: state.navItemsConfig || defaultNavItemsConfig,
+            fieldOrder: state.fieldOrder || defaultFieldOrder,
+            customFieldDefinitions: state.customFieldDefinitions || [],
+            memos: state.memos || [],
+            supabaseConfig: state.supabaseConfig || { url: '', anonKey: '' },
           };
         }
-        return persistedState;
+        
+        // Ensure plannedStartTime and plannedEndTime exist in fieldOrder
+        if (state.fieldOrder) {
+          const hasPlannedStart = state.fieldOrder.some((f: any) => f.id === 'plannedStartTime');
+          const hasPlannedEnd = state.fieldOrder.some((f: any) => f.id === 'plannedEndTime');
+          
+          if (!hasPlannedStart || !hasPlannedEnd) {
+            const newFieldOrder = [...state.fieldOrder];
+            if (!hasPlannedStart) {
+              newFieldOrder.push({ id: 'plannedStartTime', name: '计划开始时间', isCustom: false, isVisible: true });
+            }
+            if (!hasPlannedEnd) {
+              newFieldOrder.push({ id: 'plannedEndTime', name: '计划结束时间', isCustom: false, isVisible: true });
+            }
+            state.fieldOrder = newFieldOrder;
+          }
+        }
+        
+        return state;
       },
     }
   )

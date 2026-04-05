@@ -25,6 +25,7 @@ export interface ProjectSlice {
   updateProject: (id: string, updates: ProjectUpdate) => void;
   deleteProject: (id: string) => void;
   reorderProjects: (startIndex: number, endIndex: number, isArchived: boolean) => void;
+  toggleProjectEdge: (projectId: string, edgeId: string) => void;
 }
 
 export interface UISlice {

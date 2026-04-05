@@ -16,7 +16,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
   const activeMenuNodeIdRef = useRef<string | null>(null);
   const zoomTransformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
   
-  const { getTask, tasks, projects, openTaskModal, addTask, updateTask, deleteTask } = useTaskStore();
+  const { getTask, tasks, projects, openTaskModal, addTask, updateTask, deleteTask, toggleProjectEdge } = useTaskStore();
   const task = getTask(taskId);
   
   const currentProject = projects.find(p => p.id === task?.projectId);
@@ -151,7 +151,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
       if (t.dependencies) {
         t.dependencies.forEach(depId => {
           if (mainlineMap.has(depId)) {
-            links.push({ source: depId, target: t.id, type: 'horizontal', isMainline: true });
+            links.push({ id: `${depId}-${t.id}`, source: depId, target: t.id, type: 'horizontal', isMainline: true });
           }
         });
       }
@@ -201,13 +201,13 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
 
       // Add links
       if (task.parentId) {
-        links.push({ source: task.parentId, target: task.id, type: 'diagonal', isMainline: false });
+        links.push({ id: `${task.parentId}-${task.id}`, source: task.parentId, target: task.id, type: 'diagonal', isMainline: false });
       }
       
       if (task.dependencies) {
         task.dependencies.forEach(depId => {
           if (branchMap.has(depId) || mainlineMap.has(depId)) {
-            links.push({ source: depId, target: task.id, type: 'horizontal', isMainline: false });
+            links.push({ id: `${depId}-${task.id}`, source: depId, target: task.id, type: 'horizontal', isMainline: false });
           }
         });
       }
@@ -318,12 +318,29 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
                       ${target.x * UNIT_X} ${target.y * UNIT_Y}`;
       }
 
+      const isActive = currentProject.activeEdges?.includes(link.id);
+
+      // Visible line
       g.append("path")
         .attr("d", pathData)
         .attr("fill", "none")
-        .attr("stroke", link.isMainline ? currentProject.color : `${currentProject.color}66`)
+        .attr("stroke", isActive ? "#3b82f6" : (link.isMainline ? currentProject.color : `${currentProject.color}66`))
         .attr("stroke-width", link.isMainline ? 6 : 3)
-        .attr("stroke-linecap", "round");
+        .attr("stroke-linecap", "round")
+        .attr("stroke-dasharray", isActive ? "12 8" : "none")
+        .attr("class", isActive ? "animate-flow" : "");
+
+      // Invisible hit area for easier clicking
+      g.append("path")
+        .attr("d", pathData)
+        .attr("fill", "none")
+        .attr("stroke", "transparent")
+        .attr("stroke-width", 20)
+        .style("cursor", "pointer")
+        .on("click", (event) => {
+          event.stopPropagation();
+          toggleProjectEdge(currentProject.id, link.id);
+        });
     });
 
     // Draw nodes
@@ -394,7 +411,7 @@ export function ProjectTaskGraph({ taskId }: ProjectTaskGraphProps) {
       .attr("fill", (d: GraphNode) => d.id === task.id ? "#f59e0b" : "#1e293b")
       .style("pointer-events", "none");
 
-  }, [graphData, currentProject, task, openTaskModal]);
+  }, [graphData, currentProject, task, openTaskModal, toggleProjectEdge]);
 
   if (!currentProject) return null;
 

@@ -70,6 +70,7 @@ export interface Project {
   status?: 'active' | 'completed' | 'archived';
   progress?: number;
   order?: number;
+  activeEdges?: string[];
 }
 
 export interface Task {

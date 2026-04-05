@@ -7,7 +7,7 @@ export const createProjectSlice: StateCreator<
   TaskStore,
   [['zustand/persist', unknown]],
   [],
-  Pick<TaskStore, 'projects' | 'addProject' | 'updateProject' | 'deleteProject' | 'reorderProjects'>
+  Pick<TaskStore, 'projects' | 'addProject' | 'updateProject' | 'deleteProject' | 'reorderProjects' | 'toggleProjectEdge'>
 > = (set, get) => ({
   projects: [],
   
@@ -20,6 +20,7 @@ export const createProjectSlice: StateCreator<
       order: get().projects.length,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      activeEdges: [],
     };
     set((state) => ({ projects: [...state.projects, newProject] }));
     return newProject.id;
@@ -32,7 +33,7 @@ export const createProjectSlice: StateCreator<
   deleteProject: (id) => set((state) => ({
     projects: state.projects.filter(p => p.id !== id),
     // Also remove tasks from this project
-    tasks: state.tasks.map(t => t.projectId === id ? { ...t, projectId: undefined, projectNodeType: undefined, dependencies: [] } : t)
+    tasks: state.tasks.map(t => t.projectId === id ? { ...t, projectId: undefined, projectNodeType: undefined, dependencies: [], postDependencies: [] } : t)
   })),
   
   reorderProjects: (startIndex, endIndex, isArchived) => set((state) => {
@@ -48,5 +49,23 @@ export const createProjectSlice: StateCreator<
     const updatedProjects = result.map((p, index) => ({ ...p, order: index }));
     
     return { projects: [...otherProjects, ...updatedProjects] };
+  }),
+
+  toggleProjectEdge: (projectId, edgeId) => set((state) => {
+    return {
+      projects: state.projects.map(p => {
+        if (p.id === projectId) {
+          const activeEdges = p.activeEdges || [];
+          const isActive = activeEdges.includes(edgeId);
+          return {
+            ...p,
+            activeEdges: isActive 
+              ? activeEdges.filter(id => id !== edgeId)
+              : [...activeEdges, edgeId]
+          };
+        }
+        return p;
+      })
+    };
   }),
 });

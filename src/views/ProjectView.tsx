@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export function ProjectView() {
-  const { projects, tasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, openTaskModal } = useTaskStore();
+  const { projects, tasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, openTaskModal, toggleProjectEdge } = useTaskStore();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>(projects.length > 0 ? 'grid' : 'grid');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -208,6 +208,7 @@ export function ProjectView() {
       projectNodeType: undefined,
       parentId: undefined,
       dependencies: [],
+      postDependencies: [],
     });
 
     // 5. Bring over all descendant subtasks of the selectedTask into the project as branch tasks
@@ -324,7 +325,7 @@ export function ProjectView() {
       if (task.dependencies) {
         task.dependencies.forEach(depId => {
           if (mainlineMap.has(depId)) {
-            links.push({ source: depId, target: task.id, type: 'horizontal', isMainline: true });
+            links.push({ id: `${depId}-${task.id}`, source: depId, target: task.id, type: 'horizontal', isMainline: true });
           }
         });
       }
@@ -374,13 +375,13 @@ export function ProjectView() {
 
       // Add links
       if (task.parentId) {
-        links.push({ source: task.parentId, target: task.id, type: 'diagonal', isMainline: false });
+        links.push({ id: `${task.parentId}-${task.id}`, source: task.parentId, target: task.id, type: 'diagonal', isMainline: false });
       }
       
       if (task.dependencies) {
         task.dependencies.forEach(depId => {
           if (branchMap.has(depId) || mainlineMap.has(depId)) {
-            links.push({ source: depId, target: task.id, type: 'horizontal', isMainline: false });
+            links.push({ id: `${depId}-${task.id}`, source: depId, target: task.id, type: 'horizontal', isMainline: false });
           }
         });
       }
@@ -500,12 +501,29 @@ export function ProjectView() {
                       ${target.x * UNIT_X} ${target.y * UNIT_Y}`;
       }
 
+      const isActive = currentProject.activeEdges?.includes(link.id);
+
+      // Visible line
       g.append("path")
         .attr("d", pathData)
         .attr("fill", "none")
-        .attr("stroke", link.isMainline ? currentProject.color : `${currentProject.color}66`)
+        .attr("stroke", isActive ? "#3b82f6" : (link.isMainline ? currentProject.color : `${currentProject.color}66`))
         .attr("stroke-width", link.isMainline ? 6 : 3)
-        .attr("stroke-linecap", "round");
+        .attr("stroke-linecap", "round")
+        .attr("stroke-dasharray", isActive ? "12 8" : "none")
+        .attr("class", isActive ? "animate-flow" : "");
+
+      // Invisible hit area for easier clicking
+      g.append("path")
+        .attr("d", pathData)
+        .attr("fill", "none")
+        .attr("stroke", "transparent")
+        .attr("stroke-width", 20)
+        .style("cursor", "pointer")
+        .on("click", (event) => {
+          event.stopPropagation();
+          toggleProjectEdge(currentProject.id, link.id);
+        });
     });
 
     // Draw nodes
@@ -601,7 +619,7 @@ export function ProjectView() {
       .attr("fill", "#1e293b")
       .style("pointer-events", "none");
 
-  }, [graphData, currentProject, openTaskModal]);
+  }, [graphData, currentProject, openTaskModal, toggleProjectEdge]);
 
   const handleCreateMainlineTask = () => {
     if (!currentProject) return;

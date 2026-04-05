@@ -10,6 +10,7 @@ import { Avatar } from './Avatar';
 import { ProcessVisualizer } from './ProcessVisualizer';
 import { TaskGraph } from './TaskGraph';
 import { ProjectTaskGraph } from './ProjectTaskGraph';
+import { MultiSelect } from './MultiSelect';
 
 interface TaskModalProps {
   taskId: string;
@@ -85,6 +86,103 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     });
   };
 
+  const renderSubtasks = () => (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+        <ListTree size={14} /> 子任务
+      </div>
+      
+      <div className="space-y-2">
+        {subtasks.map(subtask => (
+          <div key={subtask.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 group hover:border-indigo-200 hover:bg-indigo-50/10 transition-all shadow-sm">
+            <input 
+              type="checkbox" 
+              checked={subtask.state === 'done'}
+              onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
+              className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            {editingSubtaskId === subtask.id ? (
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editSubtaskTitle}
+                  onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                  className="flex-1 bg-white border border-indigo-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 transition-shadow outline-none"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      updateTask(subtask.id, { title: editSubtaskTitle });
+                      setEditingSubtaskId(null);
+                    }
+                  }}
+                />
+                <button 
+                  onClick={() => {
+                    updateTask(subtask.id, { title: editSubtaskTitle });
+                    setEditingSubtaskId(null);
+                  }}
+                  className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-lg transition-colors"
+                >
+                  <Check size={16} />
+                </button>
+                <button 
+                  onClick={() => setEditingSubtaskId(null)}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <span 
+                  className={`flex-1 cursor-pointer text-sm font-medium ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
+                  onClick={() => {
+                    setEditingSubtaskId(subtask.id);
+                    setEditSubtaskTitle(subtask.title);
+                  }}
+                >
+                  {subtask.title}
+                </span>
+                <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
+                  <button 
+                    onClick={() => convertSubtaskToTask(subtask.id)}
+                    className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="转为独立任务"
+                  >
+                    <ArrowUpRight size={16} />
+                  </button>
+                  <button 
+                    onClick={() => deleteTask(subtask.id)}
+                    className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                    title="删除子任务"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+        
+        <form onSubmit={handleAddSubtask} className="flex items-center gap-2 mt-3">
+          <div className="relative flex-1">
+            <Plus size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={newSubtaskTitle}
+              onChange={(e) => setNewSubtaskTitle(e.target.value)}
+              placeholder="添加子任务..."
+              className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+            />
+          </div>
+          <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-sm">
+            添加
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+
   const renderProjectInfo = () => (
     <div key="project-info" className="space-y-6">
       <div className="space-y-2">
@@ -96,7 +194,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             handleUpdate({ 
               projectId,
               projectNodeType: projectId ? (task.projectNodeType || 'branch') : undefined,
-              dependencies: projectId ? task.dependencies : []
+              dependencies: projectId ? task.dependencies : [],
+              postDependencies: projectId ? task.postDependencies : []
             });
           }}
           className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -130,35 +229,39 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   const depTask = getTask(depId);
                   if (!depTask) return null;
                   return (
-                    <button
+                    <div
                       key={depId}
-                      onClick={() => {
-                        handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) });
-                      }}
-                      className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
+                      className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5 group"
                     >
-                      {depTask.title}
-                      <X size={10} />
-                    </button>
+                      <button 
+                        onClick={() => openTaskModal(depId)}
+                        className="hover:underline text-left"
+                      >
+                        {depTask.title}
+                      </button>
+                      <button
+                        onClick={() => handleUpdate({ dependencies: (task.dependencies || []).filter(id => id !== depId) })}
+                        className="hover:bg-indigo-200 rounded-full p-0.5 transition-colors opacity-50 hover:opacity-100"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
-              <select
-                value=""
-                onChange={(e) => {
-                  if (e.target.value && !(task.dependencies || []).includes(e.target.value)) {
-                    handleUpdate({ dependencies: [...(task.dependencies || []), e.target.value] });
+              <MultiSelect
+                options={useTaskStore.getState().tasks
+                  .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
+                  .map(t => ({ id: t.id, name: t.title }))}
+                selectedIds={[]}
+                onChange={(ids) => {
+                  if (ids.length > 0) {
+                    handleUpdate({ dependencies: [...(task.dependencies || []), ids[0]] });
                   }
                 }}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              >
-                <option value="">添加前置任务...</option>
-                {useTaskStore.getState().tasks
-                  .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.dependencies || []).includes(t.id))
-                  .map(t => (
-                    <option key={t.id} value={t.id}>{t.title}</option>
-                  ))}
-              </select>
+                placeholder="搜索添加前置任务..."
+                className="w-full"
+              />
             </div>
 
             <div className="space-y-2">
@@ -168,39 +271,48 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   const depTask = getTask(depId);
                   if (!depTask) return null;
                   return (
-                    <button
+                    <div
                       key={depId}
-                      onClick={() => {
-                        handleUpdate({ postDependencies: (task.postDependencies || []).filter(id => id !== depId) });
-                      }}
-                      className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 flex items-center gap-1.5 hover:bg-amber-100 transition-colors"
+                      className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 flex items-center gap-1.5 group"
                     >
-                      {depTask.title}
-                      <X size={10} />
-                    </button>
+                      <button 
+                        onClick={() => openTaskModal(depId)}
+                        className="hover:underline text-left"
+                      >
+                        {depTask.title}
+                      </button>
+                      <button
+                        onClick={() => handleUpdate({ postDependencies: (task.postDependencies || []).filter(id => id !== depId) })}
+                        className="hover:bg-amber-200 rounded-full p-0.5 transition-colors opacity-50 hover:opacity-100"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
-              <select
-                value=""
-                onChange={(e) => {
-                  if (e.target.value && !(task.postDependencies || []).includes(e.target.value)) {
-                    handleUpdate({ postDependencies: [...(task.postDependencies || []), e.target.value] });
+              <MultiSelect
+                options={useTaskStore.getState().tasks
+                  .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.postDependencies || []).includes(t.id))
+                  .map(t => ({ id: t.id, name: t.title }))}
+                selectedIds={[]}
+                onChange={(ids) => {
+                  if (ids.length > 0) {
+                    handleUpdate({ postDependencies: [...(task.postDependencies || []), ids[0]] });
                   }
                 }}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-all"
-              >
-                <option value="">添加后置任务...</option>
-                {useTaskStore.getState().tasks
-                  .filter(t => t.projectId === task.projectId && t.id !== task.id && !(task.postDependencies || []).includes(t.id))
-                  .map(t => (
-                    <option key={t.id} value={t.id}>{t.title}</option>
-                  ))}
-              </select>
+                placeholder="搜索添加后置任务..."
+                className="w-full"
+              />
             </div>
           </div>
         </>
       )}
+
+      {/* Add Subtasks here as well */}
+      <div className="pt-4 border-t border-slate-100">
+        {renderSubtasks()}
+      </div>
     </div>
   );
 
@@ -659,6 +771,22 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               <input 
                 type="date" 
                 value={task[config.id] ? (task[config.id] as string).split('T')[0] : ''}
+                onChange={(e) => handleUpdate({ [config.id]: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                className="flex-1 border-none p-0 text-sm focus:ring-0 text-slate-700 font-medium data-value outline-none"
+              />
+            </div>
+          </div>
+        );
+      case 'plannedStartTime':
+      case 'plannedEndTime':
+        return (
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">{config.name}</label>
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+              <Clock size={16} className="text-slate-400" />
+              <input 
+                type="datetime-local" 
+                value={task[config.id] ? (task[config.id] as string).slice(0, 16) : ''}
                 onChange={(e) => handleUpdate({ [config.id]: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
                 className="flex-1 border-none p-0 text-sm focus:ring-0 text-slate-700 font-medium data-value outline-none"
               />
@@ -1125,100 +1253,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
-                    <ListTree size={14} /> 子任务
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {subtasks.map(subtask => (
-                      <div key={subtask.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 group hover:border-indigo-200 hover:bg-indigo-50/10 transition-all shadow-sm">
-                        <input 
-                          type="checkbox" 
-                          checked={subtask.state === 'done'}
-                          onChange={(e) => updateTask(subtask.id, { state: e.target.checked ? 'done' : 'todo' })}
-                          className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        {editingSubtaskId === subtask.id ? (
-                          <div className="flex-1 flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editSubtaskTitle}
-                              onChange={(e) => setEditSubtaskTitle(e.target.value)}
-                              className="flex-1 bg-white border border-indigo-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 transition-shadow outline-none"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  updateTask(subtask.id, { title: editSubtaskTitle });
-                                  setEditingSubtaskId(null);
-                                }
-                              }}
-                            />
-                            <button 
-                              onClick={() => {
-                                updateTask(subtask.id, { title: editSubtaskTitle });
-                                setEditingSubtaskId(null);
-                              }}
-                              className="text-emerald-600 hover:text-emerald-700 p-1.5 bg-emerald-50 rounded-lg transition-colors"
-                            >
-                              <Check size={16} />
-                            </button>
-                            <button 
-                              onClick={() => setEditingSubtaskId(null)}
-                              className="text-slate-400 hover:text-slate-600 p-1.5 bg-slate-100 rounded-lg transition-colors"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <span 
-                              className={`flex-1 cursor-pointer text-sm font-medium ${subtask.state === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}
-                              onClick={() => {
-                                setEditingSubtaskId(subtask.id);
-                                setEditSubtaskTitle(subtask.title);
-                              }}
-                            >
-                              {subtask.title}
-                            </span>
-                            <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
-                              <button 
-                                onClick={() => convertSubtaskToTask(subtask.id)}
-                                className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
-                                title="转为独立任务"
-                              >
-                                <ArrowUpRight size={16} />
-                              </button>
-                              <button 
-                                onClick={() => deleteTask(subtask.id)}
-                                className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                                title="删除子任务"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <form onSubmit={handleAddSubtask} className="flex items-center gap-2 mt-3">
-                      <div className="relative flex-1">
-                        <Plus size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          value={newSubtaskTitle}
-                          onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                          placeholder="添加子任务..."
-                          className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                        />
-                      </div>
-                      <button type="submit" disabled={!newSubtaskTitle.trim()} className="px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-sm">
-                        添加
-                      </button>
-                    </form>
-                  </div>
-                </div>
+                {renderSubtasks()}
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">

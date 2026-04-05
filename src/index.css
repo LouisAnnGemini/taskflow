@@ -49,3 +49,16 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+@keyframes flow {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-flow {
+  animation: flow 2s linear infinite;
+}

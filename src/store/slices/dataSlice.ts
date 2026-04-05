@@ -183,7 +183,8 @@ export const createDataSlice: StateCreator<
     const cleanedTasks = state.tasks.map(task => ({
       ...task,
       relatedTaskIds: (task.relatedTaskIds || []).filter(id => taskIds.has(id)),
-      dependencies: (task.dependencies || []).filter(id => taskIds.has(id))
+      dependencies: (task.dependencies || []).filter(id => taskIds.has(id)),
+      postDependencies: (task.postDependencies || []).filter(id => taskIds.has(id))
     }));
 
     set({

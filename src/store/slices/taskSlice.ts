@@ -45,7 +45,29 @@ export const createTaskSlice: StateCreator<
       progress: taskData.progress !== undefined ? taskData.progress : initialProgress,
     };
 
-    set((state) => ({ tasks: [...state.tasks, newTask] }));
+    set((state) => {
+      let newTasks = [...state.tasks, newTask];
+
+      if (newTask.dependencies && newTask.dependencies.length > 0) {
+        newTasks = newTasks.map(t => {
+          if (newTask.dependencies!.includes(t.id)) {
+            return { ...t, postDependencies: [...new Set([...(t.postDependencies || []), newTask.id])] };
+          }
+          return t;
+        });
+      }
+
+      if (newTask.postDependencies && newTask.postDependencies.length > 0) {
+        newTasks = newTasks.map(t => {
+          if (newTask.postDependencies!.includes(t.id)) {
+            return { ...t, dependencies: [...new Set([...(t.dependencies || []), newTask.id])] };
+          }
+          return t;
+        });
+      }
+
+      return { tasks: newTasks };
+    });
     
     get().addActivityLog({
       taskId: newTask.id,
@@ -76,11 +98,47 @@ export const createTaskSlice: StateCreator<
       }
     }
 
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
+    set((state) => {
+      let newTasks = state.tasks.map((t) =>
         t.id === id ? { ...t, ...finalUpdates, updatedAt: new Date().toISOString() } : t
-      ),
-    }));
+      );
+      
+      if (updates.dependencies !== undefined) {
+        const oldDeps = task.dependencies || [];
+        const newDeps = updates.dependencies || [];
+        const addedDeps = newDeps.filter(d => !oldDeps.includes(d));
+        const removedDeps = oldDeps.filter(d => !newDeps.includes(d));
+        
+        newTasks = newTasks.map(t => {
+          if (addedDeps.includes(t.id)) {
+            return { ...t, postDependencies: [...new Set([...(t.postDependencies || []), id])] };
+          }
+          if (removedDeps.includes(t.id)) {
+            return { ...t, postDependencies: (t.postDependencies || []).filter(d => d !== id) };
+          }
+          return t;
+        });
+      }
+
+      if (updates.postDependencies !== undefined) {
+        const oldPostDeps = task.postDependencies || [];
+        const newPostDeps = updates.postDependencies || [];
+        const addedPostDeps = newPostDeps.filter(d => !oldPostDeps.includes(d));
+        const removedPostDeps = oldPostDeps.filter(d => !newPostDeps.includes(d));
+        
+        newTasks = newTasks.map(t => {
+          if (addedPostDeps.includes(t.id)) {
+            return { ...t, dependencies: [...new Set([...(t.dependencies || []), id])] };
+          }
+          if (removedPostDeps.includes(t.id)) {
+            return { ...t, dependencies: (t.dependencies || []).filter(d => d !== id) };
+          }
+          return t;
+        });
+      }
+
+      return { tasks: newTasks };
+    });
 
     // Log if dates changed
     if (updates.startDate || updates.dueDate) {
@@ -152,10 +210,30 @@ export const createTaskSlice: StateCreator<
         tasks: state.tasks
           .filter((task) => !deletedIds.has(task.id))
           .map(task => {
+            let updated = false;
+            let newRelated = task.relatedTaskIds;
+            let newDeps = task.dependencies;
+            let newPostDeps = task.postDependencies;
+
             if (task.relatedTaskIds && task.relatedTaskIds.some(rid => deletedIds.has(rid))) {
+              newRelated = task.relatedTaskIds.filter(rid => !deletedIds.has(rid));
+              updated = true;
+            }
+            if (task.dependencies && task.dependencies.some(rid => deletedIds.has(rid))) {
+              newDeps = task.dependencies.filter(rid => !deletedIds.has(rid));
+              updated = true;
+            }
+            if (task.postDependencies && task.postDependencies.some(rid => deletedIds.has(rid))) {
+              newPostDeps = task.postDependencies.filter(rid => !deletedIds.has(rid));
+              updated = true;
+            }
+
+            if (updated) {
               return {
                 ...task,
-                relatedTaskIds: task.relatedTaskIds.filter(rid => !deletedIds.has(rid))
+                relatedTaskIds: newRelated,
+                dependencies: newDeps,
+                postDependencies: newPostDeps
               };
             }
             return task;
