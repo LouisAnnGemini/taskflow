@@ -11,7 +11,8 @@ import { zhCN } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 
 export function DashboardView() {
-  const { tasks, currentUser } = useTaskStore();
+  const { tasks: allTasks, currentUser } = useTaskStore();
+  const tasks = allTasks;
 
   const [planViewMode, setPlanViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [planRefDate, setPlanRefDate] = useState(new Date());

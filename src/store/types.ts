@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption, Project, NavItemConfig, TaskUpdate, ProjectUpdate, ModalState, ConfirmationModalConfig } from '../types/task';
+import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption, Project, NavItemConfig, TaskUpdate, ProjectUpdate, ModalState, ConfirmationModalConfig, Habit, LifeCategory } from '../types/task';
 
 export interface TaskSlice {
   tasks: Task[];
@@ -29,12 +29,14 @@ export interface ProjectSlice {
 }
 
 export interface UISlice {
+  systemMode: 'work' | 'life';
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
   searchStateFilter: string | null;
   kanbanProjectFilter: 'all' | 'none';
   kanbanShowSubtasks: boolean;
   highlightedLogId: string | null;
   modalState: ModalState;
+  toggleSystemMode: () => void;
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects') => void;
   setSearchStateFilter: (filter: string | null) => void;
   setKanbanProjectFilter: (filter: 'all' | 'none') => void;
@@ -56,6 +58,8 @@ export interface SettingsSlice {
   customFieldDefinitions: CustomFieldDefinition[];
   fieldOrder: FieldConfig[];
   navItemsConfig: NavItemConfig[];
+  habits: Habit[];
+  lifeCategories: LifeCategory[];
   
   addUser: (user: User) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
@@ -81,6 +85,12 @@ export interface SettingsSlice {
   deleteCustomFieldDefinition: (id: string) => void;
   setFieldOrder: (order: FieldConfig[]) => void;
   setNavItemsConfig: (config: NavItemConfig[]) => void;
+  addHabit: (habit: Habit) => void;
+  updateHabit: (id: string, updates: Partial<Habit>) => void;
+  deleteHabit: (id: string) => void;
+  addLifeCategory: (category: LifeCategory) => void;
+  updateLifeCategory: (id: string, updates: Partial<LifeCategory>) => void;
+  deleteLifeCategory: (id: string) => void;
 }
 
 export interface DataSlice {

@@ -41,6 +41,7 @@ export const createTaskSlice: StateCreator<
       updatedAt: now,
       startDate: taskData.startDate || now,
       customFields: taskData.customFields || {},
+      category: taskData.category || get().systemMode,
       ...taskData,
       progress: taskData.progress !== undefined ? taskData.progress : initialProgress,
     };
@@ -412,6 +413,7 @@ export const createTaskSlice: StateCreator<
         startDate: dateStr,
         dueDate: Math.random() > 0.5 ? new Date(date.getTime() + 86400000 * (Math.floor(Math.random() * 10) + 1)).toISOString() : undefined,
         parentId,
+        category: get().systemMode,
       };
 
       newTasks.push(task);
@@ -476,6 +478,7 @@ export const createTaskSlice: StateCreator<
       createdAt: now,
       updatedAt: now,
       startDate: now,
+      category: get().systemMode,
     };
     
     set((state) => ({ tasks: [...state.tasks, newTask] }));

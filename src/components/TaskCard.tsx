@@ -83,8 +83,10 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
     <div 
       onClick={handleClick}
       className={cn(
-        "bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative",
-        task.isPinned && "border-indigo-200 bg-indigo-50/30",
+        "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative",
+        task.category === 'life' ? "border-emerald-200 bg-emerald-50/10" : "border-slate-200",
+        task.isPinned && task.category !== 'life' && "border-indigo-200 bg-indigo-50/30",
+        task.isPinned && task.category === 'life' && "border-emerald-300 bg-emerald-50/50",
         isSelected && "ring-2 ring-indigo-600 border-indigo-600"
       )}
     >
@@ -107,14 +109,20 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
 
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
-          {column?.icon ? (
-            <span className="text-sm">{column.icon}</span>
+          {task.category === 'life' ? (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-md tracking-tight flex items-center gap-1 bg-emerald-100 text-emerald-700 border border-emerald-200">
+              🌱 生活
+            </span>
           ) : (
-            stateIcons[task.state] || (
-              <div className={`w-3 h-3 rounded-full ${column?.color || 'bg-slate-200'}`} title={column?.title || task.state} />
+            column?.icon ? (
+              <span className="text-sm">{column.icon}</span>
+            ) : (
+              stateIcons[task.state] || (
+                <div className={`w-3 h-3 rounded-full ${column?.color || 'bg-slate-200'}`} title={column?.title || task.state} />
+              )
             )
           )}
-          {priority && (
+          {priority && task.category !== 'life' && (
             <span className={cn(
               "text-xs font-semibold px-2 py-0.5 rounded-md tracking-tight flex items-center gap-1",
               priority.color

@@ -60,6 +60,7 @@ const defaultPositions: PositionOption[] = [];
 const defaultFieldOrder: FieldConfig[] = [
   { id: 'title', name: '标题', isCustom: false, isVisible: true },
   { id: 'description', name: '描述', isCustom: false, isVisible: true },
+  { id: 'category', name: '任务分类', isCustom: false, isVisible: true },
   { id: 'state', name: '状态', isCustom: false, isVisible: true },
   { id: 'priority', name: '优先级', isCustom: false, isVisible: true },
   { id: 'assigneeIds', name: '负责人', isCustom: false, isVisible: true },
@@ -195,14 +196,18 @@ export const useTaskStore = create<TaskStore>()(
         if (state.fieldOrder) {
           const hasPlannedStart = state.fieldOrder.some((f: any) => f.id === 'plannedStartTime');
           const hasPlannedEnd = state.fieldOrder.some((f: any) => f.id === 'plannedEndTime');
+          const hasCategory = state.fieldOrder.some((f: any) => f.id === 'category');
           
-          if (!hasPlannedStart || !hasPlannedEnd) {
+          if (!hasPlannedStart || !hasPlannedEnd || !hasCategory) {
             const newFieldOrder = [...state.fieldOrder];
             if (!hasPlannedStart) {
               newFieldOrder.push({ id: 'plannedStartTime', name: '计划开始时间', isCustom: false, isVisible: true });
             }
             if (!hasPlannedEnd) {
               newFieldOrder.push({ id: 'plannedEndTime', name: '计划结束时间', isCustom: false, isVisible: true });
+            }
+            if (!hasCategory) {
+              newFieldOrder.splice(2, 0, { id: 'category', name: '任务分类', isCustom: false, isVisible: true });
             }
             state.fieldOrder = newFieldOrder;
           }

@@ -73,11 +73,29 @@ export interface Project {
   activeEdges?: string[];
 }
 
+export interface Habit {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  createdAt: string;
+}
+
+export interface LifeCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
 export interface Task {
   id: string;
   title: string;
   description?: string;
   parentId?: string; // For subtasks or branch tasks in projects
+  category?: 'work' | 'life';
+  habitId?: string; // Link to a habit template
+  lifeCategoryId?: string; // Link to a life category
   
   // Project Management
   projectId?: string;

@@ -5,8 +5,9 @@ export const createUISlice: StateCreator<
   TaskStore,
   [['zustand/persist', unknown]],
   [],
-  Pick<TaskStore, 'currentView' | 'searchStateFilter' | 'kanbanProjectFilter' | 'kanbanShowSubtasks' | 'highlightedLogId' | 'modalState' | 'setCurrentView' | 'setSearchStateFilter' | 'setKanbanProjectFilter' | 'setKanbanShowSubtasks' | 'setHighlightedLogId' | 'openTaskModal' | 'openConfirmationModal' | 'closeModal'>
+  Pick<TaskStore, 'systemMode' | 'currentView' | 'searchStateFilter' | 'kanbanProjectFilter' | 'kanbanShowSubtasks' | 'highlightedLogId' | 'modalState' | 'toggleSystemMode' | 'setCurrentView' | 'setSearchStateFilter' | 'setKanbanProjectFilter' | 'setKanbanShowSubtasks' | 'setHighlightedLogId' | 'openTaskModal' | 'openConfirmationModal' | 'closeModal'>
 > = (set) => ({
+  systemMode: 'work',
   currentView: 'kanban',
   searchStateFilter: null,
   kanbanProjectFilter: 'all',
@@ -14,6 +15,7 @@ export const createUISlice: StateCreator<
   highlightedLogId: null,
   modalState: { type: null },
   
+  toggleSystemMode: () => set((state) => ({ systemMode: state.systemMode === 'work' ? 'life' : 'work' })),
   setCurrentView: (view) => set({ currentView: view }),
   setSearchStateFilter: (filter) => set({ searchStateFilter: filter }),
   setKanbanProjectFilter: (filter) => set({ kanbanProjectFilter: filter }),

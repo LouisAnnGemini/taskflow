@@ -5,7 +5,7 @@ export const createSettingsSlice: StateCreator<
   TaskStore,
   [['zustand/persist', unknown]],
   [],
-  Pick<TaskStore, 'users' | 'columns' | 'priorities' | 'mediums' | 'entities' | 'positions' | 'currentUser' | 'customFieldDefinitions' | 'fieldOrder' | 'navItemsConfig' | 'addUser' | 'updateUser' | 'deleteUser' | 'addColumn' | 'updateColumn' | 'deleteColumn' | 'addPriority' | 'updatePriority' | 'deletePriority' | 'addMedium' | 'updateMedium' | 'deleteMedium' | 'setMediums' | 'addEntity' | 'updateEntity' | 'deleteEntity' | 'addPosition' | 'updatePosition' | 'deletePosition' | 'addCustomFieldDefinition' | 'updateCustomFieldDefinition' | 'deleteCustomFieldDefinition' | 'setFieldOrder' | 'setNavItemsConfig'>
+  Pick<TaskStore, 'users' | 'columns' | 'priorities' | 'mediums' | 'entities' | 'positions' | 'currentUser' | 'customFieldDefinitions' | 'fieldOrder' | 'navItemsConfig' | 'habits' | 'lifeCategories' | 'addUser' | 'updateUser' | 'deleteUser' | 'addColumn' | 'updateColumn' | 'deleteColumn' | 'addPriority' | 'updatePriority' | 'deletePriority' | 'addMedium' | 'updateMedium' | 'deleteMedium' | 'setMediums' | 'addEntity' | 'updateEntity' | 'deleteEntity' | 'addPosition' | 'updatePosition' | 'deletePosition' | 'addCustomFieldDefinition' | 'updateCustomFieldDefinition' | 'deleteCustomFieldDefinition' | 'setFieldOrder' | 'setNavItemsConfig' | 'addHabit' | 'updateHabit' | 'deleteHabit' | 'addLifeCategory' | 'updateLifeCategory' | 'deleteLifeCategory'>
 > = (set) => ({
   users: [],
   columns: [],
@@ -17,6 +17,8 @@ export const createSettingsSlice: StateCreator<
   customFieldDefinitions: [],
   fieldOrder: [],
   navItemsConfig: [],
+  habits: [],
+  lifeCategories: [],
   
   addUser: (user) => set((state) => ({ users: [...state.users, user] })),
   updateUser: (id, updates) => set((state) => ({
@@ -85,4 +87,20 @@ export const createSettingsSlice: StateCreator<
   setFieldOrder: (order) => set({ fieldOrder: order }),
   
   setNavItemsConfig: (config) => set({ navItemsConfig: config }),
+  
+  addHabit: (habit) => set((state) => ({ habits: [...state.habits, habit] })),
+  updateHabit: (id, updates) => set((state) => ({
+    habits: state.habits.map(h => h.id === id ? { ...h, ...updates } : h)
+  })),
+  deleteHabit: (id) => set((state) => ({
+    habits: state.habits.filter(h => h.id !== id)
+  })),
+  
+  addLifeCategory: (category) => set((state) => ({ lifeCategories: [...state.lifeCategories, category] })),
+  updateLifeCategory: (id, updates) => set((state) => ({
+    lifeCategories: state.lifeCategories.map(c => c.id === id ? { ...c, ...updates } : c)
+  })),
+  deleteLifeCategory: (id) => set((state) => ({
+    lifeCategories: state.lifeCategories.filter(c => c.id !== id)
+  })),
 });

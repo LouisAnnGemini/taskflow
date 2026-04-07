@@ -6,7 +6,8 @@ import { TaskCard } from '../components/TaskCard';
 import { Eye, EyeOff, Settings2, Check } from 'lucide-react';
 
 export function KanbanView() {
-  const { tasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter, kanbanProjectFilter, setKanbanProjectFilter, kanbanShowSubtasks, setKanbanShowSubtasks } = useTaskStore();
+  const { tasks: allTasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter, kanbanProjectFilter, setKanbanProjectFilter, kanbanShowSubtasks, setKanbanShowSubtasks } = useTaskStore();
+  const tasks = allTasks;
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {

@@ -13,6 +13,8 @@ import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, St
 import { useTaskStore } from './store/useTaskStore';
 import { ProjectView } from './views/ProjectView';
 
+import { LifeWorkspace } from './views/LifeWorkspace';
+
 type ViewType = 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
 
 const NAV_ITEMS = [
@@ -33,7 +35,9 @@ export default function App() {
     checkExpiringTasks,
     currentView,
     setCurrentView,
-    navItemsConfig
+    navItemsConfig,
+    systemMode,
+    toggleSystemMode
   } = useTaskStore();
 
   const visibleNavItems = navItemsConfig
@@ -102,14 +106,22 @@ export default function App() {
     }
   };
 
+  if (systemMode === 'life') {
+    return <LifeWorkspace />;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 md:pb-0 transition-colors duration-500">
       {/* Top Navigation */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+              <div 
+                className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                onDoubleClick={toggleSystemMode}
+                title="双击切换到生活模式"
+              >
                 <span className="text-white font-bold text-lg leading-none">T</span>
               </div>
               <span className="text-xl font-bold tracking-tight text-slate-900">TaskFlow</span>

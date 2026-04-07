@@ -10,10 +10,12 @@ import { format } from 'date-fns';
 import { MultiSelect } from '../components/MultiSelect';
 
 export function SearchView() {
-  const { tasks, users, projects, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions, searchStateFilter, setSearchStateFilter } = useTaskStore();
+  const { tasks: allTasks, users, projects, columns, priorities, mediums, entities, updateTasks, deleteTask, customFieldDefinitions, searchStateFilter, setSearchStateFilter } = useTaskStore();
+  const tasks = allTasks;
   
   const searchContainerRef = React.useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
@@ -26,6 +28,7 @@ export function SearchView() {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [progressRange, setProgressRange] = useState({ min: '', max: '' });
   const [negatedFilters, setNegatedFilters] = useState<Record<string, boolean>>({
+    category: false,
     creator: false,
     assignee: false,
     reporter: false,
@@ -66,6 +69,12 @@ export function SearchView() {
         const matchesTitle = task.title.toLowerCase().includes(query);
         const matchesDesc = task.description?.toLowerCase().includes(query);
         if (!matchesTitle && !matchesDesc) return false;
+      }
+
+      // Category filter
+      if (selectedCategories.length > 0) {
+        const matches = selectedCategories.includes(task.category);
+        if (negatedFilters.category ? matches : !matches) return false;
       }
 
       // Date range filter
@@ -193,10 +202,11 @@ export function SearchView() {
       }
       return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
     });
-  }, [tasks, searchQuery, selectedCreators, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedStates, selectedPriorities, selectedMediums, selectedCustomFields, dateRange, progressRange, negatedFilters, negatedCustomFields, customFieldDefinitions]);
+  }, [tasks, searchQuery, selectedCategories, selectedCreators, selectedAssignees, selectedReporters, selectedDelegationStatus, selectedStates, selectedPriorities, selectedMediums, selectedCustomFields, dateRange, progressRange, negatedFilters, negatedCustomFields, customFieldDefinitions]);
 
   const clearFilters = () => {
     setSearchQuery('');
+    setSelectedCategories([]);
     setSelectedCreators([]);
     setSelectedAssignees([]);
     setSelectedReporters([]);
@@ -209,6 +219,7 @@ export function SearchView() {
     setDateRange({ start: '', end: '' });
     setProgressRange({ min: '', max: '' });
     setNegatedFilters({
+      category: false,
       creator: false,
       assignee: false,
       reporter: false,
@@ -222,6 +233,7 @@ export function SearchView() {
   };
 
   const activeFilterCount = [
+    selectedCategories.length > 0,
     selectedCreators.length > 0,
     selectedAssignees.length > 0,
     selectedReporters.length > 0,
@@ -233,6 +245,7 @@ export function SearchView() {
     Object.values(selectedCustomFields).some((v: any) => v.length > 0),
     dateRange.start !== '' || dateRange.end !== '',
     progressRange.min !== '' || progressRange.max !== '',
+    (selectedCategories.length > 0 && negatedFilters.category),
     (selectedCreators.length > 0 && negatedFilters.creator),
     (selectedAssignees.length > 0 && negatedFilters.assignee),
     (selectedReporters.length > 0 && negatedFilters.reporter),
@@ -330,6 +343,12 @@ export function SearchView() {
     }))
   ];
 
+  const categoryOptions = [
+    { id: 'work', name: '工作任务', icon: <span>💼</span> },
+    { id: 'personal', name: '个人任务', icon: <span>👤</span> },
+    { id: 'life', name: '生活任务', icon: <span>🌱</span> }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto relative pb-20" ref={searchContainerRef}>
       {/* Search and Filter Header */}
@@ -362,6 +381,21 @@ export function SearchView() {
                 {activeFilterCount}
               </span>
             )}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <MultiSelect
+              options={categoryOptions}
+              selectedIds={selectedCategories}
+              isExclude={negatedFilters.category}
+              showExcludeOption
+              onChange={(ids, isExclude) => {
+                setSelectedCategories(ids);
+                setNegatedFilters(prev => ({ ...prev, category: isExclude || false }));
+              }}
+              placeholder="所有分类"
+              className="w-40"
+            />
           </div>
 
           <div className="flex flex-col gap-1">

@@ -523,6 +523,21 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
     // Built-in fields
     switch (config.id) {
+      case 'category':
+        return (
+          <div key={config.id} className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">任务分类</label>
+            <select
+              value={task.category || 'work'}
+              onChange={(e) => handleUpdate({ category: e.target.value as any })}
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            >
+              <option value="work">💼 工作任务</option>
+              <option value="personal">👤 个人任务</option>
+              <option value="life">🌱 生活任务</option>
+            </select>
+          </div>
+        );
       case 'state':
         return (
           <div key={config.id} className="space-y-2">
@@ -1290,7 +1305,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     {relatedTaskSearchQuery && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-50">
                         {useTaskStore.getState().tasks
-                          .filter(t => t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
+                          .filter(t => t.category !== 'life' && t.id !== task.id && t.title.toLowerCase().includes(relatedTaskSearchQuery.toLowerCase()) && !(task.relatedTaskIds || []).includes(t.id))
                           .map(t => (
                             <button
                               key={t.id}

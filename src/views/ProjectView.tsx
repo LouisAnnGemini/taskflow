@@ -8,7 +8,8 @@ import { nanoid } from 'nanoid';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export function ProjectView() {
-  const { projects, tasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, openTaskModal, toggleProjectEdge } = useTaskStore();
+  const { projects, tasks: allTasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, openTaskModal, toggleProjectEdge } = useTaskStore();
+  const tasks = allTasks;
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>(projects.length > 0 ? 'grid' : 'grid');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
