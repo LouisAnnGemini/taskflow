@@ -130,6 +130,7 @@ export default function App() {
       case 'syncing': return <Loader2 size={16} className="text-amber-500 animate-spin" />;
       case 'error': return <AlertCircle size={16} className="text-red-500" />;
       case 'disabled': return <CloudOff size={16} className="text-slate-400" />;
+      case 'unsynced': return <CloudUpload size={16} className="text-amber-500" />;
     }
   };
 
@@ -139,8 +140,28 @@ export default function App() {
       case 'syncing': return '同步中...';
       case 'error': return '同步失败';
       case 'disabled': return '未开启';
+      case 'unsynced': return '有未同步更改';
     }
   };
+
+  React.useEffect(() => {
+    if (!isSyncEnabled || syncStatus === 'syncing' || syncStatus === 'error') return;
+
+    const checkSync = () => {
+      const lastSync = useTaskStore.getState().lastCloudSyncTimestamp;
+      const localUpdatedStr = localStorage.getItem('task-storage-updated-at');
+      const localUpdated = localUpdatedStr ? new Date(localUpdatedStr).getTime() : 0;
+      
+      if (lastSync && localUpdated > lastSync) {
+        if (syncStatus !== 'unsynced') setSyncStatus('unsynced');
+      } else if (syncStatus === 'unsynced') {
+        setSyncStatus('synced');
+      }
+    };
+
+    const interval = setInterval(checkSync, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [isSyncEnabled, syncStatus, setSyncStatus]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 md:pb-0 transition-colors duration-500">

@@ -30,7 +30,7 @@ export interface ProjectSlice {
 
 export interface UISlice {
   systemMode: 'work' | 'life';
-  syncStatus: 'synced' | 'syncing' | 'error' | 'disabled';
+  syncStatus: 'synced' | 'syncing' | 'error' | 'disabled' | 'unsynced';
   isSyncEnabled: boolean;
   currentView: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects';
   searchStateFilter: string | null;
@@ -39,7 +39,7 @@ export interface UISlice {
   highlightedLogId: string | null;
   modalState: ModalState;
   toggleSystemMode: () => void;
-  setSyncStatus: (status: 'synced' | 'syncing' | 'error' | 'disabled') => void;
+  setSyncStatus: (status: 'synced' | 'syncing' | 'error' | 'disabled' | 'unsynced') => void;
   toggleSync: () => void;
   setCurrentView: (view: 'dashboard' | 'kanban' | 'calendar' | 'memos' | 'search' | 'settings' | 'projects') => void;
   setSearchStateFilter: (filter: string | null) => void;
