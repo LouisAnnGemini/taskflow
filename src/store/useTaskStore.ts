@@ -175,7 +175,16 @@ export const useTaskStore = create<TaskStore>()(
       storage: createJSONStorage(() => customStorage),
       version: 3,
       partialize: (state) => {
-        const { modalState, ...rest } = state;
+        const { 
+          modalState, 
+          systemMode, 
+          currentView, 
+          searchStateFilter, 
+          kanbanProjectFilter, 
+          kanbanShowSubtasks, 
+          highlightedLogId, 
+          ...rest 
+        } = state;
         return rest;
       },
       migrate: (persistedState: any, version: number) => {
