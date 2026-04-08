@@ -9,7 +9,7 @@ import { WeeklyPlanView } from '../components/WeeklyPlanView';
 
 export function CalendarView() {
   const { tasks: allTasks, activityLogs, openTaskModal, addTask, currentUser, setHighlightedLogId } = useTaskStore();
-  const tasks = allTasks;
+  const tasks = allTasks.filter(t => t.category !== 'life');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [mode, setMode] = useState<'record' | 'plan'>('record');

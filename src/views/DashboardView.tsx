@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 
 export function DashboardView() {
   const { tasks: allTasks, currentUser } = useTaskStore();
-  const tasks = allTasks;
+  const tasks = allTasks.filter(t => t.category !== 'life');
 
   const [planViewMode, setPlanViewMode] = useState<'day' | 'week' | 'month'>('day');
   const [planRefDate, setPlanRefDate] = useState(new Date());

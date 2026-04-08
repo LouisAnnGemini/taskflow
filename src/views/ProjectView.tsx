@@ -9,7 +9,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 
 export function ProjectView() {
   const { projects, tasks: allTasks, addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, openTaskModal, toggleProjectEdge } = useTaskStore();
-  const tasks = allTasks;
+  const tasks = allTasks.filter(t => t.category !== 'life');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>(projects.length > 0 ? 'grid' : 'grid');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
