@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Task, TaskState, ActivityLog } from '../types/task';
 import { useTaskStore } from '../store/useTaskStore';
 import { getUserDisplayName } from '../utils/user';
-import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight, Copy, GitBranch } from 'lucide-react';
+import { X, Calendar, User, Tag, AlignLeft, ListTree, Activity, Clock, Trash2, Settings2, Check, RotateCcw, Edit3, Search, Plus, ArrowUpRight, Copy, GitBranch, Eye } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { TaskCard } from './TaskCard';
@@ -144,6 +144,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   {subtask.title}
                 </span>
                 <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
+                  <button 
+                    onClick={() => openTaskModal(subtask.id)}
+                    className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="查看详情"
+                  >
+                    <Eye size={16} />
+                  </button>
                   <button 
                     onClick={() => convertSubtaskToTask(subtask.id)}
                     className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
