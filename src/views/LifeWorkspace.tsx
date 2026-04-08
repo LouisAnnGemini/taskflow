@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useTaskStore } from '../store/useTaskStore';
 import { CheckCircle2, Circle, Plus, Calendar as CalendarIcon, Flame, Settings2, X, Trash2, BarChart2, Tag, Edit2, Check, ChevronLeft, ChevronRight, CalendarDays, AlertCircle, ArrowRight } from 'lucide-react';
 import { format, isSameDay, subDays, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isBefore, startOfDay, isSameMonth, subMonths, addMonths } from 'date-fns';
@@ -8,7 +8,7 @@ import { Habit } from '../types/task';
 
 export function LifeWorkspace() {
   const { tasks, habits, lifeCategories, addTask, updateTask, deleteTask, addHabit, deleteHabit, addLifeCategory, deleteLifeCategory, updateLifeCategory, toggleSystemMode } = useTaskStore();
-  const [activeTab, setActiveTab] = useState<'habits' | 'tasks' | 'calendar' | 'categories'>('habits');
+  const [activeTab, setActiveTab] = useState<'habits' | 'tasks' | 'calendar' | 'categories'>('tasks');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isManagingHabits, setIsManagingHabits] = useState(false);
@@ -33,28 +33,33 @@ export function LifeWorkspace() {
     amber: 'bg-amber-500',
   };
 
-  const lifeTasks = tasks.filter(t => t.category === 'life');
-  const todos = lifeTasks.filter(t => {
-    if (t.habitId) return false;
-    const taskDate = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
-    return isSameDay(taskDate, selectedDate);
-  });
-  
-  const today = new Date();
-  const isViewingToday = isSameDay(selectedDate, today);
-  
-  const overdueTodos = lifeTasks.filter(t => {
-    if (t.habitId) return false;
-    if (t.state === 'done') return false;
-    const taskDate = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
-    return isBefore(startOfDay(taskDate), startOfDay(today));
-  });
+  const { lifeTasks, todos, overdueTodos, calendarDays, today } = useMemo(() => {
+    const lifeTasks = tasks.filter(t => t.category === 'life');
+    const today = new Date();
+    
+    const todos = lifeTasks.filter(t => {
+      if (t.habitId) return false;
+      const taskDate = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
+      return isSameDay(taskDate, selectedDate);
+    });
+    
+    const overdueTodos = lifeTasks.filter(t => {
+      if (t.habitId) return false;
+      if (t.state === 'done') return false;
+      const taskDate = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
+      return isBefore(startOfDay(taskDate), startOfDay(today));
+    });
 
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+    return { lifeTasks, todos, overdueTodos, calendarDays, today };
+  }, [tasks, selectedDate, currentMonth]);
+
+  const isViewingToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
 
   const getHabitTaskForDate = (habitId: string, date: Date) => {
     return lifeTasks.find(t => 
@@ -166,16 +171,16 @@ export function LifeWorkspace() {
           
           <div className="flex bg-orange-100/50 p-1 rounded-xl">
             <button
-              onClick={() => setActiveTab('habits')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'habits' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              习惯
-            </button>
-            <button
               onClick={() => setActiveTab('tasks')}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'tasks' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               清单
+            </button>
+            <button
+              onClick={() => setActiveTab('habits')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'habits' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              习惯
             </button>
             <button
               onClick={() => setActiveTab('calendar')}

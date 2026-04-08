@@ -89,6 +89,25 @@ export default function App() {
     };
   }, [checkExpiringTasks, addToast, setSyncStatus]);
 
+  React.useEffect(() => {
+    if (!isSyncEnabled || syncStatus === 'syncing' || syncStatus === 'error') return;
+
+    const checkSync = () => {
+      const lastSync = useTaskStore.getState().lastCloudSyncTimestamp;
+      const localUpdatedStr = localStorage.getItem('task-storage-updated-at');
+      const localUpdated = localUpdatedStr ? new Date(localUpdatedStr).getTime() : 0;
+      
+      if (lastSync && localUpdated > lastSync) {
+        if (syncStatus !== 'unsynced') setSyncStatus('unsynced');
+      } else if (syncStatus === 'unsynced') {
+        setSyncStatus('synced');
+      }
+    };
+
+    const interval = setInterval(checkSync, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [isSyncEnabled, syncStatus, setSyncStatus]);
+
   const handleManualSync = async () => {
     if (!isSyncEnabled) return;
     setIsSyncing(true);
@@ -120,10 +139,6 @@ export default function App() {
     }
   };
 
-  if (systemMode === 'life') {
-    return <LifeWorkspace />;
-  }
-
   const getSyncStatusIcon = () => {
     switch (syncStatus) {
       case 'synced': return <CheckCircle2 size={16} className="text-emerald-500" />;
@@ -144,24 +159,9 @@ export default function App() {
     }
   };
 
-  React.useEffect(() => {
-    if (!isSyncEnabled || syncStatus === 'syncing' || syncStatus === 'error') return;
-
-    const checkSync = () => {
-      const lastSync = useTaskStore.getState().lastCloudSyncTimestamp;
-      const localUpdatedStr = localStorage.getItem('task-storage-updated-at');
-      const localUpdated = localUpdatedStr ? new Date(localUpdatedStr).getTime() : 0;
-      
-      if (lastSync && localUpdated > lastSync) {
-        if (syncStatus !== 'unsynced') setSyncStatus('unsynced');
-      } else if (syncStatus === 'unsynced') {
-        setSyncStatus('synced');
-      }
-    };
-
-    const interval = setInterval(checkSync, 5000); // Check every 5 seconds
-    return () => clearInterval(interval);
-  }, [isSyncEnabled, syncStatus, setSyncStatus]);
+  if (systemMode === 'life') {
+    return <LifeWorkspace />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 md:pb-0 transition-colors duration-500">
