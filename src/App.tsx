@@ -9,7 +9,8 @@ import { SettingsView } from './views/SettingsView';
 import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2, GitMerge } from 'lucide-react';
+import { ToastContainer, useToast } from './components/Toast';
+import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2, GitMerge, CheckCircle2, AlertCircle, CloudOff } from 'lucide-react';
 import { useTaskStore } from './store/useTaskStore';
 import { ProjectView } from './views/ProjectView';
 
@@ -37,8 +38,12 @@ export default function App() {
     setCurrentView,
     navItemsConfig,
     systemMode,
-    toggleSystemMode
+    toggleSystemMode,
+    syncStatus,
+    isSyncEnabled,
+    setSyncStatus
   } = useTaskStore();
+  const { toasts, addToast } = useToast();
 
   const visibleNavItems = navItemsConfig
     .filter(config => config.isVisible)
@@ -53,6 +58,8 @@ export default function App() {
       if (remoteState && remoteState.state) {
         // Zustand persist wraps the state in { state: { ... }, version: 0 }
         useTaskStore.setState(remoteState.state);
+        addToast('云端数据已同步', 'success');
+        setSyncStatus('synced');
       }
     };
 
@@ -80,12 +87,19 @@ export default function App() {
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [checkExpiringTasks]);
+  }, [checkExpiringTasks, addToast, setSyncStatus]);
 
   const handleManualSync = async () => {
+    if (!isSyncEnabled) return;
     setIsSyncing(true);
+    setSyncStatus('syncing');
     try {
       await useTaskStore.getState().saveVersionToCloud();
+      addToast('同步成功', 'success');
+      setSyncStatus('synced');
+    } catch (error) {
+      addToast('同步失败', 'error');
+      setSyncStatus('error');
     } finally {
       setIsSyncing(false);
     }
@@ -110,8 +124,27 @@ export default function App() {
     return <LifeWorkspace />;
   }
 
+  const getSyncStatusIcon = () => {
+    switch (syncStatus) {
+      case 'synced': return <CheckCircle2 size={16} className="text-emerald-500" />;
+      case 'syncing': return <Loader2 size={16} className="text-amber-500 animate-spin" />;
+      case 'error': return <AlertCircle size={16} className="text-red-500" />;
+      case 'disabled': return <CloudOff size={16} className="text-slate-400" />;
+    }
+  };
+
+  const getSyncStatusText = () => {
+    switch (syncStatus) {
+      case 'synced': return '已同步';
+      case 'syncing': return '同步中...';
+      case 'error': return '同步失败';
+      case 'disabled': return '未开启';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 md:pb-0 transition-colors duration-500">
+      <ToastContainer toasts={toasts} />
       {/* Top Navigation */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -146,10 +179,16 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                {getSyncStatusIcon()}
+                {getSyncStatusText()}
+              </div>
+            </div>
             <button
               onClick={handleManualSync}
-              disabled={isSyncing}
-              className="p-2 rounded-lg transition-colors text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              disabled={isSyncing || !isSyncEnabled}
+              className="p-2 rounded-lg transition-colors text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               title="手动同步到云端"
             >
               {isSyncing ? <Loader2 size={20} className="animate-spin" /> : <CloudUpload size={20} />}
@@ -187,6 +226,7 @@ export default function App() {
           </div>
         </div>
       </header>
+
 
       {/* Main Content */}
       <main className={`flex-1 mx-auto w-full ${currentView === 'projects' ? 'px-0 py-0 md:px-6 md:py-8' : 'px-4 sm:px-6 lg:px-8 py-4 md:py-8'} ${currentView === 'kanban' || currentView === 'calendar' || currentView === 'projects' ? 'max-w-none' : 'max-w-7xl'}`}>

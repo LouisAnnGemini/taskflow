@@ -2023,6 +2023,17 @@ export function SettingsView() {
       <section id="cloud-sync" className="scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-slate-800">云端同步 (Supabase)</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-600">
+              {useTaskStore.getState().isSyncEnabled ? '同步已开启' : '同步已关闭'}
+            </span>
+            <button
+              onClick={useTaskStore.getState().toggleSync}
+              className={`w-12 h-6 rounded-full transition-colors ${useTaskStore.getState().isSyncEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${useTaskStore.getState().isSyncEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+            </button>
+          </div>
         </div>
         
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
