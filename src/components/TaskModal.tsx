@@ -808,7 +808,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               <Clock size={16} className="text-slate-400" />
               <input 
                 type="datetime-local" 
-                value={task[config.id] ? (task[config.id] as string).slice(0, 16) : ''}
+                value={task[config.id] ? format(new Date(task[config.id] as string), "yyyy-MM-dd'T'HH:mm") : ''}
                 onChange={(e) => handleUpdate({ [config.id]: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
                 className="flex-1 border-none p-0 text-sm focus:ring-0 text-slate-700 font-medium data-value outline-none"
               />
