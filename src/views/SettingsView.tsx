@@ -214,7 +214,7 @@ export function SettingsView() {
         throw error;
       }
 
-      const localTs = localStorage.getItem('taskflow-storage-updated-at');
+      const localTs = localStorage.getItem('task-storage-updated-at');
       
       setSyncStatus({
         isChecking: false,
@@ -246,7 +246,7 @@ export function SettingsView() {
       const supabase = getSupabaseClient(state.supabaseConfig.url, state.supabaseConfig.anonKey);
       if (!supabase) throw new Error('No Supabase client');
 
-      const stateStr = localStorage.getItem('taskflow-storage');
+      const stateStr = localStorage.getItem('task-storage');
       if (stateStr) {
         const parsedValue = JSON.parse(stateStr);
         await supabase

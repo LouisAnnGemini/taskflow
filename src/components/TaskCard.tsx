@@ -211,16 +211,6 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
         </div>
 
         <div className="flex items-center gap-2">
-          {(task.dependencies?.length || 0) > 0 && (
-            <div className="flex items-center gap-1 text-xs text-indigo-400" title="前置任务">
-              <GitBranch size={12} className="rotate-90" /> {task.dependencies?.length}
-            </div>
-          )}
-          {(task.postDependencies?.length || 0) > 0 && (
-            <div className="flex items-center gap-1 text-xs text-amber-400" title="后置任务">
-              <GitBranch size={12} className="-rotate-90" /> {task.postDependencies?.length}
-            </div>
-          )}
           {(task.relatedTaskIds?.length || 0) > 0 && (
             <div className="flex items-center gap-1 text-xs text-slate-400">
               <Link size={12} /> {task.relatedTaskIds?.length}
