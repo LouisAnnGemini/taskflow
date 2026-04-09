@@ -17,7 +17,8 @@ import {
   PauseCircle,
   UserPlus,
   Link,
-  GitBranch
+  GitBranch,
+  Folder
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../utils/cn';
@@ -49,11 +50,12 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: TaskCardProps) {
-  const { users, columns, priorities, mediums, entities, tasks, openTaskModal, changeTaskState, currentUser, updateTask } = useTaskStore();
+  const { users, columns, priorities, mediums, entities, tasks, projects, openTaskModal, changeTaskState, currentUser, updateTask } = useTaskStore();
   const assignees = users.filter(u => task.assigneeIds.includes(u.id));
   const reporters = users.filter(u => task.reporterIds?.includes(u.id));
   const column = columns.find(c => c.id === task.state);
   const parentTask = task.parentId ? tasks.find(t => t.id === task.parentId) : null;
+  const project = task.projectId ? projects.find(p => p.id === task.projectId) : null;
   
   const priority = priorities.find(p => p.id === task.priority);
 
@@ -83,13 +85,24 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
     <div 
       onClick={handleClick}
       className={cn(
-        "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative",
+        "bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative overflow-hidden",
         task.category === 'life' ? "border-emerald-200 bg-emerald-50/10" : "border-slate-200",
         task.isPinned && task.category !== 'life' && "border-indigo-200 bg-indigo-50/30",
         task.isPinned && task.category === 'life' && "border-emerald-300 bg-emerald-50/50",
         isSelected && "ring-2 ring-indigo-600 border-indigo-600"
       )}
     >
+      {project && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden opacity-[0.12]">
+          <div 
+            className="text-4xl font-black tracking-widest -rotate-12 whitespace-nowrap select-none"
+            style={{ color: project.color }}
+          >
+            {project.name}
+          </div>
+        </div>
+      )}
+
       {selectable && (
         <div 
           className="absolute top-4 right-4 z-10"
@@ -107,7 +120,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
         </div>
       )}
 
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start mb-3 relative z-10">
         <div className="flex items-center gap-2">
           {task.category === 'life' ? (
             <span className="text-xs font-bold px-2 py-0.5 rounded-md tracking-tight flex items-center gap-1 bg-emerald-100 text-emerald-700 border border-emerald-200">
@@ -156,21 +169,23 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
       </div>
 
       {parentTask && (
-        <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium mb-2 bg-indigo-50 w-fit px-2 py-0.5 rounded-md">
-          <GitBranch size={12} />
-          <span className="truncate max-w-[150px]">{parentTask.title}</span>
+        <div className="flex flex-wrap items-center gap-2 mb-2.5 relative z-10">
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium bg-slate-50 border border-slate-200 px-2 py-1 rounded-md">
+            <GitBranch size={12} className="text-slate-400" />
+            <span className="truncate max-w-[150px]">{parentTask.title}</span>
+          </div>
         </div>
       )}
 
       <h3 className={cn(
-        "font-semibold text-slate-900 mb-2 leading-tight text-[15px]",
+        "font-semibold text-slate-900 mb-2 leading-tight text-[15px] relative z-10",
         task.state === 'done' && "line-through text-slate-400"
       )}>
         {task.title}
       </h3>
 
       {task.progress > 0 && task.progress < 100 && (
-        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
+        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4 relative z-10">
           <div 
             className="bg-indigo-600 h-1.5 rounded-full transition-all" 
             style={{ width: `${task.progress}%` }}
@@ -178,7 +193,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50 relative z-10">
         <div className="flex gap-1.5">
           {task.mediumTags.map(tagId => {
             const medium = mediums.find(m => m.id === tagId);
