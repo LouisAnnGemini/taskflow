@@ -389,7 +389,7 @@ export function ProjectView() {
 
       // Process sub-branches (children)
       const children = branchTasks.filter(t => t.parentId === task.id);
-      children.forEach((child, i) => processBranch(child, x, y, i % 2 === 0 ? 1 : -1));
+      children.forEach((child) => processBranch(child, x, y, preferredYDir));
 
       // Process sequence (successors)
       const nextInSequence = branchTasks.filter(t => t.dependencies?.includes(task.id));
