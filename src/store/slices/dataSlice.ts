@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { TaskStore } from '../types';
-import { ActivityLog, Notification, Memo } from '../../types/task';
+import { ActivityLog, Notification, MemoSession, MemoMessage } from '../../types/task';
 import { nanoid } from 'nanoid';
 import { getSupabaseClient } from '../../lib/supabase';
 
@@ -10,11 +10,41 @@ export const createDataSlice: StateCreator<
   TaskStore,
   [['zustand/persist', unknown]],
   [],
-  Pick<TaskStore, 'activityLogs' | 'notifications' | 'memos' | 'supabaseConfig' | 'lastCloudSyncTimestamp' | 'addActivityLog' | 'updateActivityLog' | 'deleteActivityLog' | 'setActivityLogs' | 'addNotification' | 'markNotificationAsRead' | 'markAllNotificationsAsRead' | 'clearNotifications' | 'addMemo' | 'updateMemo' | 'deleteMemo' | 'setSupabaseConfig' | 'saveVersionToCloud' | 'fetchVersions' | 'restoreVersion' | 'compressDatabase' | 'setAllData' | 'mergeData' | 'exportAndDeleteByDateRange'>
+  Pick<TaskStore, 'activityLogs' | 'notifications' | 'currentSessionMessages' | 'currentDraftId' | 'savedDrafts' | 'memos' | 'migrateMemos' | 'supabaseConfig' | 'lastCloudSyncTimestamp' | 'addActivityLog' | 'updateActivityLog' | 'deleteActivityLog' | 'setActivityLogs' | 'addNotification' | 'markNotificationAsRead' | 'markAllNotificationsAsRead' | 'clearNotifications' | 'addMemoMessage' | 'updateMemoMessage' | 'deleteMemoMessage' | 'saveMemoDraft' | 'updateMemoDraft' | 'loadMemoDraft' | 'clearMemoSession' | 'deleteMemoDraft' | 'renameMemoDraft' | 'openDailyQuickMemo' | 'setSupabaseConfig' | 'saveVersionToCloud' | 'fetchVersions' | 'restoreVersion' | 'compressDatabase' | 'setAllData' | 'mergeData' | 'exportAndDeleteByDateRange'>
 > = (set, get) => ({
   activityLogs: [],
   notifications: [],
+  
+  // Memo Session State
+  currentSessionMessages: [],
+  currentDraftId: null,
+  savedDrafts: [],
+  
+  // Backward compatibility
   memos: [],
+  migrateMemos: () => {
+    const state = get() as any;
+    if (state.memos && state.memos.length > 0) {
+      const oldMemos = state.memos;
+      const migratedSession: MemoSession = {
+        id: nanoid(),
+        title: '历史备忘录 (已迁移)',
+        messages: oldMemos.map((m: any) => ({
+          id: m.id || nanoid(),
+          content: m.content,
+          timestamp: m.createdAt || new Date().toISOString(),
+          mentions: []
+        })).sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+        updatedAt: new Date().toISOString()
+      };
+      
+      set((s: any) => ({
+        savedDrafts: [migratedSession, ...s.savedDrafts],
+        memos: []
+      }));
+    }
+  },
+  
   supabaseConfig: { url: '', anonKey: '' },
   lastCloudSyncTimestamp: null,
   
@@ -51,21 +81,127 @@ export const createDataSlice: StateCreator<
   })),
   clearNotifications: () => set({ notifications: [] }),
   
-  addMemo: (content) => {
-    const newMemo: Memo = {
+  addMemoMessage: (content, index, mentions) => {
+    const newMessage: MemoMessage = {
       id: nanoid(),
       content,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      mentions,
     };
-    set((state) => ({ memos: [newMemo, ...state.memos] }));
+    set((state) => {
+      const newMessages = [...state.currentSessionMessages];
+      if (index !== undefined && index >= 0 && index <= newMessages.length) {
+        newMessages.splice(index, 0, newMessage);
+      } else {
+        newMessages.push(newMessage);
+      }
+      return { currentSessionMessages: newMessages };
+    });
   },
-  updateMemo: (id, content) => set((state) => ({
-    memos: state.memos.map(m => m.id === id ? { ...m, content, updatedAt: new Date().toISOString() } : m)
+  updateMemoMessage: (id, content, mentions) => set((state) => ({
+    currentSessionMessages: state.currentSessionMessages.map(m => 
+      m.id === id ? { ...m, content, mentions: mentions || m.mentions } : m
+    )
   })),
-  deleteMemo: (id) => set((state) => ({
-    memos: state.memos.filter(m => m.id !== id)
+  deleteMemoMessage: (id) => set((state) => ({
+    currentSessionMessages: state.currentSessionMessages.filter(m => m.id !== id)
   })),
+  saveMemoDraft: (title) => {
+    set((state) => {
+      if (state.currentSessionMessages.length === 0) return state;
+      const newDraft: MemoSession = {
+        id: nanoid(),
+        title: title || `Draft - ${new Date().toLocaleString()}`,
+        messages: [...state.currentSessionMessages],
+        updatedAt: new Date().toISOString(),
+      };
+      return {
+        savedDrafts: [newDraft, ...state.savedDrafts],
+        currentDraftId: newDraft.id,
+      };
+    });
+  },
+  updateMemoDraft: () => {
+    set((state) => {
+      if (!state.currentDraftId || state.currentSessionMessages.length === 0) return state;
+      return {
+        savedDrafts: state.savedDrafts.map(draft => 
+          draft.id === state.currentDraftId 
+            ? { ...draft, messages: [...state.currentSessionMessages], updatedAt: new Date().toISOString() }
+            : draft
+        )
+      };
+    });
+  },
+  loadMemoDraft: (draftId) => {
+    set((state) => {
+      const draft = state.savedDrafts.find(d => d.id === draftId);
+      if (!draft) return state;
+      return {
+        currentSessionMessages: [...draft.messages],
+        currentDraftId: draft.id,
+      };
+    });
+  },
+  clearMemoSession: () => set({ currentSessionMessages: [], currentDraftId: null }),
+  deleteMemoDraft: (draftId) => set((state) => ({
+    savedDrafts: state.savedDrafts.filter(d => d.id !== draftId),
+    currentDraftId: state.currentDraftId === draftId ? null : state.currentDraftId,
+    currentSessionMessages: state.currentDraftId === draftId ? [] : state.currentSessionMessages,
+  })),
+  renameMemoDraft: (draftId, newTitle) => set((state) => ({
+    savedDrafts: state.savedDrafts.map(d => d.id === draftId ? { ...d, title: newTitle } : d)
+  })),
+  openDailyQuickMemo: () => {
+    const state = get() as TaskStore;
+    const today = new Date().toISOString().split('T')[0];
+    const dailyTitle = `快捷记录 - ${today}`;
+
+    // If already on the daily memo, just ensure it's saved/synced
+    const currentDraft = state.savedDrafts.find(d => d.id === state.currentDraftId);
+    if (currentDraft && currentDraft.title === dailyTitle) {
+      return;
+    }
+
+    let drafts = [...state.savedDrafts];
+
+    // Auto-save current if it's not empty
+    if (state.currentSessionMessages.length > 0) {
+      if (state.currentDraftId) {
+        drafts = drafts.map(d => d.id === state.currentDraftId ? { ...d, messages: [...state.currentSessionMessages], updatedAt: new Date().toISOString() } : d);
+      } else {
+        const newDraft = {
+          id: nanoid(),
+          title: `Draft - ${new Date().toLocaleString()}`,
+          messages: [...state.currentSessionMessages],
+          updatedAt: new Date().toISOString(),
+        };
+        drafts = [newDraft, ...drafts];
+      }
+    }
+
+    const existingDraft = drafts.find(d => d.title === dailyTitle);
+
+    if (existingDraft) {
+      set({
+        savedDrafts: drafts,
+        currentDraftId: existingDraft.id,
+        currentSessionMessages: [...existingDraft.messages]
+      });
+    } else {
+      const newDailyDraft = {
+        id: nanoid(),
+        title: dailyTitle,
+        messages: [],
+        updatedAt: new Date().toISOString(),
+      };
+      set({
+        savedDrafts: [newDailyDraft, ...drafts],
+        currentDraftId: newDailyDraft.id,
+        currentSessionMessages: []
+      });
+    }
+  },
   
   setSupabaseConfig: (config) => set({ supabaseConfig: config }),
   
@@ -216,7 +352,7 @@ export const createDataSlice: StateCreator<
       activityLogs: mergeArray(state.activityLogs, data.activityLogs),
       notifications: mergeArray(state.notifications, data.notifications),
       customFieldDefinitions: mergeArray(state.customFieldDefinitions, data.customFieldDefinitions),
-      memos: mergeArray(state.memos, data.memos),
+      savedDrafts: mergeArray(state.savedDrafts, data.savedDrafts),
       fieldOrder: data.fieldOrder || state.fieldOrder,
     };
   }),
@@ -236,7 +372,7 @@ export const createDataSlice: StateCreator<
       tasks: state.tasks.filter(t => isWithinRange(t.createdAt)),
       activityLogs: state.activityLogs.filter(l => isWithinRange(l.timestamp)),
       notifications: state.notifications.filter(n => isWithinRange(n.timestamp)),
-      memos: state.memos.filter(m => isWithinRange(m.createdAt)),
+      savedDrafts: state.savedDrafts.filter(m => isWithinRange(m.updatedAt)),
       projects: state.projects.filter(p => isWithinRange(p.createdAt)),
       users: state.users,
       columns: state.columns,
@@ -254,7 +390,7 @@ export const createDataSlice: StateCreator<
       tasks: state.tasks.filter(t => !isWithinRange(t.createdAt)),
       activityLogs: state.activityLogs.filter(l => !isWithinRange(l.timestamp)),
       notifications: state.notifications.filter(n => !isWithinRange(n.timestamp)),
-      memos: state.memos.filter(m => !isWithinRange(m.createdAt)),
+      savedDrafts: state.savedDrafts.filter(m => !isWithinRange(m.updatedAt)),
       projects: state.projects.filter(p => !isWithinRange(p.createdAt)),
     });
 

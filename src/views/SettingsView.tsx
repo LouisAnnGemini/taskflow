@@ -512,7 +512,7 @@ export function SettingsView() {
       notifications: state.notifications,
       customFieldDefinitions: state.customFieldDefinitions,
       fieldOrder: state.fieldOrder,
-      memos: state.memos,
+      savedDrafts: state.savedDrafts,
       projects: state.projects,
     };
     

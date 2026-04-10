@@ -169,7 +169,7 @@ export function LifeWorkspace() {
             <span className="text-2xl font-bold tracking-tight text-emerald-900 font-handwriting italic">LifeFlow</span>
           </div>
           
-          <div className="flex bg-orange-100/50 p-1 rounded-xl">
+          <div className="hidden md:flex bg-orange-100/50 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab('tasks')}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'tasks' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
@@ -205,7 +205,7 @@ export function LifeWorkspace() {
               <ChevronLeft size={18} />
             </button>
             <div 
-              className="relative flex items-center px-2 cursor-pointer"
+              className="relative flex items-center px-1 sm:px-2 cursor-pointer"
               onClick={() => {
                 try {
                   if (dateInputRef.current && 'showPicker' in dateInputRef.current) {
@@ -216,8 +216,13 @@ export function LifeWorkspace() {
                 }
               }}
             >
-              <span className="text-sm font-medium text-emerald-600 min-w-[110px] text-center pointer-events-none relative z-10">
-                {isSameDay(selectedDate, new Date()) ? '今天' : format(selectedDate, 'yyyy年MM月dd日')}
+              <span className="text-sm font-medium text-emerald-600 min-w-[70px] sm:min-w-[110px] text-center pointer-events-none relative z-10">
+                {isSameDay(selectedDate, new Date()) ? '今天' : (
+                  <>
+                    <span className="hidden sm:inline">{format(selectedDate, 'yyyy年')}</span>
+                    {format(selectedDate, 'MM月dd日')}
+                  </>
+                )}
               </span>
               <input 
                 ref={dateInputRef}
@@ -243,7 +248,7 @@ export function LifeWorkspace() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
         {activeTab === 'habits' ? (
           <section>
             <div className="flex items-center justify-between mb-6">
@@ -261,44 +266,48 @@ export function LifeWorkspace() {
             </div>
 
             {isManagingHabits && (
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-200 mb-6 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-slate-700">管理习惯模板</h3>
-                  <button onClick={() => setIsManagingHabits(false)} className="text-slate-400 hover:text-slate-600">
-                    <X size={20} />
-                  </button>
-                </div>
-                <form onSubmit={handleAddHabit} className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    value={newHabitName}
-                    onChange={(e) => setNewHabitName(e.target.value)}
-                    placeholder="输入新习惯名称..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={!newHabitName.trim()}
-                    className="bg-emerald-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-600 disabled:opacity-50"
-                  >
-                    添加
-                  </button>
-                </form>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {habits.map(habit => (
-                    <div key={habit.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
-                      <span className="font-medium text-slate-700">{habit.name}</span>
+              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+                <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh] animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between p-6 border-b border-emerald-100">
+                    <h3 className="font-bold text-slate-700 text-lg">管理习惯模板</h3>
+                    <button onClick={() => setIsManagingHabits(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="p-6 flex-1 overflow-y-auto">
+                    <form onSubmit={handleAddHabit} className="flex gap-2 mb-6">
+                      <input
+                        type="text"
+                        value={newHabitName}
+                        onChange={(e) => setNewHabitName(e.target.value)}
+                        placeholder="输入新习惯名称..."
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
                       <button 
-                        onClick={() => deleteHabit(habit.id)}
-                        className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        type="submit"
+                        disabled={!newHabitName.trim()}
+                        className="bg-emerald-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-600 disabled:opacity-50"
                       >
-                        <Trash2 size={18} />
+                        添加
                       </button>
+                    </form>
+                    <div className="space-y-2">
+                      {habits.map(habit => (
+                        <div key={habit.id} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 rounded-xl group transition-colors">
+                          <span className="font-medium text-slate-700">{habit.name}</span>
+                          <button 
+                            onClick={() => deleteHabit(habit.id)}
+                            className="text-slate-400 hover:text-red-500 sm:opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                      {habits.length === 0 && (
+                        <div className="text-center text-slate-400 py-8 text-sm">还没有习惯模板</div>
+                      )}
                     </div>
-                  ))}
-                  {habits.length === 0 && (
-                    <div className="text-center text-slate-400 py-4 text-sm">还没有习惯模板</div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
@@ -366,32 +375,34 @@ export function LifeWorkspace() {
             
             <div className="bg-white rounded-3xl shadow-sm border border-emerald-100 overflow-hidden">
               <div className="p-4 border-b border-emerald-50 bg-emerald-50/30">
-                <form onSubmit={handleAddTask} className="flex gap-2">
+                <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row gap-2">
                   <select 
                     value={selectedCategoryId}
                     onChange={(e) => setSelectedCategoryId(e.target.value)}
-                    className="bg-white border border-emerald-200 rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-slate-600"
+                    className="bg-white border border-emerald-200 rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-slate-600 w-full sm:w-auto"
                   >
                     <option value="">无分类</option>
                     {lifeCategories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
-                  <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="记录生活琐事..."
-                    className="flex-1 bg-white border border-emerald-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={!newTaskTitle.trim()}
-                    className="bg-emerald-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  >
-                    <Plus size={20} />
-                    <span className="hidden sm:inline">添加</span>
-                  </button>
+                  <div className="flex gap-2 flex-1">
+                    <input
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      placeholder="记录生活琐事..."
+                      className="flex-1 bg-white border border-emerald-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={!newTaskTitle.trim()}
+                      className="bg-emerald-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Plus size={20} />
+                      <span className="hidden sm:inline">添加</span>
+                    </button>
+                  </div>
                 </form>
               </div>
 
@@ -490,28 +501,28 @@ export function LifeWorkspace() {
           </section>
         ) : activeTab === 'calendar' ? (
           <section>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-2">
                 <CalendarDays className="text-emerald-500" size={24} />
                 <h2 className="text-2xl font-bold text-slate-800">日历回顾</h2>
               </div>
-              <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-emerald-100">
-                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-slate-400 hover:text-emerald-600">
+              <div className="flex items-center justify-between sm:justify-start gap-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-emerald-100">
+                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-slate-400 hover:text-emerald-600 p-1">
                   <ChevronLeft size={20} />
                 </button>
                 <span className="font-medium text-slate-700 min-w-[100px] text-center">
                   {format(currentMonth, 'yyyy年 MM月')}
                 </span>
-                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-slate-400 hover:text-emerald-600">
+                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-slate-400 hover:text-emerald-600 p-1">
                   <ChevronRight size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-emerald-100">
-              <div className="grid grid-cols-7 border-b border-emerald-50 bg-emerald-50/30 rounded-t-3xl">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-100 overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-emerald-50 bg-emerald-50/30">
                 {['一', '二', '三', '四', '五', '六', '日'].map(day => (
-                  <div key={day} className="py-3 text-center text-sm font-medium text-emerald-700">
+                  <div key={day} className="py-2 sm:py-3 text-center text-xs sm:text-sm font-medium text-emerald-700">
                     {day}
                   </div>
                 ))}
@@ -549,29 +560,29 @@ export function LifeWorkspace() {
                         setSelectedDate(day);
                         setActiveTab('tasks');
                       }}
-                      className={`min-h-[100px] p-2 border-b border-r border-emerald-50 cursor-pointer transition-colors hover:bg-emerald-50/50 group relative hover:z-50 ${!isCurrentMonth ? 'bg-slate-50/50' : ''} ${i % 7 === 6 ? 'border-r-0' : ''} ${isLastRow ? 'border-b-0' : ''} ${isBottomLeft ? 'rounded-bl-3xl' : ''} ${isBottomRight ? 'rounded-br-3xl' : ''}`}
+                      className={`min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border-b border-r border-emerald-50 cursor-pointer transition-colors hover:bg-emerald-50/50 group relative hover:z-50 ${!isCurrentMonth ? 'bg-slate-50/50' : ''} ${i % 7 === 6 ? 'border-r-0' : ''} ${isLastRow ? 'border-b-0' : ''}`}
                     >
-                      <div className={`text-right text-sm mb-2 ${isToday ? 'font-bold text-emerald-600' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400'}`}>
-                        {isToday ? <span className="bg-emerald-100 px-2 py-0.5 rounded-full">今天</span> : format(day, 'd')}
+                      <div className={`text-center sm:text-right text-xs sm:text-sm mb-1 sm:mb-2 ${isToday ? 'font-bold text-emerald-600' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {isToday ? <span className="bg-emerald-100 px-1.5 sm:px-2 py-0.5 rounded-full">今</span> : format(day, 'd')}
                       </div>
                       
-                      <div className="space-y-1">
+                      <div className="space-y-0.5 sm:space-y-1 flex flex-col items-center sm:items-stretch">
                         {pendingTasks.length > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
-                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                            <span>{pendingTasks.length} 待办</span>
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-[10px] sm:text-xs text-orange-600 bg-orange-50 px-1 sm:px-1.5 py-0.5 rounded w-full">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 hidden sm:block" />
+                            <span>{pendingTasks.length} <span className="hidden sm:inline">待办</span></span>
                           </div>
                         )}
                         {completedTasks.length > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            <Check size={10} />
-                            <span>{completedTasks.length} 完成</span>
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-[10px] sm:text-xs text-emerald-600 bg-emerald-50 px-1 sm:px-1.5 py-0.5 rounded w-full">
+                            <Check size={10} className="hidden sm:block" />
+                            <span>{completedTasks.length} <span className="hidden sm:inline">完成</span></span>
                           </div>
                         )}
                         {completedHabitsCount > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                            <Flame size={10} />
-                            <span>{completedHabitsCount} 习惯</span>
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-[10px] sm:text-xs text-blue-600 bg-blue-50 px-1 sm:px-1.5 py-0.5 rounded w-full">
+                            <Flame size={10} className="hidden sm:block" />
+                            <span>{completedHabitsCount} <span className="hidden sm:inline">习惯</span></span>
                           </div>
                         )}
                       </div>
@@ -703,6 +714,38 @@ export function LifeWorkspace() {
           onClose={() => setSelectedHabitForStats(null)} 
         />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-emerald-100 px-6 py-3 flex justify-between items-center z-40 pb-safe">
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className={`flex flex-col items-center gap-1 ${activeTab === 'tasks' ? 'text-emerald-600' : 'text-slate-400'}`}
+        >
+          <CalendarIcon size={24} />
+          <span className="text-[10px] font-medium">清单</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('habits')}
+          className={`flex flex-col items-center gap-1 ${activeTab === 'habits' ? 'text-emerald-600' : 'text-slate-400'}`}
+        >
+          <Flame size={24} />
+          <span className="text-[10px] font-medium">习惯</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`flex flex-col items-center gap-1 ${activeTab === 'calendar' ? 'text-emerald-600' : 'text-slate-400'}`}
+        >
+          <CalendarDays size={24} />
+          <span className="text-[10px] font-medium">日历</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('categories')}
+          className={`flex flex-col items-center gap-1 ${activeTab === 'categories' ? 'text-emerald-600' : 'text-slate-400'}`}
+        >
+          <Tag size={24} />
+          <span className="text-[10px] font-medium">分类</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -18,7 +18,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, changeTaskState, openTaskModal, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId, projects } = useTaskStore();
+  const { getTask, updateTask, deleteTask, users, columns, priorities, mediums, entities, currentUser, getSubtasks, activityLogs, addTask, updateActivityLog, deleteActivityLog, setActivityLogs, customFieldDefinitions, fieldOrder, addUser, addEntity, changeTaskState, openTaskModal, convertSubtaskToTask, relateTask, highlightedLogId, setHighlightedLogId, projects } = useTaskStore();
   const task = getTask(taskId);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -28,6 +28,34 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       scrollRef.current.scrollTop = 0;
     }
   }, [taskId]);
+
+  const handleAddUserWithEntity = (searchQuery: string, currentSelectedIds: string[], updateField: (ids: string[]) => void) => {
+    let userName = searchQuery;
+    let entityName = '';
+    
+    if (searchQuery.includes('-')) {
+      const parts = searchQuery.split('-');
+      userName = parts[0].trim();
+      entityName = parts.slice(1).join('-').trim();
+    }
+
+    const newUserId = nanoid();
+    let entityIds: string[] = [];
+
+    if (entityName) {
+      const existingEntity = entities.find(e => e.name.toLowerCase() === entityName.toLowerCase());
+      if (existingEntity) {
+        entityIds = [existingEntity.id];
+      } else {
+        const newEntityId = nanoid();
+        addEntity({ id: newEntityId, name: entityName });
+        entityIds = [newEntityId];
+      }
+    }
+
+    addUser({ id: newUserId, name: userName, entityIds: entityIds.length > 0 ? entityIds : undefined });
+    updateField([...currentSelectedIds, newUserId]);
+  };
 
   const [activeTab, setActiveTab] = useState<'details' | 'project' | 'graph' | 'logs'>('details');
 
@@ -57,6 +85,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const [isManagingLogs, setIsManagingLogs] = useState(false);
   const [tempLogs, setTempLogs] = useState<ActivityLog[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAllFields, setShowAllFields] = useState(() => window.innerWidth >= 1024);
 
   const [fieldSearchQueries, setFieldSearchQueries] = useState<Record<string, string>>({});
 
@@ -594,7 +623,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text"
-                placeholder="搜索成员..."
+                placeholder="搜索成员... (如: 张三-集团总部)"
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, assignees: e.target.value })}
                 onKeyDown={(e) => {
@@ -607,9 +636,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         : [...selectedIds, matchedUser.id];
                       handleUpdate({ assigneeIds: newAssignees });
                     } else {
-                      const newId = nanoid();
-                      addUser({ id: newId, name: searchQuery });
-                      handleUpdate({ assigneeIds: [...selectedIds, newId] });
+                      handleAddUserWithEntity(searchQuery, selectedIds, (ids) => handleUpdate({ assigneeIds: ids }));
                     }
                     setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
                   }
@@ -648,9 +675,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                     <button
                       onClick={() => {
-                        const newId = nanoid();
-                        addUser({ id: newId, name: searchQuery });
-                        handleUpdate({ assigneeIds: [...selectedIds, newId] });
+                        handleAddUserWithEntity(searchQuery, selectedIds, (ids) => handleUpdate({ assigneeIds: ids }));
                         setFieldSearchQueries({ ...fieldSearchQueries, assignees: '' });
                       }}
                       className="w-full text-left px-3 py-2.5 text-xs text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2 border-t border-slate-100"
@@ -698,7 +723,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text"
-                placeholder="搜索成员..."
+                placeholder="搜索成员... (如: 张三-集团总部)"
                 value={searchQuery}
                 onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, reporters: e.target.value })}
                 onKeyDown={(e) => {
@@ -711,9 +736,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         : [...selectedIds, matchedUser.id];
                       handleUpdate({ reporterIds: newReporters });
                     } else {
-                      const newId = nanoid();
-                      addUser({ id: newId, name: searchQuery });
-                      handleUpdate({ reporterIds: [...selectedIds, newId] });
+                      handleAddUserWithEntity(searchQuery, selectedIds, (ids) => handleUpdate({ reporterIds: ids }));
                     }
                     setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
                   }
@@ -752,9 +775,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                     <button
                       onClick={() => {
-                        const newId = nanoid();
-                        addUser({ id: newId, name: searchQuery });
-                        handleUpdate({ reporterIds: [...selectedIds, newId] });
+                        handleAddUserWithEntity(searchQuery, selectedIds, (ids) => handleUpdate({ reporterIds: ids }));
                         setFieldSearchQueries({ ...fieldSearchQueries, reporters: '' });
                       }}
                       className="w-full text-left px-3 py-2.5 text-xs text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2 border-t border-slate-100"
@@ -922,7 +943,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
                     type="text"
-                    placeholder="搜索其他成员..."
+                    placeholder="搜索其他成员... (如: 张三-集团总部)"
                     value={searchQuery}
                     onChange={(e) => setFieldSearchQueries({ ...fieldSearchQueries, delegated: e.target.value })}
                     onKeyDown={(e) => {
@@ -935,9 +956,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                             : [...selectedIds, matchedUser.id];
                           handleUpdate({ delegatedToIds: newDelegated });
                         } else {
-                          const newId = nanoid();
-                          addUser({ id: newId, name: searchQuery });
-                          handleUpdate({ delegatedToIds: [...selectedIds, newId] });
+                          handleAddUserWithEntity(searchQuery, selectedIds, (ids) => handleUpdate({ delegatedToIds: ids }));
                         }
                         setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
                       }
@@ -973,9 +992,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       {others.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                         <button
                           onClick={() => {
-                            const newId = nanoid();
-                            addUser({ id: newId, name: searchQuery });
-                            handleUpdate({ delegatedToIds: [...selectedIds, newId] });
+                            handleAddUserWithEntity(searchQuery, selectedIds, (ids) => handleUpdate({ delegatedToIds: ids }));
                             setFieldSearchQueries({ ...fieldSearchQueries, delegated: '' });
                           }}
                           className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium flex items-center gap-2"
@@ -1103,11 +1120,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 md:p-6"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 md:p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-white sm:rounded-2xl shadow-2xl w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200"
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full h-[90vh] sm:h-auto sm:max-w-5xl sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:fade-in sm:zoom-in-95 duration-200 border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -1337,8 +1354,17 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 <div className="space-y-6">
                   {fieldOrder.map(config => {
                     if (config.id === 'title' || config.id === 'description') return null;
+                    const primaryFields = ['state', 'assigneeIds', 'priority', 'dueDate'];
+                    if (!showAllFields && !primaryFields.includes(config.id)) return null;
                     return renderField(config);
                   })}
+                  
+                  <button 
+                    className="lg:hidden w-full py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                    onClick={() => setShowAllFields(!showAllFields)}
+                  >
+                    {showAllFields ? '收起更多字段' : '显示更多字段'}
+                  </button>
                 </div>
               </div>
             </>

@@ -109,16 +109,16 @@ export function HabitStatsModal({ habit, tasks, onClose }: HabitStatsModalProps)
   }, [stats.uniqueDoneDates]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] border border-emerald-100">
-        <div className="p-6 border-b border-emerald-100 flex items-center justify-between bg-emerald-50/50">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white text-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-emerald-100">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh] border border-emerald-100 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+        <div className="p-4 sm:p-6 border-b border-emerald-100 flex items-center justify-between bg-emerald-50/50">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white text-emerald-500 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-sm border border-emerald-100">
               {habit.icon || '🌟'}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">{habit.name}</h2>
-              <p className="text-emerald-600 font-medium text-sm mt-0.5">习惯数据报表</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">{habit.name}</h2>
+              <p className="text-emerald-600 font-medium text-xs sm:text-sm mt-0.5">习惯数据报表</p>
             </div>
           </div>
           <button 
@@ -129,63 +129,63 @@ export function HabitStatsModal({ habit, tasks, onClose }: HabitStatsModalProps)
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 space-y-8 bg-white">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 sm:space-y-8 bg-white">
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-orange-50/80 p-5 rounded-3xl border border-orange-100/50">
-              <div className="flex items-center gap-2 text-orange-600 mb-3">
-                <Flame size={20} />
-                <span className="font-medium text-sm">当前连击</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-orange-50/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-orange-100/50">
+              <div className="flex items-center gap-2 text-orange-600 mb-2 sm:mb-3">
+                <Flame size={18} className="sm:w-5 sm:h-5" />
+                <span className="font-medium text-xs sm:text-sm">当前连击</span>
               </div>
-              <div className="text-4xl font-bold text-slate-800">{stats.currentStreak} <span className="text-base font-normal text-slate-500">天</span></div>
+              <div className="text-3xl sm:text-4xl font-bold text-slate-800">{stats.currentStreak} <span className="text-sm sm:text-base font-normal text-slate-500">天</span></div>
             </div>
             
-            <div className="bg-amber-50/80 p-5 rounded-3xl border border-amber-100/50">
-              <div className="flex items-center gap-2 text-amber-600 mb-3">
-                <Trophy size={20} />
-                <span className="font-medium text-sm">最长连击</span>
+            <div className="bg-amber-50/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100/50">
+              <div className="flex items-center gap-2 text-amber-600 mb-2 sm:mb-3">
+                <Trophy size={18} className="sm:w-5 sm:h-5" />
+                <span className="font-medium text-xs sm:text-sm">最长连击</span>
               </div>
-              <div className="text-4xl font-bold text-slate-800">{stats.longestStreak} <span className="text-base font-normal text-slate-500">天</span></div>
+              <div className="text-3xl sm:text-4xl font-bold text-slate-800">{stats.longestStreak} <span className="text-sm sm:text-base font-normal text-slate-500">天</span></div>
             </div>
 
-            <div className="bg-emerald-50/80 p-5 rounded-3xl border border-emerald-100/50">
-              <div className="flex items-center gap-2 text-emerald-600 mb-3">
-                <Target size={20} />
-                <span className="font-medium text-sm">总计打卡</span>
+            <div className="bg-emerald-50/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-100/50">
+              <div className="flex items-center gap-2 text-emerald-600 mb-2 sm:mb-3">
+                <Target size={18} className="sm:w-5 sm:h-5" />
+                <span className="font-medium text-xs sm:text-sm">总计打卡</span>
               </div>
-              <div className="text-4xl font-bold text-slate-800">{stats.total} <span className="text-base font-normal text-slate-500">次</span></div>
+              <div className="text-3xl sm:text-4xl font-bold text-slate-800">{stats.total} <span className="text-sm sm:text-base font-normal text-slate-500">次</span></div>
             </div>
 
-            <div className="bg-blue-50/80 p-5 rounded-3xl border border-blue-100/50">
-              <div className="flex items-center gap-2 text-blue-600 mb-3">
-                <CalendarIcon size={20} />
-                <span className="font-medium text-sm">近30天完成率</span>
+            <div className="bg-blue-50/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-blue-100/50">
+              <div className="flex items-center gap-2 text-blue-600 mb-2 sm:mb-3">
+                <CalendarIcon size={18} className="sm:w-5 sm:h-5" />
+                <span className="font-medium text-xs sm:text-sm">近30天</span>
               </div>
-              <div className="text-4xl font-bold text-slate-800">{stats.completionRate30}<span className="text-base font-normal text-slate-500">%</span></div>
+              <div className="text-3xl sm:text-4xl font-bold text-slate-800">{stats.completionRate30}<span className="text-sm sm:text-base font-normal text-slate-500">%</span></div>
             </div>
           </div>
 
           {/* Heatmap */}
           <div>
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Activity size={22} className="text-emerald-500" />
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+              <Activity size={20} className="text-emerald-500 sm:w-[22px] sm:h-[22px]" />
               年度打卡热力图 ({new Date().getFullYear()}年)
             </h3>
-            <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 overflow-x-auto">
-              <div className="min-w-[800px]">
-                <div className="flex gap-2 mb-2 text-xs text-slate-400 font-medium">
-                  <div className="w-8 text-right pr-2 flex flex-col justify-between h-[116px] py-1">
+            <div className="bg-slate-50/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-100 overflow-x-auto">
+              <div className="min-w-[700px] sm:min-w-[800px]">
+                <div className="flex gap-2 mb-2 text-[10px] sm:text-xs text-slate-400 font-medium">
+                  <div className="w-6 sm:w-8 text-right pr-1 sm:pr-2 flex flex-col justify-between h-[96px] sm:h-[116px] py-1">
                     <span>一</span>
                     <span>三</span>
                     <span>五</span>
                     <span>日</span>
                   </div>
-                  <div className="grid grid-rows-7 grid-flow-col gap-1.5 flex-1">
+                  <div className="grid grid-rows-7 grid-flow-col gap-1 sm:gap-1.5 flex-1">
                     {heatmapData.map((day, i) => (
                       <div 
                         key={i}
                         title={day.date ? `${format(day.date, 'yyyy年MM月dd日')} ${day.isFuture ? '未到' : day.isDone ? '已打卡' : '未打卡'}` : undefined}
-                        className={`w-3.5 h-3.5 rounded-sm ${
+                        className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-sm ${
                           !day.date ? 'bg-transparent' :
                           day.isDone ? 'bg-emerald-400 shadow-sm' : 
                           day.isFuture ? 'bg-slate-100' : 'bg-slate-200/70'
@@ -194,7 +194,7 @@ export function HabitStatsModal({ habit, tasks, onClose }: HabitStatsModalProps)
                     ))}
                   </div>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400 mt-4 px-10 font-medium">
+                <div className="flex justify-between text-[10px] sm:text-xs text-slate-400 mt-3 sm:mt-4 px-8 sm:px-10 font-medium">
                   <span>1月</span>
                   <span>6月</span>
                   <span>12月</span>

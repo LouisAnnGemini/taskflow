@@ -3,12 +3,13 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskState } from '../types/task';
 import { TaskCard } from '../components/TaskCard';
-import { Eye, EyeOff, Settings2, Check } from 'lucide-react';
+import { Eye, EyeOff, Settings2, Check, List, LayoutGrid } from 'lucide-react';
 
 export function KanbanView() {
   const { tasks: allTasks, columns, changeTaskState, currentUser, updateColumn, setCurrentView, setSearchStateFilter, kanbanProjectFilter, setKanbanProjectFilter, kanbanShowSubtasks, setKanbanShowSubtasks } = useTaskStore();
   const tasks = allTasks.filter(t => t.category !== 'life');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isListMode, setIsListMode] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -88,9 +89,22 @@ export function KanbanView() {
           </div>
         </div>
 
-        <div className="relative">
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
+        <div className="flex items-center gap-2">
+          <div className="md:hidden flex items-center bg-slate-100 p-1 rounded-lg mr-1">
+            <button
+              onClick={() => setIsListMode(!isListMode)}
+              className={`p-1.5 rounded-md transition-all ${
+                isListMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+              title={isListMode ? "切换为看板模式" : "切换为列表模式"}
+            >
+              {isListMode ? <LayoutGrid size={16} /> : <List size={16} />}
+            </button>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
           >
             <Settings2 size={16} />
@@ -128,9 +142,14 @@ export function KanbanView() {
           )}
         </div>
       </div>
+    </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 md:gap-6 overflow-x-auto pb-8 snap-x snap-mandatory md:snap-none px-4 md:px-0 -mx-4 md:mx-0">
+        <div className={
+          isListMode 
+            ? "flex flex-col gap-6 pb-8" 
+            : "flex gap-4 md:gap-6 overflow-x-auto pb-8 snap-x snap-mandatory md:snap-none px-4 md:px-0 -mx-4 md:mx-0"
+        }>
           {visibleColumns.map((column) => {
             const columnTasks = tasksByColumn[column.id] || [];
             
@@ -138,7 +157,11 @@ export function KanbanView() {
             const hasMore = columnTasks.length > 10;
 
             return (
-                <div key={column.id} className="flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none">
+                <div key={column.id} className={
+                  isListMode
+                    ? "flex flex-col w-full shrink-0"
+                    : "flex flex-col w-[85vw] sm:w-80 shrink-0 snap-center md:snap-align-none"
+                }>
                   <div className="flex items-center justify-between mb-3 px-2">
                     <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
                       {column.icon && <span>{column.icon}</span>}
@@ -160,7 +183,6 @@ export function KanbanView() {
                       >
                         <div className="flex flex-col gap-3">
                         {displayedTasks.map((task, index) => (
-                          // @ts-expect-error key prop is required by React but missing in types
                           <Draggable key={task.id} draggableId={task.id} index={index}>
                             {(provided, snapshot) => (
                               <div

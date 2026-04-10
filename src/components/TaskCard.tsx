@@ -216,7 +216,7 @@ export function TaskCard({ task, onClick, selectable, isSelected, onSelect }: Ta
               <Link size={12} /> {task.relatedTaskIds?.length}
             </div>
           )}
-          {task.isDelegated && <UserPlus size={16} className="text-indigo-500" title="已委派" />}
+          {task.isDelegated && <span title="已委派"><UserPlus size={16} className="text-indigo-500" /></span>}
           <div className="flex -space-x-2">
             {assignees.map(assignee => (
               <Avatar 

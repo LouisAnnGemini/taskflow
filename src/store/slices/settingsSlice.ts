@@ -5,7 +5,7 @@ export const createSettingsSlice: StateCreator<
   TaskStore,
   [['zustand/persist', unknown]],
   [],
-  Pick<TaskStore, 'users' | 'columns' | 'priorities' | 'mediums' | 'entities' | 'positions' | 'currentUser' | 'customFieldDefinitions' | 'fieldOrder' | 'navItemsConfig' | 'habits' | 'lifeCategories' | 'addUser' | 'updateUser' | 'deleteUser' | 'addColumn' | 'updateColumn' | 'deleteColumn' | 'addPriority' | 'updatePriority' | 'deletePriority' | 'addMedium' | 'updateMedium' | 'deleteMedium' | 'setMediums' | 'addEntity' | 'updateEntity' | 'deleteEntity' | 'addPosition' | 'updatePosition' | 'deletePosition' | 'addCustomFieldDefinition' | 'updateCustomFieldDefinition' | 'deleteCustomFieldDefinition' | 'setFieldOrder' | 'setNavItemsConfig' | 'addHabit' | 'updateHabit' | 'deleteHabit' | 'addLifeCategory' | 'updateLifeCategory' | 'deleteLifeCategory'>
+  Pick<TaskStore, 'users' | 'columns' | 'priorities' | 'mediums' | 'entities' | 'positions' | 'currentUser' | 'customFieldDefinitions' | 'fieldOrder' | 'navItemsConfig' | 'dashboardWidgets' | 'habits' | 'lifeCategories' | 'addUser' | 'updateUser' | 'deleteUser' | 'addColumn' | 'updateColumn' | 'deleteColumn' | 'addPriority' | 'updatePriority' | 'deletePriority' | 'addMedium' | 'updateMedium' | 'deleteMedium' | 'setMediums' | 'addEntity' | 'updateEntity' | 'deleteEntity' | 'addPosition' | 'updatePosition' | 'deletePosition' | 'addCustomFieldDefinition' | 'updateCustomFieldDefinition' | 'deleteCustomFieldDefinition' | 'setFieldOrder' | 'setNavItemsConfig' | 'updateDashboardWidgets' | 'addHabit' | 'updateHabit' | 'deleteHabit' | 'addLifeCategory' | 'updateLifeCategory' | 'deleteLifeCategory'>
 > = (set) => ({
   users: [],
   columns: [],
@@ -17,6 +17,13 @@ export const createSettingsSlice: StateCreator<
   customFieldDefinitions: [],
   fieldOrder: [],
   navItemsConfig: [],
+  dashboardWidgets: [
+    { id: 'planned', type: 'planned', title: '计划', isVisible: true, order: 0 },
+    { id: 'pinned', type: 'pinned', title: '置顶任务', isVisible: true, order: 1 },
+    { id: 'today', type: 'today', title: '今日待办', isVisible: true, order: 2 },
+    { id: 'review', type: 'review', title: '待我审核', isVisible: true, order: 3 },
+    { id: 'delegated', type: 'delegated', title: '我委派的', isVisible: true, order: 4 },
+  ],
   habits: [],
   lifeCategories: [],
   
@@ -87,6 +94,7 @@ export const createSettingsSlice: StateCreator<
   setFieldOrder: (order) => set({ fieldOrder: order }),
   
   setNavItemsConfig: (config) => set({ navItemsConfig: config }),
+  updateDashboardWidgets: (widgets) => set({ dashboardWidgets: widgets }),
   
   addHabit: (habit) => set((state) => ({ habits: [...state.habits, habit] })),
   updateHabit: (id, updates) => set((state) => ({

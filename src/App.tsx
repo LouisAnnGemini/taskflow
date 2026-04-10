@@ -10,9 +10,10 @@ import { MemosView } from './views/MemosView';
 import { Avatar } from './components/Avatar';
 import { NotificationDropdown } from './components/NotificationDropdown';
 import { ToastContainer, useToast } from './components/Toast';
-import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2, GitMerge, CheckCircle2, AlertCircle, CloudOff } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CalendarDays, Search, Settings, Bell, StickyNote, CloudUpload, Loader2, GitMerge, CheckCircle2, AlertCircle, CloudOff, Plus, X } from 'lucide-react';
 import { useTaskStore } from './store/useTaskStore';
 import { ProjectView } from './views/ProjectView';
+import { QuickMemoWidget } from './components/QuickMemoWidget';
 
 import { LifeWorkspace } from './views/LifeWorkspace';
 
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
 export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showMobileQuickCapture, setShowMobileQuickCapture] = useState(false);
   const { 
     currentUser, 
     notifications, 
@@ -51,6 +53,7 @@ export default function App() {
     .filter(Boolean) as typeof NAV_ITEMS;
 
   React.useEffect(() => {
+    useTaskStore.getState().migrateMemos();
     checkExpiringTasks();
 
     const handleRemoteSync = (event: CustomEvent) => {
@@ -251,8 +254,8 @@ export default function App() {
 
       {/* Main Content */}
       <main className={`flex-1 mx-auto w-full ${currentView === 'projects' ? 'px-0 py-0 md:px-6 md:py-8' : 'px-4 sm:px-6 lg:px-8 py-4 md:py-8'} ${currentView === 'kanban' || currentView === 'calendar' || currentView === 'projects' ? 'max-w-none' : 'max-w-7xl'}`}>
-        {currentView !== 'search' && currentView !== 'calendar' && currentView !== 'projects' && (
-          <div className="max-w-7xl mx-auto w-full">
+        {currentView !== 'search' && currentView !== 'calendar' && currentView !== 'projects' && currentView !== 'dashboard' && (
+          <div className="hidden md:block max-w-7xl mx-auto w-full">
             <QuickCapture />
           </div>
         )}
@@ -261,6 +264,32 @@ export default function App() {
           {renderView()}
         </div>
       </main>
+
+      {/* Mobile FAB for Quick Capture */}
+      <button
+        onClick={() => setShowMobileQuickCapture(true)}
+        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40"
+      >
+        <Plus size={24} />
+      </button>
+
+      {/* Mobile Quick Capture Modal */}
+      {showMobileQuickCapture && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" onClick={() => setShowMobileQuickCapture(false)} />
+          <div className="relative bg-slate-50 rounded-t-2xl shadow-2xl p-4 pb-8 animate-in slide-in-from-bottom-full duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">快速记录</h3>
+              <button onClick={() => setShowMobileQuickCapture(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div>
+              <QuickCapture onCapture={() => setShowMobileQuickCapture(false)} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation (Mobile) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 px-2 py-2 flex justify-around items-center safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -282,6 +311,7 @@ export default function App() {
         ))}
       </nav>
 
+      <QuickMemoWidget />
       <ModalStack />
     </div>
   );

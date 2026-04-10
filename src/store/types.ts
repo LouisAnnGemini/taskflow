@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, Memo, EntityOption, PositionOption, Project, NavItemConfig, TaskUpdate, ProjectUpdate, ModalState, ConfirmationModalConfig, Habit, LifeCategory } from '../types/task';
+import { Task, TaskState, ActivityLog, User, PriorityOption, MediumOption, Recurrence, Column, Notification, CustomFieldDefinition, FieldConfig, MemoSession, MemoMessage, EntityOption, PositionOption, Project, NavItemConfig, DashboardWidgetConfig, TaskUpdate, ProjectUpdate, ModalState, ConfirmationModalConfig, Habit, LifeCategory } from '../types/task';
 
 export interface TaskSlice {
   tasks: Task[];
@@ -62,6 +62,7 @@ export interface SettingsSlice {
   customFieldDefinitions: CustomFieldDefinition[];
   fieldOrder: FieldConfig[];
   navItemsConfig: NavItemConfig[];
+  dashboardWidgets: DashboardWidgetConfig[];
   habits: Habit[];
   lifeCategories: LifeCategory[];
   
@@ -89,6 +90,7 @@ export interface SettingsSlice {
   deleteCustomFieldDefinition: (id: string) => void;
   setFieldOrder: (order: FieldConfig[]) => void;
   setNavItemsConfig: (config: NavItemConfig[]) => void;
+  updateDashboardWidgets: (widgets: DashboardWidgetConfig[]) => void;
   addHabit: (habit: Habit) => void;
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
@@ -100,7 +102,12 @@ export interface SettingsSlice {
 export interface DataSlice {
   activityLogs: ActivityLog[];
   notifications: Notification[];
-  memos: Memo[];
+  
+  // Memo Session State
+  currentSessionMessages: MemoMessage[];
+  currentDraftId: string | null;
+  savedDrafts: MemoSession[];
+  
   supabaseConfig: { url: string; anonKey: string };
   lastCloudSyncTimestamp: number | null;
   
@@ -114,9 +121,21 @@ export interface DataSlice {
   markAllNotificationsAsRead: () => void;
   clearNotifications: () => void;
   
-  addMemo: (content: string) => void;
-  updateMemo: (id: string, content: string) => void;
-  deleteMemo: (id: string) => void;
+  // Memo Actions
+  addMemoMessage: (content: string, index?: number, mentions?: string[]) => void;
+  updateMemoMessage: (id: string, content: string, mentions?: string[]) => void;
+  deleteMemoMessage: (id: string) => void;
+  saveMemoDraft: (title?: string) => void;
+  updateMemoDraft: () => void;
+  loadMemoDraft: (draftId: string) => void;
+  clearMemoSession: () => void;
+  deleteMemoDraft: (draftId: string) => void;
+  renameMemoDraft: (draftId: string, newTitle: string) => void;
+  openDailyQuickMemo: () => void;
+  
+  // Backward compatibility
+  memos?: any[];
+  migrateMemos: () => void;
   
   setSupabaseConfig: (config: { url: string; anonKey: string }) => void;
   saveVersionToCloud: () => Promise<void>;

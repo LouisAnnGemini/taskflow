@@ -52,6 +52,22 @@ export interface NavItemConfig {
   isVisible: boolean;
 }
 
+export interface DashboardWidgetConfig {
+  id: string;
+  type: 'planned' | 'pinned' | 'today' | 'review' | 'delegated' | 'custom';
+  title: string;
+  isVisible: boolean;
+  order: number;
+  filterRule?: {
+    state?: string[];
+    priority?: string[];
+    assigneeIds?: string[];
+    creatorId?: string[];
+    isOverdue?: boolean;
+    daysToDue?: number;
+  };
+}
+
 export interface FieldConfig {
   id: string;
   name: string;
@@ -161,10 +177,17 @@ export interface Notification {
   taskId?: string;
 }
 
-export interface Memo {
+export interface MemoMessage {
   id: string;
   content: string;
-  createdAt: string;
+  timestamp: string;
+  mentions?: string[];
+}
+
+export interface MemoSession {
+  id: string;
+  title: string;
+  messages: MemoMessage[];
   updatedAt: string;
 }
 

@@ -661,7 +661,7 @@ export function ProjectView() {
     return (
       <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)] flex flex-col bg-[#f8fafc] md:rounded-xl md:shadow-sm md:border border-slate-200 overflow-hidden">
         {/* Grid Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-b border-slate-200 bg-white gap-4">
           <div className="hidden md:flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
               <LayoutGrid className="text-white" size={24} />
@@ -672,47 +672,58 @@ export function ProjectView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                type="text"
-                placeholder="搜索项目..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-1.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 w-48 transition-all"
-              />
-            </div>
-            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-none">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="搜索项目..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-4 py-1.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 w-full sm:w-48 transition-all"
+                />
+              </div>
               <button
-                onClick={() => setShowArchived(false)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  !showArchived 
-                    ? 'bg-white text-slate-900 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                onClick={() => setIsCreatingProject(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 sm:hidden"
               >
-                活跃项目
-              </button>
-              <button
-                onClick={() => setShowArchived(true)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  showArchived 
-                    ? 'bg-white text-slate-900 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                已归档
+                <Plus size={18} />
               </button>
             </div>
-            
-            <button
-              onClick={() => setIsCreatingProject(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-            >
-              <Plus size={18} />
-              新建项目
-            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex flex-1 sm:flex-none bg-slate-100 p-1 rounded-lg border border-slate-200">
+                <button
+                  onClick={() => setShowArchived(false)}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    !showArchived 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  活跃
+                </button>
+                <button
+                  onClick={() => setShowArchived(true)}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    showArchived 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  归档
+                </button>
+              </div>
+              
+              <button
+                onClick={() => setIsCreatingProject(true)}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+              >
+                <Plus size={18} />
+                新建项目
+              </button>
+            </div>
           </div>
         </div>
 
